@@ -42,6 +42,9 @@ final class TextDirectiveParser implements InlineParserInterface, EnvironmentAwa
     /** @var WeakMap<object, int> Attempts per inline container (entries go with the parsed document) */
     private WeakMap $attempts;
 
+    /**
+     * Starts with no attempts recorded.
+     */
     public function __construct()
     {
         $this->attempts = new WeakMap();
