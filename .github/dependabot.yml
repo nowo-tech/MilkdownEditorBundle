@@ -57,3 +57,15 @@ updates:
       - "javascript"
     commit-message:
       prefix: "chore(deps):"
+    ignore:
+      # typescript-eslint supports TypeScript < 6.1: TypeScript 7 waits for it.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+    groups:
+      milkdown:
+        patterns:
+          - "@milkdown/*"
+      codemirror:
+        patterns:
+          - "@codemirror/*"
+          - "@lezer/*"
