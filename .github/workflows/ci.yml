@@ -96,6 +96,12 @@ jobs:
         if: ${{ !startsWith(matrix.symfony, '8.') }}
         run: composer config platform.php ${{ matrix.php }}
 
+      # Symfony 8.0 is end of maintenance: every 8.0.x release carries a security advisory, so Composer's audit blocks
+      # it. The cell still proves compatibility with the 8.0 API (composer.json allows ^8.0).
+      - name: Allow advisories on the end-of-life Symfony 8.0 cell
+        if: matrix.symfony == '8.0'
+        run: composer config audit.block-insecure false
+
       # The 8.0 cell stays on 8.0.x (`8.0.*`); the others take the latest minor of their major.
       - name: Install dependencies with Symfony ${{ matrix.symfony }}
         env:
@@ -117,6 +123,7 @@ jobs:
             --no-interaction --no-update
           ./.scripts/retry.sh -- composer update --with-all-dependencies --no-interaction --prefer-dist --no-progress
       - name: Composer audit (Critical/High)
+        if: matrix.symfony != '8.0'
         run: composer audit --locked
 
 

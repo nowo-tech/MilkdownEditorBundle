@@ -24,12 +24,26 @@ use const JSON_THROW_ON_ERROR;
 
 final class BundleTest extends TestCase
 {
+    private ?TestKernel $kernel = null;
+
+    protected function tearDown(): void
+    {
+        if ($this->kernel instanceof TestKernel) {
+            $this->kernel->shutdown();
+            // FrameworkBundle::boot() registers Symfony's exception handler; give PHPUnit its own back.
+            restore_exception_handler();
+        }
+        $this->kernel = null;
+        parent::tearDown();
+    }
+
     /**
      * @param array<string, mixed> $config
      */
     private function container(array $config = []): ContainerInterface
     {
-        $kernel = new TestKernel('test', false, $config);
+        $kernel       = new TestKernel('test', false, $config);
+        $this->kernel = $kernel;
         $kernel->boot();
         $container = $kernel->getContainer()->get('test.service_container');
         self::assertInstanceOf(ContainerInterface::class, $container);
