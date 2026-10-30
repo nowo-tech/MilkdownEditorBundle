@@ -1,0 +1,554 @@
+/*
+ * nowo-tech/milkdown-editor-bundle — editor and rendered-content styles.
+ * Theme through --nowo-milkdown-* tokens (light by default, dark with data-theme="dark", "auto" follows the
+ * colour scheme or a [data-theme] ancestor). Crepe's --crepe-* variables are mapped onto the tokens.
+ */
+@import '@milkdown/crepe/theme/common/prosemirror.css';
+@import '@milkdown/crepe/theme/common/reset.css';
+@import '@milkdown/crepe/theme/common/code-mirror.css';
+@import '@milkdown/crepe/theme/common/cursor.css';
+@import '@milkdown/crepe/theme/common/link-tooltip.css';
+@import '@milkdown/crepe/theme/common/placeholder.css';
+@import '@milkdown/crepe/theme/common/table.css';
+@import '@milkdown/crepe/theme/common/toolbar.css';
+@import '@milkdown/crepe/theme/common/top-bar.css';
+
+.nowo-milkdown,
+.nowo-md {
+  --nowo-milkdown-font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --nowo-milkdown-font-code: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --nowo-milkdown-font-size: 15px;
+  --nowo-milkdown-text: #0f1c18;
+  --nowo-milkdown-muted: #44524c;
+  --nowo-milkdown-background: #ffffff;
+  --nowo-milkdown-surface: #f5f8f6;
+  --nowo-milkdown-border: #b8c6be;
+  --nowo-milkdown-accent: #1f6f54;
+  --nowo-milkdown-accent-text: #134736;
+  --nowo-milkdown-accent-soft: #e2efe8;
+  --nowo-milkdown-focus: #1f6f54;
+  --nowo-milkdown-selection: rgb(31 111 84 / 18%);
+  --nowo-milkdown-info: #1d4ed8;
+  --nowo-milkdown-success: #15803d;
+  --nowo-milkdown-warning: #a16207;
+  --nowo-milkdown-danger: #b42318;
+  --nowo-milkdown-radius: 0.75rem;
+  --nowo-milkdown-radius-control: 0.375rem;
+  --nowo-milkdown-shadow: 0 8px 24px rgb(15 28 24 / 18%);
+  --nowo-milkdown-mark-yellow: #fef08a;
+  --nowo-milkdown-mark-green: #bbf7d0;
+  --nowo-milkdown-mark-blue: #bfdbfe;
+  --nowo-milkdown-mark-red: #fecaca;
+  --nowo-milkdown-mark-purple: #e9d5ff;
+  --nowo-milkdown-mark-gray: #e5e7eb;
+  --nowo-milkdown-mark-text: #0f1c18;
+  --nowo-milkdown-code-background: #f5f8f6;
+  --nowo-milkdown-code-text: #0f1c18;
+  --nowo-milkdown-code-keyword: #7c1d6f;
+  --nowo-milkdown-code-string: #1a5e20;
+  --nowo-milkdown-code-comment: #52605a;
+  --nowo-milkdown-code-number: #8a3c00;
+  --nowo-milkdown-code-function: #1e40af;
+  --nowo-milkdown-code-type: #6b2fa0;
+  --nowo-milkdown-code-property: #0f5669;
+  --nowo-milkdown-code-tag: #9d174d;
+  --nowo-milkdown-code-meta: #52605a;
+  --nowo-milkdown-code-invalid: #b42318;
+  --nowo-milkdown-min-height: 12rem;
+}
+
+.nowo-milkdown[data-theme='dark'],
+.nowo-md[data-theme='dark'],
+[data-theme='dark'] .nowo-milkdown[data-theme='auto'],
+[data-theme='dark'] .nowo-md:not([data-theme='light']) {
+  --nowo-milkdown-text: #e6eee9;
+  --nowo-milkdown-muted: #b3c2bb;
+  --nowo-milkdown-background: #151c19;
+  --nowo-milkdown-surface: #1c2622;
+  --nowo-milkdown-border: #3c4d46;
+  --nowo-milkdown-accent: #5cc195;
+  --nowo-milkdown-accent-text: #8fd9b6;
+  --nowo-milkdown-accent-soft: #20352c;
+  --nowo-milkdown-focus: #8fd9b6;
+  --nowo-milkdown-selection: rgb(92 193 149 / 25%);
+  --nowo-milkdown-info: #93c5fd;
+  --nowo-milkdown-success: #86efac;
+  --nowo-milkdown-warning: #fcd34d;
+  --nowo-milkdown-danger: #fca5a5;
+  --nowo-milkdown-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+  --nowo-milkdown-mark-yellow: #854d0e;
+  --nowo-milkdown-mark-green: #166534;
+  --nowo-milkdown-mark-blue: #1e40af;
+  --nowo-milkdown-mark-red: #991b1b;
+  --nowo-milkdown-mark-purple: #6b21a8;
+  --nowo-milkdown-mark-gray: #374151;
+  --nowo-milkdown-mark-text: #ffffff;
+  --nowo-milkdown-code-background: #1c2622;
+  --nowo-milkdown-code-text: #e6eee9;
+  --nowo-milkdown-code-keyword: #f0abfc;
+  --nowo-milkdown-code-string: #a7f3a0;
+  --nowo-milkdown-code-comment: #a9b8b1;
+  --nowo-milkdown-code-number: #fdba74;
+  --nowo-milkdown-code-function: #93c5fd;
+  --nowo-milkdown-code-type: #d8b4fe;
+  --nowo-milkdown-code-property: #67e8f9;
+  --nowo-milkdown-code-tag: #f9a8d4;
+  --nowo-milkdown-code-meta: #a9b8b1;
+  --nowo-milkdown-code-invalid: #fca5a5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .nowo-milkdown[data-theme='auto']:not([data-theme='light'] *) {
+    --nowo-milkdown-text: #e6eee9;
+    --nowo-milkdown-muted: #b3c2bb;
+    --nowo-milkdown-background: #151c19;
+    --nowo-milkdown-surface: #1c2622;
+    --nowo-milkdown-border: #3c4d46;
+    --nowo-milkdown-accent: #5cc195;
+    --nowo-milkdown-accent-text: #8fd9b6;
+    --nowo-milkdown-accent-soft: #20352c;
+    --nowo-milkdown-focus: #8fd9b6;
+    --nowo-milkdown-selection: rgb(92 193 149 / 25%);
+    --nowo-milkdown-info: #93c5fd;
+    --nowo-milkdown-success: #86efac;
+    --nowo-milkdown-warning: #fcd34d;
+    --nowo-milkdown-danger: #fca5a5;
+    --nowo-milkdown-mark-yellow: #854d0e;
+    --nowo-milkdown-mark-green: #166534;
+    --nowo-milkdown-mark-blue: #1e40af;
+    --nowo-milkdown-mark-red: #991b1b;
+    --nowo-milkdown-mark-purple: #6b21a8;
+    --nowo-milkdown-mark-gray: #374151;
+    --nowo-milkdown-mark-text: #ffffff;
+    --nowo-milkdown-code-background: #1c2622;
+    --nowo-milkdown-code-text: #e6eee9;
+    --nowo-milkdown-code-keyword: #f0abfc;
+    --nowo-milkdown-code-string: #a7f3a0;
+    --nowo-milkdown-code-comment: #a9b8b1;
+    --nowo-milkdown-code-number: #fdba74;
+    --nowo-milkdown-code-function: #93c5fd;
+    --nowo-milkdown-code-type: #d8b4fe;
+    --nowo-milkdown-code-property: #67e8f9;
+    --nowo-milkdown-code-tag: #f9a8d4;
+    --nowo-milkdown-code-meta: #a9b8b1;
+    --nowo-milkdown-code-invalid: #fca5a5;
+  }
+}
+
+/* Crepe LaTeX feature styles (KaTeX's own stylesheet and fonts load on demand from katex/) */
+.milkdown span[data-type='math_inline'] {
+    padding: 0 4px;
+    display: inline-block;
+    vertical-align: bottom;
+    color: var(--crepe-color-primary);
+  }
+
+.milkdown .milkdown-latex-inline-edit[data-show='false'] {
+      display: none;
+    }
+
+.milkdown .milkdown-latex-inline-edit{
+    position: absolute;
+    background: var(--crepe-color-surface);
+    box-shadow: var(--crepe-shadow-1);
+    border-radius: 8px;
+    padding: 2px 6px 2px 12px;
+}
+
+.milkdown .milkdown-latex-inline-edit .container {
+      display: flex;
+      gap: 6px;
+      align-items: flex-start;
+    }
+
+.milkdown .milkdown-latex-inline-edit .container button {
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        border-radius: 8px;
+      }
+
+.milkdown .milkdown-latex-inline-edit .container button:hover {
+          background: var(--crepe-color-hover);
+        }
+
+.milkdown .milkdown-latex-inline-edit .ProseMirror {
+      padding: 0;
+      min-width: 174px;
+      max-width: 294px;
+      font-family: var(--crepe-font-code);
+    }
+
+/* Widget chrome */
+.nowo-milkdown {
+  position: relative;
+  display: block;
+  color: var(--nowo-milkdown-text);
+  font: var(--nowo-milkdown-font-size) / 1.5 var(--nowo-milkdown-font);
+}
+.nowo-milkdown__surface {
+  background: var(--nowo-milkdown-background);
+  border: 1px solid var(--nowo-milkdown-border);
+  border-radius: var(--nowo-milkdown-radius);
+  overflow: hidden;
+}
+.nowo-milkdown__surface:focus-within {
+  outline: 2px solid var(--nowo-milkdown-focus);
+  outline-offset: 2px;
+}
+.nowo-milkdown__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.nowo-milkdown__action {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--nowo-milkdown-radius-control);
+  border: 1px solid var(--nowo-milkdown-border);
+  background: var(--nowo-milkdown-background);
+  color: var(--nowo-milkdown-text);
+  cursor: pointer;
+}
+.nowo-milkdown__status,
+.nowo-milkdown__alert {
+  font-size: 0.8125rem;
+  color: var(--nowo-milkdown-muted);
+  min-height: 0;
+}
+.nowo-milkdown__alert {
+  color: var(--nowo-milkdown-danger);
+}
+.nowo-milkdown__status:empty,
+.nowo-milkdown__alert:empty {
+  display: none;
+}
+.nowo-milkdown-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Crepe → tokens */
+.nowo-milkdown .milkdown {
+  --crepe-color-background: var(--nowo-milkdown-background);
+  --crepe-color-on-background: var(--nowo-milkdown-text);
+  --crepe-color-surface: var(--nowo-milkdown-surface);
+  --crepe-color-surface-low: var(--nowo-milkdown-surface);
+  --crepe-color-on-surface: var(--nowo-milkdown-text);
+  --crepe-color-on-surface-variant: var(--nowo-milkdown-muted);
+  --crepe-color-outline: var(--nowo-milkdown-border);
+  --crepe-color-primary: var(--nowo-milkdown-accent);
+  --crepe-color-secondary: var(--nowo-milkdown-accent-soft);
+  --crepe-color-on-secondary: var(--nowo-milkdown-text);
+  --crepe-color-inverse: var(--nowo-milkdown-text);
+  --crepe-color-on-inverse: var(--nowo-milkdown-background);
+  --crepe-color-inline-code: var(--nowo-milkdown-danger);
+  --crepe-color-error: var(--nowo-milkdown-danger);
+  --crepe-color-hover: var(--nowo-milkdown-accent-soft);
+  --crepe-color-selected: var(--nowo-milkdown-selection);
+  --crepe-color-inline-area: var(--nowo-milkdown-surface);
+  --crepe-font-title: var(--nowo-milkdown-font);
+  --crepe-font-default: var(--nowo-milkdown-font);
+  --crepe-font-code: var(--nowo-milkdown-font-code);
+  --crepe-shadow-1: var(--nowo-milkdown-shadow);
+  --crepe-shadow-2: var(--nowo-milkdown-shadow);
+  background: var(--nowo-milkdown-background);
+  color: var(--nowo-milkdown-text);
+}
+.nowo-milkdown .milkdown .ProseMirror {
+  min-height: var(--nowo-milkdown-min-height);
+  padding: 1.25rem 1.5rem;
+  outline: none;
+}
+.nowo-milkdown .milkdown .ProseMirror strong {
+  font-weight: 700;
+}
+.nowo-milkdown .milkdown .ProseMirror a {
+  color: var(--nowo-milkdown-accent-text);
+}
+.nowo-milkdown .milkdown .ProseMirror ul,
+.nowo-milkdown .milkdown .ProseMirror ol {
+  padding-left: 1.5rem;
+}
+.nowo-milkdown .milkdown .ProseMirror ul {
+  list-style: disc;
+}
+.nowo-milkdown .milkdown .ProseMirror ol {
+  list-style: decimal;
+}
+.nowo-milkdown .milkdown .ProseMirror li::marker {
+  color: var(--nowo-milkdown-text);
+}
+.nowo-milkdown .milkdown .cm-editor,
+.nowo-milkdown .milkdown .milkdown-code-block {
+  background: var(--nowo-milkdown-code-background);
+  color: var(--nowo-milkdown-code-text);
+}
+
+/* Crepe's reset removes every focus ring: keyboard users get one back (FR-073). */
+.nowo-milkdown button:focus-visible,
+.nowo-milkdown input:focus-visible,
+.nowo-milkdown select:focus-visible,
+.nowo-milkdown [role='button']:focus-visible,
+.nowo-milkdown [tabindex]:focus-visible,
+.nowo-milkdown a:focus-visible,
+.nowo-milkdown .cm-editor.cm-focused {
+  outline: 2px solid var(--nowo-milkdown-focus) !important;
+  outline-offset: 2px;
+}
+
+/* Task items */
+.nowo-milkdown .ProseMirror li.nowo-milkdown-task {
+  list-style: none;
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin-left: -1.5rem;
+}
+.nowo-milkdown-task__box {
+  margin-top: 0.3em;
+  accent-color: var(--nowo-milkdown-accent);
+}
+.nowo-milkdown-task__content {
+  flex: 1;
+  min-width: 0;
+}
+.nowo-milkdown-task[data-checked='true'] > .nowo-milkdown-task__content {
+  text-decoration: line-through;
+  color: var(--nowo-milkdown-muted);
+}
+
+/* Inline dialect nodes (editor and rendered HTML) */
+.nowo-milkdown-icon,
+.nowo-md-icon {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.nowo-milkdown-ref,
+.nowo-md-ref {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  padding: 0 0.4em;
+  border-radius: var(--nowo-milkdown-radius-control);
+  background: var(--nowo-milkdown-accent-soft);
+  color: var(--nowo-milkdown-accent-text);
+  text-decoration: none;
+}
+.nowo-milkdown-ref--hidden,
+.nowo-md-ref--hidden {
+  background: var(--nowo-milkdown-surface);
+  color: var(--nowo-milkdown-muted);
+  font-style: italic;
+}
+.nowo-milkdown-mention,
+.nowo-md-mention {
+  color: var(--nowo-milkdown-accent-text);
+  font-weight: 600;
+  background: var(--nowo-milkdown-accent-soft);
+  border-radius: 0.25rem;
+  padding: 0 0.2em;
+}
+.nowo-milkdown-tabler,
+.nowo-md-tabler {
+  display: inline-flex;
+  color: var(--nowo-milkdown-accent);
+}
+.nowo-milkdown-tabler--unknown {
+  font-family: var(--nowo-milkdown-font-code);
+  font-size: 0.875em;
+  color: var(--nowo-milkdown-text);
+}
+.ProseMirror-selectednode.nowo-milkdown-ref,
+.ProseMirror-selectednode.nowo-milkdown-mention,
+.ProseMirror-selectednode.nowo-milkdown-tabler,
+.ProseMirror-selectednode.nowo-milkdown-leaf {
+  outline: 2px solid var(--nowo-milkdown-focus);
+}
+
+/* Marks */
+.nowo-milkdown-mark,
+.nowo-md-mark {
+  color: var(--nowo-milkdown-mark-text);
+  border-radius: 0.2em;
+  padding: 0 0.1em;
+  background: var(--nowo-milkdown-mark-yellow);
+}
+.nowo-milkdown-mark--green,
+.nowo-md-mark--green { background: var(--nowo-milkdown-mark-green); }
+.nowo-milkdown-mark--blue,
+.nowo-md-mark--blue { background: var(--nowo-milkdown-mark-blue); }
+.nowo-milkdown-mark--red,
+.nowo-md-mark--red { background: var(--nowo-milkdown-mark-red); }
+.nowo-milkdown-mark--purple,
+.nowo-md-mark--purple { background: var(--nowo-milkdown-mark-purple); }
+.nowo-milkdown-mark--gray,
+.nowo-md-mark--gray { background: var(--nowo-milkdown-mark-gray); }
+.nowo-milkdown-mark--none { background: transparent; color: inherit; }
+
+/* Directives */
+.nowo-milkdown-directive,
+.nowo-md-callout,
+.nowo-md-details,
+.nowo-md-directive {
+  margin: 0.75rem 0;
+  border-radius: var(--nowo-milkdown-radius-control);
+}
+.nowo-milkdown-directive--callout,
+.nowo-md-callout {
+  border-left: 4px solid var(--nowo-milkdown-info);
+  background: var(--nowo-milkdown-surface);
+  padding: 0.5rem 0.75rem;
+}
+.nowo-milkdown-directive--callout[data-type='success'],
+.nowo-md-callout--success { border-left-color: var(--nowo-milkdown-success); }
+.nowo-milkdown-directive--callout[data-type='warning'],
+.nowo-md-callout--warning { border-left-color: var(--nowo-milkdown-warning); }
+.nowo-milkdown-directive--callout[data-type='danger'],
+.nowo-md-callout--danger { border-left-color: var(--nowo-milkdown-danger); }
+.nowo-milkdown-directive--details,
+.nowo-md-details {
+  border: 1px solid var(--nowo-milkdown-border);
+  padding: 0.5rem 0.75rem;
+}
+.nowo-md-details > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.nowo-milkdown-directive[data-align='center'] .nowo-milkdown-directive__content,
+.nowo-md-align--center { text-align: center; }
+.nowo-milkdown-directive[data-align='right'] .nowo-milkdown-directive__content,
+.nowo-md-align--right { text-align: right; }
+.nowo-milkdown-directive__header {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.8125rem;
+  color: var(--nowo-milkdown-muted);
+  user-select: none;
+}
+.nowo-milkdown-directive__field {
+  display: inline-flex;
+  gap: 0.375rem;
+  align-items: center;
+}
+.nowo-milkdown-directive__field select,
+.nowo-milkdown-directive__field input {
+  font: inherit;
+  color: var(--nowo-milkdown-text);
+  background: var(--nowo-milkdown-background);
+  border: 1px solid var(--nowo-milkdown-border);
+  border-radius: var(--nowo-milkdown-radius-control);
+  padding: 0.125rem 0.375rem;
+}
+.nowo-milkdown-leaf,
+.nowo-md-directive--leaf {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px dashed var(--nowo-milkdown-border);
+  border-radius: var(--nowo-milkdown-radius-control);
+  background: var(--nowo-milkdown-surface);
+  color: var(--nowo-milkdown-text);
+}
+
+/* Suggestion listbox */
+.nowo-milkdown-suggest {
+  position: absolute;
+  z-index: 50;
+  min-width: 16rem;
+  max-width: min(28rem, calc(100vw - 2rem));
+  max-height: 18rem;
+  overflow: auto;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: var(--nowo-milkdown-background);
+  color: var(--nowo-milkdown-text);
+  border: 1px solid var(--nowo-milkdown-border);
+  border-radius: var(--nowo-milkdown-radius-control);
+  box-shadow: var(--nowo-milkdown-shadow);
+}
+.nowo-milkdown-suggest[hidden] {
+  display: none;
+}
+.nowo-milkdown-suggest__option {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+.nowo-milkdown-suggest__option[aria-selected='true'] {
+  background: var(--nowo-milkdown-accent-soft);
+  outline: 2px solid var(--nowo-milkdown-focus);
+  outline-offset: -2px;
+}
+.nowo-milkdown-suggest__hint {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--nowo-milkdown-muted);
+}
+.nowo-milkdown-suggest__empty {
+  padding: 0.375rem 0.5rem;
+  color: var(--nowo-milkdown-muted);
+}
+
+/* Previews */
+.nowo-milkdown-preview-error,
+.nowo-md-mermaid--error {
+  color: var(--nowo-milkdown-danger);
+  font-size: 0.875rem;
+}
+.nowo-md-mermaid {
+  margin: 0.75rem 0;
+  overflow-x: auto;
+}
+.nowo-md-mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* y-prosemirror cursors */
+.nowo-milkdown .ProseMirror-yjs-cursor {
+  position: relative;
+  margin: 0 -1px;
+  border-left: 2px solid;
+  border-right: 0;
+  word-break: normal;
+  pointer-events: none;
+}
+.nowo-milkdown .ProseMirror-yjs-cursor > div {
+  position: absolute;
+  top: -1.4em;
+  left: -2px;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  padding: 0.1em 0.35em;
+  color: #fff;
+  white-space: nowrap;
+  border-radius: 0.25rem 0.25rem 0.25rem 0;
+  user-select: none;
+}
+
+@media (max-width: 640px) {
+  .nowo-milkdown .milkdown .ProseMirror {
+    padding: 1rem;
+  }
+}

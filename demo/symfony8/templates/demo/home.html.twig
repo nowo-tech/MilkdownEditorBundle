@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <h1>{{ 'demo.heading'|trans }}</h1>
+    <p class="demo-lead">{{ 'demo.lead'|trans }}</p>
+
+    {{ form_start(form) }}
+        {% for child in form %}
+            {% if not child.rendered %}
+                {{ form_row(child) }}
+            {% endif %}
+        {% endfor %}
+    {{ form_end(form) }}
+
+    {% if saved %}
+        <section class="demo-preview" aria-labelledby="preview-heading">
+            <h2 id="preview-heading">{{ 'demo.preview'|trans }}</h2>
+            <article class="nowo-md" data-preview>{{ saved.body|milkdown_markdown }}</article>
+            <h3>{{ 'demo.markdown'|trans }}</h3>
+            <pre class="demo-source">{{ saved.body }}</pre>
+        </section>
+    {% endif %}
+{% endblock %}

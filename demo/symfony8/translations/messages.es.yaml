@@ -1,0 +1,11 @@
+demo.nav: Tema
+demo.light: Claro
+demo.dark: Oscuro
+demo.heading: Editor Milkdown
+demo.lead: 'Teclea / para bloques, [[ para enlazar una página, @ para mencionar y : para iconos. Guarda para ver el render del servidor.'
+demo.title: Título
+demo.body: Contenido de la página
+demo.comment: Comentario
+demo.save: Guardar
+demo.preview: Renderizado por el renderer PHP
+demo.markdown: Markdown guardado

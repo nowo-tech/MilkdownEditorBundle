@@ -1,0 +1,25 @@
+---
+description: Frontend rules for the bundle's TypeScript editor (Vite ES-module library with lazy chunks, pnpm, Vitest)
+globs:
+  - "src/Resources/assets/**/*.ts"
+  - "src/Resources/assets/**/*.css"
+  - "vite.config.ts"
+  - "vitest.config.ts"
+alwaysApply: false
+---
+
+Work only on the requested module or stylesheet.
+
+Prefer:
+- strict TypeScript typing; English JSDoc on exported APIs
+- the current build: one ES-module library entry `src/Resources/assets/src/index.ts` → `src/Resources/public/milkdown-editor.js`
+  (+ `milkdown-editor.css`, `chunks/`, `katex/`), produced by `make assets`
+- heavy features (CodeMirror, KaTeX, Mermaid, collaboration, top bar) stay behind dynamic `import()`; check `make bundle-size`
+- DOM built with `createElement` / `textContent` (no `innerHTML` with user data, no inline handlers, no eval)
+- the Markdown dialect is shared with the PHP renderer: change both and their tests together
+- keep CSP compatibility: styles through the stylesheet or CSSOM, nonces for injected style elements
+- running `make test-ts` (Vitest with coverage) and `make lint-ts` after a change
+
+Do not inspect or edit generated build output under `src/Resources/public/`.
+The bundle does not use Pentatrion Vite Bundle; do not add `vite_entry_*` tags to bundle templates.
+Do not use Crepe's list-item, image-block, block-edit, AI or emoji features (a11y, remote images, CSP).

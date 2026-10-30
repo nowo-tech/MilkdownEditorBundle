@@ -1,0 +1,17 @@
+# Demo services: the resolvers the bundle asks the host for (page titles per viewer, users).
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/Kernel.php'
+
+    App\Controller\:
+        resource: '../src/Controller/'
+        tags: ['controller.service_arguments']
+
+    Nowo\MilkdownEditorBundle\Markdown\Resolver\PageResolverInterface: '@App\Demo\DemoDirectory'
+    Nowo\MilkdownEditorBundle\Markdown\Resolver\UserResolverInterface: '@App\Demo\DemoDirectory'

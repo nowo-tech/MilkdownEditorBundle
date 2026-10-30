@@ -1,0 +1,11 @@
+# Milkdown Editor Bundle — see https://github.com/nowo-tech/MilkdownEditorBundle/blob/main/docs/CONFIGURATION.md
+nowo_milkdown_editor:
+    default_profile: default
+    profiles:
+        default:
+            features: [toolbar, link_tooltip, table, code_mirror, placeholder, cursor, slash_menu]
+            theme: auto
+    markdown:
+        html_input: escape
+        allow_unsafe_links: false
+        allow_remote_images: false

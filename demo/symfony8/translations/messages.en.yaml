@@ -1,0 +1,11 @@
+demo.nav: Theme
+demo.light: Light
+demo.dark: Dark
+demo.heading: Milkdown editor
+demo.lead: 'Type / for blocks, [[ to link a page, @ to mention someone and : for icons. Save to see the server-side render.'
+demo.title: Title
+demo.body: Page content
+demo.comment: Comment
+demo.save: Save
+demo.preview: Rendered by the PHP renderer
+demo.markdown: Stored Markdown

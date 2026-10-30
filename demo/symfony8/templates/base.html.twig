@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="{{ app.request.locale }}"{% if dark|default(false) %} data-theme="dark"{% endif %}>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% block title %}Milkdown Editor Bundle demo{% endblock %}</title>
+        <link rel="stylesheet" href="{{ asset('demo.css') }}">
+        {{ nowo_milkdown_editor_assets() }}
+    </head>
+    <body>
+        <header class="demo-nav">
+            <strong>Milkdown Editor Bundle</strong>
+            <nav aria-label="{{ 'demo.nav'|trans }}">
+                <a href="{{ path('demo_home') }}">{{ 'demo.light'|trans }}</a>
+                <a href="{{ path('demo_home', {theme: 'dark'}) }}">{{ 'demo.dark'|trans }}</a>
+            </nav>
+        </header>
+        <main class="demo-main">
+            {% block body %}{% endblock %}
+        </main>
+    </body>
+</html>

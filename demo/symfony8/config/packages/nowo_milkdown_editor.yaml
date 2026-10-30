@@ -1,0 +1,21 @@
+# Icons: the Tabler names of public/tabler-sprite.svg (committed sprite, MIT Tabler icons).
+# Milkdown editor profiles (REQ-CFG-001) and the Markdown renderer.
+nowo_milkdown_editor:
+    default_profile: wiki
+    profiles:
+        wiki:
+            features: [toolbar, link_tooltip, table, code_mirror, math, mermaid, placeholder, cursor, slash_menu]
+            theme: auto
+            min_height: 18rem
+            icon_sprite_url: /tabler-sprite.svg
+            icons: &icons [activity, activity-heartbeat, adjustments, alert-octagon, alert-triangle, align-left, api, app-window, archive, arrow-autofit-down, arrow-back-up, arrow-bar-to-right, arrow-big-up-lines, arrow-down, arrow-forward-up, arrow-left, arrow-right, arrow-up, arrows-exchange, arrows-horizontal, arrows-maximize, arrows-minimize, arrows-sort, at, ban, barrier-block, baseline-density-medium, baseline-density-small, bell, bold, bolt, book, bookmark, border-radius, broadcast, bug, building, building-bank, bulb, calendar, calendar-event, calendar-time, chart-bar, chart-line, check, checkbox, checks, chevron-down, chevron-left, chevron-right, chevron-up, chevrons-right, circle, circle-check, circle-dashed, circle-dot, circle-filled, click, clock, clock-12, clock-24, clock-play, code, coins, color-picker, color-swatch, columns, compass, components, contrast, cookie, copy, corner-down-left, corner-left-up, credit-card, database, database-export, database-import, device-desktop, device-floppy, devices, download, edit, external-link, eye, eye-off, file, file-analytics, file-description, file-export, file-invoice, file-text, filter, filter-off, flag, flame, folder, folders, forms, gauge, gavel, git-branch, git-merge, git-pull-request, grip-vertical, hash, help, history, home, hourglass, id, id-badge-2, inbox, info-circle, italic, key, layers-subtract, layout, layout-bottombar, layout-columns, layout-dashboard, layout-grid, layout-kanban, layout-rows, layout-sidebar, layout-sidebar-right, letter-a, lifebuoy, line-dashed, line-height, link, list, list-check, list-details, list-numbers, list-tree, loader-2, lock, lock-access, login, login-2, mail, mail-check, mail-heart, mail-opened, menu-2, message, message-2, message-bolt, message-circle, message-share, messages, minus, mood-smile, moon, notes, package, palette, pencil, pin, player-pause, player-play, plus, point, progress, quote, receipt, refresh, report-analytics, rocket, route, scale, search, section, send, server, settings, share, shield, shield-check, shield-lock, source-code, spacing-vertical, sparkles, square, square-rounded, star, star-filled, strikethrough, subtask, sun, tag, tags, test-pipe, tool, traffic-lights, trash, trending-down, trending-up, typography, upload, user, user-check, user-minus, user-plus, users, users-group, viewport-narrow, viewport-wide, world, x]
+            upload_max_size: 2097152
+            upload_accept: ['image/*', 'application/pdf', '.md', '.txt']
+        comment:
+            features: [toolbar, link_tooltip, placeholder, cursor]
+            min_height: 6rem
+            icon_sprite_url: /tabler-sprite.svg
+            icons: *icons
+    markdown:
+        icon_sprite_url: /tabler-sprite.svg
+        icons: *icons

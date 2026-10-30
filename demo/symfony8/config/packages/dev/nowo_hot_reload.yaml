@@ -1,0 +1,4 @@
+nowo_hot_reload:
+    allow_production: false
+    # The demo's strict CSP: the injected scripts get the response nonce.
+    csp_nonce_request_attribute: csp_nonce

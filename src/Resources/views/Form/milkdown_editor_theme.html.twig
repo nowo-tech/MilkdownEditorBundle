@@ -1,0 +1,13 @@
+{#
+    Form theme of MilkdownEditorType (block prefix `milkdown_editor`).
+    The textarea holds the Markdown (form value and no-JS fallback); the module script mounts the editor on the
+    `data-nowo-milkdown-options` root. Override: templates/bundles/NowoMilkdownEditorBundle/Form/milkdown_editor_theme.html.twig
+#}
+{% use 'form_div_layout.html.twig' %}
+
+{% block milkdown_editor_widget %}
+    <div class="nowo-milkdown" data-theme="{{ milkdown_theme|default('auto') }}" data-controller="nowo--milkdown-editor" data-nowo-milkdown-options="{{ milkdown_options|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_UNESCAPED_UNICODE')) }}">
+        {{- block('textarea_widget') -}}
+    </div>
+    {{ nowo_milkdown_editor_assets(milkdown_nonce|default(null)) }}
+{% endblock %}

@@ -1,0 +1,73 @@
+{
+    "name": "nowo-tech/milkdown-editor-demo-symfony8",
+    "description": "Demo project for Milkdown Editor Bundle - Symfony 8.1",
+    "type": "project",
+    "license": "MIT",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "repositories": [
+        {
+            "type": "path",
+            "url": "/var/milkdown-editor-bundle",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
+    "require": {
+        "php": ">=8.4.1,<8.6",
+        "nowo-tech/milkdown-editor-bundle": "@dev",
+        "symfony/asset": "^8.1",
+        "symfony/console": "^8.1",
+        "symfony/dotenv": "^8.1",
+        "symfony/form": "^8.1",
+        "symfony/framework-bundle": "^8.1",
+        "symfony/runtime": "^8.1",
+        "symfony/security-csrf": "^8.1",
+        "symfony/translation": "^8.1",
+        "symfony/twig-bundle": "^8.1",
+        "symfony/yaml": "^8.1",
+        "twig/extra-bundle": "^3.21",
+        "twig/string-extra": "^3.21"
+    },
+    "require-dev": {
+        "nowo-tech/hot-reload-bundle": "^1.4",
+        "nowo-tech/twig-inspector-bundle": "*",
+        "phpunit/phpunit": "^12.0",
+        "symfony/browser-kit": "^8.1",
+        "symfony/css-selector": "^8.1",
+        "symfony/debug-bundle": "^8.1",
+        "symfony/web-profiler-bundle": "^8.1"
+    },
+    "config": {
+        "allow-plugins": {
+            "symfony/runtime": true
+        },
+        "sort-packages": true
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "App\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "post-install-cmd": [
+            "@php bin/console assets:install public --symlink --relative --no-interaction"
+        ],
+        "post-update-cmd": [
+            "@php bin/console assets:install public --symlink --relative --no-interaction"
+        ]
+    },
+    "extra": {
+        "symfony": {
+            "allow-contrib": false,
+            "require": "8.1.*"
+        }
+    }
+}

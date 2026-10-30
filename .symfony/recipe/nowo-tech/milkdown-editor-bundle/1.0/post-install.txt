@@ -1,0 +1,3 @@
+  * Publish the editor assets: <comment>php bin/console assets:install</comment>
+  * Use <comment>Nowo\MilkdownEditorBundle\Form\MilkdownEditorType</comment> in a form, and the <comment>milkdown_markdown</comment> Twig filter to render.
+  * Strict CSP? Set the <comment>csp_nonce</comment> request attribute or alias <comment>CspNonceProviderInterface</comment>.

@@ -1,0 +1,22 @@
+framework:
+    secret: '%env(APP_SECRET)%'
+    http_method_override: false
+    handle_all_throwables: true
+    session: true
+    csrf_protection: true
+    form:
+        csrf_protection: true
+    php_errors:
+        log: true
+    assets: ~
+    default_locale: en
+    translator:
+        default_path: '%kernel.project_dir%/translations'
+        fallbacks: [en]
+    enabled_locales: [en, es, de, fr, it, nl, pt]
+
+when@test:
+    framework:
+        test: true
+        session:
+            storage_factory_id: session.storage.factory.mock_file
