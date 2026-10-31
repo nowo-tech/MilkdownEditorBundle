@@ -4,9 +4,9 @@ Checklist of every `REQ-*` of the nowo bundle standards (`BUNDLES_FULL_SPECS_DET
 bundle: a form type with TypeScript assets, a Markdown renderer, Twig, translations and a FrankenPHP demo. No
 Doctrine, database, controllers, Messenger or admin UI.
 
-**Last audited:** 2026-10-30 · **Tooling:** `make release-check` (all gates below) and the monorepo
-`.scripts/audit-bundles-checklist.py` checks run for this bundle only (80 / 81 pass or N/A; the remaining one needs
-GitHub repository settings).
+**Last audited:** 2026-10-31 · **Tooling:** `make release-check` (all gates below) and the monorepo
+`.scripts/audit-bundles-checklist.py` checks run for this bundle only (81 / 81 pass or N/A, GitHub repository
+settings included).
 
 Legend: ✅ met · — not applicable (reason given) · ⏳ outside the repository (GitHub settings / monorepo records).
 
@@ -78,7 +78,7 @@ Legend: ✅ met · — not applicable (reason given) · ⏳ outside the reposito
 |-----|--------|----------|
 | REQ-DOCS-001 – 005 | ✅ | Root README + CODE_OF_CONDUCT only, canonical Documentation list, base docs, badges, TOCs |
 | REQ-DOCS-008 – 017 | ✅ | ENGRAM, `Found this useful?`, issue / PR templates, CODEOWNERS, spec-driven docs, PascalCase URLs, CoC, English, FrankenPHP banner |
-| REQ-DOCS-018 | ⏳ | GitHub About (description, website, topics) — repository settings, see [RELEASE.md](RELEASE.md) |
+| REQ-DOCS-018 | ✅ | GitHub About set: description, Packagist website, 12 topics (see [RELEASE.md](RELEASE.md)) |
 | REQ-DOCS-019 | ✅ | README section order |
 | REQ-TWIG-001 / 002 | ✅ | `TwigPathsPass` (override dir first, `@!` namespace), [USAGE.md § Overriding templates](USAGE.md#overriding-templates) |
 | REQ-TWIG-003 / 005 | ✅ | Demo renders forms with the child loop; `check-no-raw-html-form` |
@@ -95,11 +95,11 @@ Legend: ✅ met · — not applicable (reason given) · ⏳ outside the reposito
 | REQ-ASSETS-001 – 004 | ✅ | Vite ES module + lazy chunks in `src/Resources/public/`, English JSDoc, kebab-case files, `nowo_milkdown_editor` asset package |
 | REQ-UX-001 | ✅ | Auto-mount + `createStimulusController()`, no `innerHTML` with user data (ESLint rule), listeners cleaned on destroy |
 | REQ-CI-001 / 002 | ✅ | `.github/workflows/ci.yml` (tests, coverage 100%, PHPStan, Rector, Igor, Twig, TS lint / tests / size, git-hygiene), `.scrutinizer.yml` |
-| REQ-CI-003 | ⏳ | Needs the first push to GitHub |
+| REQ-CI-003 | ✅ | CI green on `main`; v1.0.0 released by `release.yml` (Create Release, Demo smoke, Sync Missing Releases green) |
 | REQ-REL-001 / 002 / 003 | ✅ | `release.yml`, `sync-releases.yml`, `check-open-prs` (runs once `origin` exists) |
 | REQ-RECIPE-001 | ✅ | `.symfony/recipe/nowo-tech/milkdown-editor-bundle/1.0/` |
 | REQ-SEC-001 / 002 / 003 / 005 | ✅ | [SECURITY.md](SECURITY.md) (12.4.1 checklist, CSRF N/A), `.github/SECURITY.md` |
-| REQ-SEC-004 | ⏳ | Audit done: Pass (good) after fixes ([SECURITY.md § AI security audit](SECURITY.md#ai-security-audit)); row to add to the monorepo `BUNDLES_SECURITY_ANALYSIS.md` |
+| REQ-SEC-004 | ✅ | Pass (good) after fixes ([SECURITY.md § AI security audit](SECURITY.md#ai-security-audit)); row in the monorepo `BUNDLES_SECURITY_ANALYSIS.md` |
 | REQ-IDE-001 – 006 | ✅ | `.cursor/mcp.json`, `.cursorignore`, `.cursor/rules/*`, sandbox ignored, CONTRIBUTING Cursor Agent section |
 | REQ-GH-001 – 005 | ✅ | Copilot instructions, Dependabot (+ asset rebuild workflow), PR lint, stale |
 | REQ-GH-006 – 011 | — | Optional / not used (tag releases, Markdown docs, no backports) |
