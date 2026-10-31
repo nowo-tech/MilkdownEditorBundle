@@ -77,4 +77,4 @@ Update README **Tests and coverage** percentages after each release when coverag
 
 | Version | Date | Notes |
 | --- | --- | --- |
-| 1.0.0 | unreleased | First release: MilkdownEditorType, reduced Crepe build, FR-075 dialect (TS + PHP renderer), suggestions, uploads, collaboration, Mermaid / KaTeX, a11y fixes. |
+| 1.0.0 | 2026-10-31 | First release: MilkdownEditorType, reduced Crepe build, FR-075 dialect (TS + PHP renderer), suggestions, uploads, collaboration, Mermaid / KaTeX, a11y fixes. |
