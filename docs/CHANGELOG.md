@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Fixed
+
+- Accessibility: the code-block buttons (language picker, copy, preview toggle) were only shown on hover (`opacity: 0`
+  at rest), so a keyboard user could tab onto invisible buttons. They now also show while focus is inside the code
+  block (`:focus-within`) or on a button (`:focus-visible`), with the existing 2 px focus ring. With
+  `prefers-reduced-motion: reduce` they appear without the fade. Hover behaviour and colours are unchanged.
+
 ### Documentation
 
 - SECURITY.md (§ Independent audit) and COMPLIANCE.md (REQ-SEC-004) record the final Appendix CE grade: **Pass
@@ -20,6 +27,8 @@ All notable changes to this project are documented in this file. The format foll
   which axe read half-transparent (below 4.5:1; about 7:1 at rest in both themes). `openDemo()` now waits for the
   Mermaid preview and fonts, and `seriousViolations()` waits for running transitions to finish. A regression test
   runs axe during a slowed fade.
+- Demo e2e: tabbing to a code-block button (with and without reduced motion) asserts opacity 1, a 2 px solid focus
+  outline and no serious axe violation while it is focused.
 
 ## [1.1.0] - 2026-11-01
 

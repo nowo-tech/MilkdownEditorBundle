@@ -306,6 +306,23 @@
   outline-offset: 2px;
 }
 
+/*
+ * Code-block tools: Crepe shows them on hover only (opacity 0 at rest), so a keyboard user could tab onto an
+ * invisible button. They also show while focus is inside the block or on a button. Colours are unchanged.
+ */
+.nowo-milkdown .milkdown .milkdown-code-block:focus-within .language-button,
+.nowo-milkdown .milkdown .milkdown-code-block:focus-within .tools-button-group > button,
+.nowo-milkdown .milkdown .milkdown-code-block .tools button:focus-visible {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nowo-milkdown .milkdown .milkdown-code-block .tools button,
+  .nowo-milkdown .milkdown .milkdown-code-block .tools .language-button .expand-icon {
+    transition: none;
+  }
+}
+
 /* Task items */
 .nowo-milkdown .ProseMirror li.nowo-milkdown-task {
   list-style: none;
