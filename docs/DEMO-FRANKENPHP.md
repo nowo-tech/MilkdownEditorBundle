@@ -13,6 +13,9 @@ response carries a strict, nonce-based Content Security Policy.
 - [Production-like run](#production-like-run)
 - [Smoke check and e2e](#smoke-check-and-e2e)
 - [Troubleshooting](#troubleshooting)
+  - [Browser console: 404 on `milkdown-editor.js`](#browser-console-404-on-milkdown-editorjs)
+  - [CSP violations in the console](#csp-violations-in-the-console)
+  - [Composer cannot reach Packagist](#composer-cannot-reach-packagist)
 
 ## What the demo contains
 

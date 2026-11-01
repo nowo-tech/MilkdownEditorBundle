@@ -205,7 +205,7 @@ find src -type f \( -name '*.php' -o -name '*.twig' -o -name '*.yaml' -o -name '
   -not -path 'src/Resources/assets/tests/*' -not -path 'src/Resources/public/*' | wc -l
 ```
 
-The **Total** row of the coverage summary in [`specs/001-baseline/code-inventory.md`](../specs/001-baseline/code-inventory.md) must match this count: **78** in **MilkdownEditorBundle** (PHP, Twig, translations, TypeScript sources and the stylesheet). The Vite output under `src/Resources/public/` (`milkdown-editor.js`, `milkdown-editor.css`, `chunks/`, `assets/`) is documented as `FR-BUILD-001` (an output of `index.ts`), not extra rows.
+The **Total** row of the coverage summary in [`specs/001-baseline/code-inventory.md`](../specs/001-baseline/code-inventory.md) must match this count: **79** in **MilkdownEditorBundle** (PHP, Twig, translations, TypeScript sources and the stylesheet). The Vite output under `src/Resources/public/` (`milkdown-editor.js`, `milkdown-editor.css`, `chunks/`, `katex/`) is documented as `FR-BUILD-001` / `FR-BUILD-002` (outputs of `index.ts` and the stylesheet), not extra rows.
 
 ---
 

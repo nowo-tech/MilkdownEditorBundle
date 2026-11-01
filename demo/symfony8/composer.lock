@@ -83,16 +83,16 @@
         },
         {
             "name": "league/commonmark",
-            "version": "2.10.6",
+            "version": "2.10.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/thephpleague/commonmark.git",
-                "reference": "cb3d6a523587751db4b8e1d0c3945d2d68535bd3"
+                "reference": "8eb53e906fd60c67038d22f1f1cab420ed58b8be"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/thephpleague/commonmark/zipball/cb3d6a523587751db4b8e1d0c3945d2d68535bd3",
-                "reference": "cb3d6a523587751db4b8e1d0c3945d2d68535bd3",
+                "url": "https://api.github.com/repos/thephpleague/commonmark/zipball/8eb53e906fd60c67038d22f1f1cab420ed58b8be",
+                "reference": "8eb53e906fd60c67038d22f1f1cab420ed58b8be",
                 "shasum": ""
             },
             "require": {
@@ -186,7 +186,8 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-10-30T12:21:38+00:00"
+            "time": "2026-10-31T13:35:37+00:00",
+            "published-time": "2026-10-31T13:35:57+00:00"
         },
         {
             "name": "league/config",
@@ -434,7 +435,7 @@
             "dist": {
                 "type": "path",
                 "url": "/var/milkdown-editor-bundle",
-                "reference": "70a43f4ea13d0670d489255ef4e7a9592df8c0c7"
+                "reference": "ffc57390731a55c3f25b28b5c28535b3b2896847"
             },
             "require": {
                 "league/commonmark": "^2.7",
@@ -4863,16 +4864,16 @@
         },
         {
             "name": "nowo-tech/twig-inspector-bundle",
-            "version": "v1.3.1",
+            "version": "v1.3.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nowo-tech/TwigInspectorBundle.git",
-                "reference": "d2fba309405590f7019d50bf3f02a619d775259a"
+                "reference": "97059cd64ffc052dfca4862fde85f8f3ecfe8c42"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nowo-tech/TwigInspectorBundle/zipball/d2fba309405590f7019d50bf3f02a619d775259a",
-                "reference": "d2fba309405590f7019d50bf3f02a619d775259a",
+                "url": "https://api.github.com/repos/nowo-tech/TwigInspectorBundle/zipball/97059cd64ffc052dfca4862fde85f8f3ecfe8c42",
+                "reference": "97059cd64ffc052dfca4862fde85f8f3ecfe8c42",
                 "shasum": ""
             },
             "require": {
@@ -4970,7 +4971,8 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-30T15:37:04+00:00"
+            "time": "2026-10-31T00:46:40+00:00",
+            "published-time": "2026-10-31T00:48:22+00:00"
         },
         {
             "name": "phar-io/manifest",
@@ -6956,5 +6958,5 @@
         "php": ">=8.4.1,<8.6"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.11.0"
 }

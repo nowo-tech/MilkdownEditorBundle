@@ -188,8 +188,9 @@ igor: ensure-up
 	@$(COMPOSE) exec -T $(SERVICE_PHP) composer igor
 
 # REQ-MAKE-002: sequential chain in spec order (safe under make -j).
-release-check: check-no-cursor-coauthor
+release-check:
 	@$(MAKE) ensure-up
+	@$(MAKE) check-no-cursor-coauthor
 	@$(MAKE) check-open-prs
 	@$(MAKE) check-twig-extra
 	@$(MAKE) check-no-raw-html-form

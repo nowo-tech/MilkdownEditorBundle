@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Changed
+
+- `make release-check` starts the Docker stack (`ensure-up`) before the co-author trailer check, in the order of the
+  bundle standards.
+- `.cursorignore` excludes the committed Vite build (`src/Resources/public/chunks/`, `katex/`, `milkdown-editor.*`)
+  instead of a stale `js/*.map` pattern.
+- Development and demo lock files: `league/commonmark` 2.10.7 and, in the demo, `nowo-tech/twig-inspector-bundle`
+  1.3.2 (the bundle's constraints are unchanged).
+
+### Documentation
+
+- `specs/001-baseline`: the code inventory maps 79/79 production units (adds `assets.ts`) to the functional
+  requirements defined in `spec.md`; `spec.md` gains `FR-THEME-001` and `FR-BUILD-001` / `FR-BUILD-002`.
+- `docs/DEMO-FRANKENPHP.md` lists its troubleshooting subsections in the table of contents, and `docs/COMPLIANCE.md`
+  gains one.
+
 ## [1.0.0] - 2026-10-31
 
 First release.
