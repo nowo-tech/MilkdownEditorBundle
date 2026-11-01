@@ -108,7 +108,7 @@ Legend: ✅ met · — not applicable (reason given) · ⏳ outside the reposito
 | REQ-REL-001 / 002 / 003 | ✅ | `release.yml`, `sync-releases.yml`, `check-open-prs` (runs once `origin` exists) |
 | REQ-RECIPE-001 | ✅ | `.symfony/recipe/nowo-tech/milkdown-editor-bundle/1.0/` |
 | REQ-SEC-001 / 002 / 003 / 005 | ✅ | [SECURITY.md](SECURITY.md) (12.4.1 checklist, CSRF N/A), `.github/SECURITY.md` |
-| REQ-SEC-004 | ✅ | Pass (good) after fixes ([SECURITY.md § AI security audit](SECURITY.md#ai-security-audit)); row in the monorepo `BUNDLES_SECURITY_ANALYSIS.md` |
+| REQ-SEC-004 | ✅ | Pass (good) / Info on 1.1.0 (`8eb4285`), final independent re-verification of Appendix CE (1.0.0 `ffc5739` was Pass (conditional) / Medium); no GHSA (availability only, authenticated author) — [SECURITY.md § Independent audit](SECURITY.md#independent-audit-of-100-appendix-ce-2026-11-01); row in the monorepo `BUNDLES_SECURITY_ANALYSIS.md` |
 | REQ-IDE-001 – 006 | ✅ | `.cursor/mcp.json`, `.cursorignore`, `.cursor/rules/*`, sandbox ignored, CONTRIBUTING Cursor Agent section |
 | REQ-GH-001 – 005 | ✅ | Copilot instructions, Dependabot (+ asset rebuild workflow), PR lint, stale |
 | REQ-GH-006 – 011 | — | Optional / not used (tag releases, Markdown docs, no backports) |

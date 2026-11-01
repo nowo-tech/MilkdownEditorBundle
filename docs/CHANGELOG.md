@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Documentation
+
+- SECURITY.md (§ Independent audit) and COMPLIANCE.md (REQ-SEC-004) record the final Appendix CE grade: **Pass
+  (good) / Info** on `8eb4285`, shipped in 1.1.0 (1.0.0 was Pass (conditional) / Medium; the re-verifications of
+  `b236447` and `a065b1d` were Pass (good) / Low with partial fixes). No GHSA: availability impact only, authenticated
+  author.
+
+### Tests
+
+- Demo e2e: the axe colour-contrast check no longer fails on the first run after a fresh stack. The click in
+  `openToolbar()` left the pointer next to the Mermaid code block; on a cold load the lazy Mermaid preview landed
+  afterwards, grew the block under the pointer and started Crepe's 200 ms hover fade-in of the code-block buttons,
+  which axe read half-transparent (below 4.5:1; about 7:1 at rest in both themes). `openDemo()` now waits for the
+  Mermaid preview and fonts, and `seriousViolations()` waits for running transitions to finish. A regression test
+  runs axe during a slowed fade.
+
 ## [1.1.0] - 2026-11-01
 
 Security hardening (Appendix CE): renderer cost budget, 100 KB default, Mermaid remote-resource filter, KaTeX depth and macro limits See [UPGRADING](UPGRADING.md#to-110).
