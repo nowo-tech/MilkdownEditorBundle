@@ -1,6 +1,6 @@
 import { i as e, n as t, r as n, t as r } from "./dist-Y2YZkjNP.js";
 import { B as i, C as a, I as o, N as s, P as c, _ as l, d as u, h as ee, j as d, m as f, o as p, r as m, y as h } from "./dist-DF6chiwp.js";
-import { a as g, i as _, r as v } from "./code-B8QGyiG0.js";
+import { a as g, i as _, r as v } from "./code-DLDQEDEl.js";
 // node_modules/.pnpm/@lezer+go@1.0.1/node_modules/@lezer/go/dist/index.js
 var y = 177, b = 179, x = 184, S = 12, C = 13, w = 17, T = 20, E = 25, D = 53, O = 95, k = 142, A = 144, j = 145, M = 148, N = 10, P = 13, F = 32, I = 9, L = 47, te = 41, R = 125, z = new t((e, t) => {
 	for (let n = 0, r = e.next; (t.context && (r < 0 || r == N || r == P || r == L && e.peek(n + 1) == L) || r == te || r == R) && e.acceptToken(y), r == F || r == I;) r = e.peek(++n);

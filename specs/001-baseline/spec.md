@@ -110,8 +110,9 @@ language without overriding templates.
   block menu.
 - **FR-EDIT-003** Accessibility: named controls, editable name, Tab handling, focus rings, contrast-safe tokens.
 - **FR-LAZY-001** Mermaid (strict, no HTML labels, nonce-stamped styles, sanitised SVG without remote resources),
-  KaTeX (`trust: false`, TeX ≤ 5 000 chars and 50 nesting levels in the editor and on read pages, one formula's
-  failure isolated), Mermaid source pre-filtered (image shapes, CSS config keys) and its styles CSS-unescaped and
+  KaTeX (`trust: false`, no macros, TeX ≤ 5 000 chars, 50 nesting levels and 200 scripts in the editor and on read
+  pages, one formula's failure isolated), Mermaid source pre-filtered (image shapes, style statements, CSS config
+  keys) and its styles CSS-unescaped and
   filtered, `renderRichContent()` for read pages, Yjs + Mercure provider.
 - **FR-TS-002** Upload hook (checks, progress, CSRF header, safe answers) and *Insert file* / *Insert icon* buttons.
 - **FR-THEME-001** One stylesheet styles the widget and the read-only render through `--nowo-milkdown-*` custom

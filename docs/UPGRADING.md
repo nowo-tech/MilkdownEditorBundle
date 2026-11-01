@@ -41,8 +41,10 @@ added. Check these if you store long documents or rely on diagram styling:
   `altFontFamily` can no longer be set from `%%{init}%%` or front matter. Pass
   `renderRichContent(root, { allowRemoteImages: true })` to keep them on read pages (the editor preview always
   filters).
-- **KaTeX:** formulas nested deeper than 50 levels (or over 5 000 characters) show their source with
-  `data-math-error`, in the editor and on read pages.
+- **KaTeX:** formulas nested deeper than 50 levels, over 5 000 characters, with more than 200 `^` / `_` or defining
+  macros (`\def`, `\newcommand`, …) show their source with `data-math-error`, in the editor and on read pages.
+- **Mermaid:** `style`, `classDef`, `linkStyle` and `cssClass` lines lose declarations that load resources
+  (`url(…)`, `image-set(…)`, `@import`) unless `allowRemoteImages` is on.
 
 ## 1.0.0
 

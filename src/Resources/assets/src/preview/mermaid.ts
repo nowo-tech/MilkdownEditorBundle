@@ -149,6 +149,62 @@ export function stripImageShapes(source: string): string {
   return out + source.slice(i);
 }
 
+/** Mermaid statements that carry author CSS (`style`, `classDef`, `linkStyle`, `cssClass`), in any diagram type. */
+const STYLE_STATEMENT = /\b(?:style|classDef|linkStyle|cssClass)\b(?:\s+(?:"[^"]*"|\S+))?\s*/i;
+
+/** CSS that loads a resource. */
+const CSS_LOAD = /url\(|image-set\(|@import|expression\(/i;
+
+/**
+ * Splits CSS declarations on `,` / `;` outside parentheses and quotes, keeping the separators.
+ *
+ * @param text - Declarations
+ * @returns The pieces, each with its trailing separator
+ */
+function splitDeclarations(text: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let quote = '';
+  let start = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]!;
+    if (quote) {
+      if (ch === quote) quote = '';
+    } else if (ch === '"' || ch === "'") quote = ch;
+    else if (ch === '(') depth++;
+    else if (ch === ')') depth = Math.max(0, depth - 1);
+    else if ((ch === ',' || ch === ';') && depth === 0) {
+      parts.push(text.slice(start, i + 1));
+      start = i + 1;
+    }
+  }
+  parts.push(text.slice(start));
+  return parts;
+}
+
+/**
+ * Removes resource-loading CSS from Mermaid's style statements: on every line with `style`, `classDef`, `linkStyle` or
+ * `cssClass`, the CSS is unescaped (escapes, comments) and each declaration containing `url(`, `image-set(`,
+ * `@import` or `expression(` is dropped; the rest of the line stays. Mermaid applies these styles while it lays the
+ * diagram out in the live document, before the SVG can be filtered.
+ *
+ * @param source - Mermaid source
+ * @returns The source without resource-loading declarations
+ */
+export function stripStyleUrls(source: string): string {
+  return source
+    .split('\n')
+    .map((line) => {
+      const decoded = decodeCss(line);
+      const keyword = STYLE_STATEMENT.exec(decoded);
+      if (!keyword || !CSS_LOAD.test(decoded)) return line;
+      const head = decoded.slice(0, keyword.index + keyword[0].length);
+      const kept = splitDeclarations(decoded.slice(head.length)).filter((part) => !CSS_LOAD.test(part));
+      return (head + kept.join('')).replace(/[\s,;]+$/, '');
+    })
+    .join('\n');
+}
+
 /**
  * CSS as the browser reads it: comments removed and escapes (`\75 rl(`, `\(`) decoded.
  *
@@ -229,8 +285,9 @@ function dropRemoteResources(el: Element): void {
 
 /**
  * Renders one diagram; rejects with Mermaid's error for invalid source. Mermaid lays the diagram out in the live
- * document, so unless remote images are allowed the source is filtered first: image shapes are removed and the CSS
- * keys (`themeCSS`, `themeVariables`, `fontFamily`) cannot be set from `%%{init}%%` or front matter.
+ * document, so unless remote images are allowed the source is filtered first: image shapes are removed, `style` /
+ * `classDef` / `linkStyle` / `cssClass` lose resource-loading declarations, and the CSS keys (`themeCSS`,
+ * `themeVariables`, `fontFamily`) cannot be set from `%%{init}%%` or front matter.
  */
 export async function renderMermaid(source: string, nonce: string, dark: boolean, label: string, allowRemoteImages = false): Promise<SVGSVGElement> {
   const mermaid = await (loader ??= mermaidLoader.load());
@@ -243,7 +300,7 @@ export async function renderMermaid(source: string, nonce: string, dark: boolean
     fontFamily: 'inherit',
     secure: allowRemoteImages ? MERMAID_SECURE_KEYS : [...MERMAID_SECURE_KEYS, ...MERMAID_CSS_KEYS],
   });
-  const text = allowRemoteImages ? source : stripImageShapes(source);
+  const text = allowRemoteImages ? source : stripStyleUrls(stripImageShapes(source));
   const run = queue.then(async () => {
     try {
       const { svg } = await withStyleNonce(nonce, () => mermaid.render(`nowo-mermaid-${++counter}`, text));

@@ -193,10 +193,11 @@ await window.NowoMilkdownEditor.renderRichContent(document.getElementById('page-
 ```
 
 Diagrams do not load images from other origins: Mermaid image shapes (`A@{ img: … }`) are removed before rendering,
-`themeCSS` / `themeVariables` / `fontFamily` cannot be set from `%%{init}%%`, and remote `href`s and `url(…)` are
-removed from the SVG. Pass `allowRemoteImages: true` only when the renderer's `allow_remote_images` is on as well. A formula KaTeX cannot render,
-or one over 5 000 characters or 50 nesting levels, keeps its source and gets `data-math-error`; the others still
-render.
+`themeCSS` / `themeVariables` / `fontFamily` cannot be set from `%%{init}%%`, `style` / `classDef` / `linkStyle`
+lines lose `url(…)` declarations, and remote `href`s and `url(…)` are removed from the SVG. Pass
+`allowRemoteImages: true` only when the renderer's `allow_remote_images` is on as well. A formula KaTeX cannot
+render, or one over 5 000 characters, 50 nesting levels or 200 scripts, or one that defines macros, keeps its source
+and gets `data-math-error`; the others still render.
 
 ## JavaScript API and Stimulus
 

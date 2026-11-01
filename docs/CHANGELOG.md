@@ -21,7 +21,8 @@ Planned as **1.1.0** (minor): security fixes that change defaults and add option
 - The CSP nonce is no longer written into `data-nowo-milkdown-options`; the editor reads it from its `<script nonce>`.
 - Mermaid diagrams (read side and editor preview) no longer load remote images or set `themeCSS` / `themeVariables`
   / `fontFamily` from `%%{init}%%` or front matter unless `allowRemoteImages` is on.
-- KaTeX formulas nested deeper than 50 levels are shown as source with `data-math-error`.
+- KaTeX formulas nested deeper than 50 levels, with more than 200 scripts or defining macros are shown as source
+  with `data-math-error`; `maxExpand` is 500 (was 1 000).
 - `make release-check` starts the Docker stack (`ensure-up`) before the co-author trailer check, in the order of the
   bundle standards.
 - `.cursorignore` excludes the committed Vite build (`src/Resources/public/chunks/`, `katex/`, `milkdown-editor.*`)
@@ -39,13 +40,16 @@ re-verification of the first fix (Pass (good) / Low).
   `max_input_length` or `max_inline_markers` now renders as escaped text without parsing, and the form rejects it.
 - **L4 (Low):** line feeds count in `max_inline_markers` (100 KB of `a\n` peaked at ~90 MB). Worst case within the
   defaults: ~39 MB, 1.2 s (PHP 8.4).
-- **L1 (Low):** Mermaid image shapes are removed from the source and the CSS keys are Mermaid `secure` keys, so nothing
-  is fetched while Mermaid lays the diagram out; the SVG then loses remote `href`s, SMIL `href` animations and, after
+- **L1 (Low):** Mermaid image shapes are removed from the source, `style` / `classDef` / `linkStyle` / `cssClass` lines
+  (any diagram type) lose declarations with `url(`, `image-set(`, `@import` or `expression(` after CSS unescaping, and
+  the CSS keys are Mermaid `secure` keys, so nothing is fetched while Mermaid lays the diagram out; the SVG then loses remote `href`s, SMIL `href` animations and, after
   CSS unescaping, remote `url()`, `image-set()`, `@import` and `@font-face` in inline and restored styles. (The first
   attempt only filtered the final SVG.)
 - **L2 (Low):** each KaTeX formula renders in its own `try` / `catch` (`data-math-error` on failure).
-- **L5 (Low):** formulas over 5 000 characters or 50 nesting levels (groups, scripts, `\left`, `\begin`) are not
-  handed to KaTeX — 160 nested superscripts crashed the reader's tab; the guard covers the editor's math too.
+- **L5 (Low):** formulas over 5 000 characters, over 200 `^` / `_` scripts, nested over 50 levels (groups, scripts,
+  `\left`, `\begin`, `\bgroup`, `\begingroup`) or defining macros (`\def`, `\gdef`, `\let`, `\newcommand`, …) are
+  not handed to KaTeX — 160 nested superscripts crashed the reader's tab. Every KaTeX call gets `trust: false`,
+  `macros: {}` and `maxExpand: 500`; the guard covers the editor's math too.
 - **L3 (Low, docs):** upload guidance excludes SVG / HTML and asks for server-side type detection, `nosniff`,
   `Content-Disposition: attachment` and a sandbox CSP or separate origin.
 - **I1:** `safeUrl()` (TS and PHP) and the remote-image check strip leading C0 controls / spaces and inner tabs /

@@ -10,7 +10,7 @@ import { placeholder } from '@milkdown/crepe/feature/placeholder';
 import { table } from '@milkdown/crepe/feature/table';
 import { toolbar } from '@milkdown/crepe/feature/toolbar';
 import { KATEX_STYLESHEET, ensureStylesheet } from './assets';
-import { guardKatex, type Katex } from './preview/render';
+import { MAX_TEX_EXPAND, guardKatex, type Katex } from './preview/render';
 import { t, type Runtime } from './runtime';
 import type { EditorOptions } from './types';
 
@@ -43,7 +43,7 @@ export async function addFeatures(builder: CrepeBuilder, options: EditorOptions,
     guardKatex((katex.default ?? katex) as unknown as Katex);
     ensureStylesheet(KATEX_STYLESHEET, runtime.nonce);
     builder.addFeature(math.latex, {
-      katexOptions: { trust: false, strict: 'ignore', maxExpand: 1000, maxSize: 50 },
+      katexOptions: { trust: false, strict: 'ignore', maxExpand: MAX_TEX_EXPAND, maxSize: 50, macros: {} },
     });
   }
 }

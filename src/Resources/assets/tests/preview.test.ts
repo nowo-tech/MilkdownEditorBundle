@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MERMAID_CSS_KEYS, decodeCss, isLocalResource, mermaidLoader, parseSvg, renderMermaid, resetMermaid, sanitizeCss, stripImageShapes, withStyleNonce } from '../src/preview/mermaid';
-import { KATEX_OPTIONS, MAX_TEX_DEPTH, MAX_TEX_LENGTH, guardKatex, katexLoader, renderRichContent, texWithinLimits, type Katex } from '../src/preview/render';
+import { MERMAID_CSS_KEYS, decodeCss, isLocalResource, mermaidLoader, parseSvg, renderMermaid, resetMermaid, sanitizeCss, stripImageShapes, stripStyleUrls, withStyleNonce } from '../src/preview/mermaid';
+import { KATEX_OPTIONS, MAX_TEX_DEPTH, MAX_TEX_EXPAND, MAX_TEX_LENGTH, MAX_TEX_SCRIPTS, guardKatex, safeKatexOptions, katexLoader, renderRichContent, texWithinLimits, type Katex } from '../src/preview/render';
 import { codeMirrorConfig } from '../src/features/code';
 import { defaultRuntime } from '../src/runtime';
 import { tick } from './helpers';
@@ -94,6 +94,34 @@ describe('mermaid', () => {
     expect(stripImageShapes('graph TD\nA[img: text] --> B@{ label: "x')).toBe('graph TD\nA[img: text] --> B@{ label: "x');
   });
 
+  // Final re-check L1 residual: classDiagram `style` and stateDiagram `classDef` were applied during layout.
+  it('drops resource-loading declarations from style statements of every diagram type', () => {
+    const src = [
+      'classDiagram',
+      'class A',
+      'style A fill:url(https://evil.test/S9#a),stroke:\\75 rl(https://evil.test/S9b),stroke-width:2px',
+      'stateDiagram-v2',
+      'classDef bad background-image:url(https://evil.test/S10);color:rgb(1,2,3)',
+      '[*] --> A:::bad',
+      'linkStyle 0 stroke:#f00,background:u/**/rl(//evil.test/S11)',
+      'cssClass "A" x',
+      'classDef ok fill:#f9f,stroke:#333',
+      'style B fill:image-set("https://evil.test/S12.png" 1x)',
+      'classDef imp x:1;@import "https://evil.test/i.css"',
+      'A[label with url(x) but no style statement]',
+    ].join('\n');
+    const out = stripStyleUrls(src).split('\n');
+    expect(out[2]).toBe('style A stroke-width:2px');
+    expect(out[4]).toBe('classDef bad color:rgb(1,2,3)');
+    expect(out[6]).toBe('linkStyle 0 stroke:#f00');
+    expect(out[7]).toBe('cssClass "A" x');
+    expect(out[8]).toBe('classDef ok fill:#f9f,stroke:#333');
+    expect(out[9]).toBe('style B');
+    expect(out[10]).toBe('classDef imp x:1');
+    expect(out[11]).toBe('A[label with url(x) but no style statement]');
+    expect(stripStyleUrls(src)).not.toMatch(/evil/);
+  });
+
   it('decodes CSS escapes and comments, then drops remote url(), image-set() and @import', () => {
     expect(decodeCss('a{b:\\75 rl(x)} /* c */ \\(\\0 \\110000')).toBe('a{b:url(x)}  (\ufffd\ufffd');
     expect(sanitizeCss('rect, path, g, svg { background-image: url(https://evil.test/C1); fill: url("//evil.test/C1fill") }')).toBe('rect, path, g, svg { background-image: none; fill: none }');
@@ -127,9 +155,12 @@ describe('mermaid', () => {
     await renderMermaid('flowchart TD\nA@{ img: "https://evil.test/x.png" }', '', false, 'D');
     expect((initialize.mock.calls[0]![0] as { secure: string[] }).secure).toEqual(expect.arrayContaining(['secure', 'securityLevel', ...MERMAID_CSS_KEYS]));
     expect(render.mock.calls[0]![1]).toBe('flowchart TD\nA');
-    await renderMermaid('flowchart TD\nA@{ img: "https://evil.test/x.png" }', '', false, 'D', true);
-    expect((initialize.mock.calls[1]![0] as { secure: string[] }).secure).not.toContain('themeCSS');
-    expect(render.mock.calls[1]![1]).toContain('img:');
+    await renderMermaid('stateDiagram-v2\nclassDef bad background-image:url(https://evil.test/S10)', '', false, 'D');
+    expect(render.mock.calls[1]![1]).toBe('stateDiagram-v2\nclassDef bad');
+    await renderMermaid('flowchart TD\nA@{ img: "https://evil.test/x.png" }\nstyle A fill:url(https://e.test/x)', '', false, 'D', true);
+    expect((initialize.mock.calls[2]![0] as { secure: string[] }).secure).not.toContain('themeCSS');
+    expect(render.mock.calls[2]![1]).toContain('img:');
+    expect(render.mock.calls[2]![1]).toContain('url(https://e.test/x)');
   });
 
   it('renders with strict security and no HTML labels, loading Mermaid once', async () => {
@@ -219,6 +250,19 @@ describe('renderRichContent', () => {
     expect(texWithinLimits('\\begin{matrix}'.repeat(51))).toBe(false);
     expect(texWithinLimits('\\left( x \\right) '.repeat(100) + '\\begin{a}\\end{a}'.repeat(100))).toBe(true);
     expect(texWithinLimits('\\leftarrow \\{ \\endash '.repeat(100))).toBe(true);
+    // Final re-check L5 bypasses (auditor's r4-K10, K11, K15, K16): other group openers and macros.
+    expect(texWithinLimits(`${'x^\\bgroup x'.repeat(160)}${'\\egroup'.repeat(160)}`)).toBe(false);
+    expect(texWithinLimits(`${'x^\\begingroup x'.repeat(160)}${'\\endgroup'.repeat(160)}`)).toBe(false);
+    expect(texWithinLimits(`${'x_\\bgroup x'.repeat(160)}`)).toBe(false);
+    expect(texWithinLimits(`\\def\\o{^\\bgroup x}x${'\\o'.repeat(160)}`)).toBe(false);
+    expect(texWithinLimits(`${'x^\\bgroup x'.repeat(50)}${'\\egroup'.repeat(50)}`)).toBe(true);
+    for (const def of ['\\def', '\\gdef', '\\edef', '\\xdef', '\\let', '\\futurelet', '\\newcommand', '\\renewcommand', '\\providecommand', '\\global', '\\csname']) {
+      expect(texWithinLimits(`${def}\\a{b} x`)).toBe(false);
+    }
+    expect(texWithinLimits('\\definecolor \\letter \\delta')).toBe(true);
+    expect(texWithinLimits('a_1+'.repeat(MAX_TEX_SCRIPTS))).toBe(true);
+    expect(texWithinLimits('a_1+'.repeat(MAX_TEX_SCRIPTS + 1))).toBe(false);
+    expect(texWithinLimits('\\_ \\^{} '.repeat(300))).toBe(true);
   });
 
   it('guards KaTeX itself, so the editor\'s LaTeX is bounded too', () => {
@@ -229,11 +273,18 @@ describe('renderRichContent', () => {
       if (tex === 'boom') throw new RangeError('stack');
       return `<b>${tex}</b>`;
     }) };
+    const rawRender = inner.render as ReturnType<typeof vi.fn>;
     const katex = guardKatex(inner);
+    katex.render('y', document.createElement('span'), { trust: true, macros: { '\\x': 'y' }, maxExpand: 1e9 });
+    expect(rawRender.mock.calls[0]![2]).toEqual({ trust: false, macros: {}, maxExpand: MAX_TEX_EXPAND });
+    expect(safeKatexOptions()).toEqual({ trust: false, macros: {}, maxExpand: MAX_TEX_EXPAND });
     expect(guardKatex(katex)).toBe(katex);
     const el = document.createElement('span');
     katex.render('x', el, {});
     expect(el.textContent).toBe('K(x)');
+    const bg = document.createElement('span');
+    katex.render(`\\def\\o{^\\bgroup x}x${'\\o'.repeat(160)}`, bg, {});
+    expect(bg.dataset.mathError).toBe('true');
     for (const tex of ['boom', `${'x^{'.repeat(160)}x`]) {
       const bad = document.createElement('span');
       katex.render(tex, bad, {});

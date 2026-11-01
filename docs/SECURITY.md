@@ -69,19 +69,28 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
   Mermaid preview always applies them). Mermaid lays a diagram out in the live document before the bundle sees the
   SVG, so the filtering starts with the source:
   1. image-shape metadata (`A@{ img: … }`, any spelling or YAML escape) is removed before `mermaid.render()`;
-  2. `themeCSS`, `themeVariables`, `fontFamily` and `altFontFamily` are Mermaid `secure` keys, so `%%{init}%%` and
+  2. on every `style`, `classDef`, `linkStyle` and `cssClass` line (any diagram type) the CSS is unescaped and each
+     declaration containing `url(`, `image-set(`, `@import` or `expression(` is dropped;
+  3. `themeCSS`, `themeVariables`, `fontFamily` and `altFontFamily` are Mermaid `secure` keys, so `%%{init}%%` and
      front matter cannot set them;
-  3. in the returned SVG, `href` / `xlink:href` of `image`, `use`, `feImage` and `pattern` leaving the page's origin
+  4. in the returned SVG, `href` / `xlink:href` of `image`, `use`, `feImage` and `pattern` leaving the page's origin
      are dropped (fragments and `data:image/(png|gif|jpeg|webp)` stay), `<set>` / `<animate>` of an `href` are removed,
      and every inline style and restored `<style>` block is CSS-unescaped (`\75 rl(`, comments, case) and loses
      `@import`, `@font-face`, `image-set()` and non-local `url()`.
   The auditor's variants (absolute, `//host`, `\\host`, `/\host`, mixed case, `https:host`, a tab in the scheme,
-  `themeCSS` rules, escaped `url(`) fetched nothing with no CSP. A CSP `img-src` remains the backstop.
-- KaTeX runs with `trust: false` (no `\href`), bounded `maxExpand` and `maxSize`. Formulas over 5 000 characters or
-  50 nesting levels (`{…}` groups including `^{…}` / `_{…}` scripts, `\left…\right`, `\begin…\end`) are not
-  rendered — about 160 nested superscripts crash the browser tab, which no `try` / `catch` can catch. The guard
-  patches the shared KaTeX module, so the editor's inline math and LaTeX preview are bounded too; each read-side
-  formula renders in its own `try` / `catch`, so one failure (marked `data-math-error`) never stops the others.
+  `themeCSS` rules, escaped `url(`, image-shape edge cases, `classDiagram` `style` and `stateDiagram` `classDef`
+  with `url()`) fetched nothing with no CSP. A CSP `img-src` remains the backstop for diagram constructs not listed
+  here.
+- KaTeX always runs with `trust: false` (no `\href`), `maxExpand: 500`, bounded `maxSize` and a fresh, empty macro
+  table. A formula is not handed to KaTeX when it is over 5 000 characters, has more than 200 `^` / `_` scripts,
+  nests more than 50 levels (`{…}` groups including `^{…}` / `_{…}` scripts, `\left…\right`, `\begin…\end`,
+  `\bgroup…\egroup`, `\begingroup…\endgroup`) or defines a macro (`\def`, `\gdef`, `\edef`, `\xdef`, `\let`,
+  `\futurelet`, `\newcommand`, `\renewcommand`, `\providecommand`, `\global`, `\long`, `\csname`, …) — a macro
+  would hide its nesting, and about 160 nested superscripts crash the browser tab, which no `try` / `catch` can
+  catch. The guard patches the shared KaTeX module, so the editor's inline math and LaTeX preview are bounded too;
+  each read-side formula renders in its own `try` / `catch`, so one failure (marked `data-math-error`) never stops the
+  others. The auditor's crash inputs (`\bgroup`, `\begingroup`, `_\bgroup` and `\def` chains, 160 levels) no
+  longer crash the reader page or the editor.
 - Crepe's image-block feature (rewrites alt text, loads remote images) and the emoji plugin (CDN images) are not used.
 
 ## Content Security Policy
@@ -187,15 +196,16 @@ in 66 server-side payloads, Mermaid / KaTeX payloads under three CSPs, the edito
 statement that league/commonmark's memory use was "bounded by `max_input_length`" was wrong: with the 1 MB default,
 about 100 KB of `*_` exhausted PHP's default 128M `memory_limit`.
 
-The auditor's re-verification of the first fix (PR #5 at `b236447`) graded it **Pass (good) / Low**, with L1 only
-partly fixed (requests went out while Mermaid laid the diagram out, and restored `<style>` blocks were not filtered)
-and three new findings (L4, L5, I7). The table lists the 1.1.0 state; the re-grade belongs to the independent
-auditor.
+The auditor's re-verifications of PR #5 graded it **Pass (good) / Low** twice. At `b236447`, L1 was only partly fixed
+(requests went out while Mermaid laid the diagram out, and restored `<style>` blocks were not filtered) and L4, L5
+and I7 were new. At `a065b1d`, two residuals remained: `classDiagram` `style` / `stateDiagram` `classDef` `url()`
+(L1) and a depth bypass through `\bgroup`, `\begingroup` and macros (L5). The table lists the 1.1.0 state; the
+re-grade belongs to the independent auditor.
 
 | # | Severity | Finding | Fix (1.1.0) |
 |---|----------|---------|-------------|
 | M1 | Medium | Stored DoS: ~1.5 KB of parser memory per inline delimiter; 1 MB default → ~1.5 GB, fatal error at 128M | `max_input_length` 100 000 bytes; `max_inline_markers` budget (10 000) before parsing; form `Length` constraint; regression tests |
-| L1 | Low | Read-side Mermaid image shapes and `themeCSS` loaded remote images despite `allow_remote_images: false` | Source pre-filter (image shapes, CSS `secure` keys) so nothing is fetched during layout; remote `href`s, SMIL `href` animations and CSS-unescaped remote `url()` / `@import` / `image-set()` removed from the SVG and its restored styles (first attempt in PR #5 was partial) |
+| L1 | Low | Read-side Mermaid image shapes, `themeCSS` and style statements loaded remote images despite `allow_remote_images: false` | Source pre-filter (image shapes, resource-loading declarations of `style` / `classDef` / `linkStyle` / `cssClass`, CSS `secure` keys) so nothing is fetched during layout; remote `href`s, SMIL `href` animations and CSS-unescaped remote `url()` / `@import` / `image-set()` removed from the SVG and its restored styles (two earlier attempts in PR #5 were partial) |
 | L2 | Low | One deeply nested formula (`RangeError`) stopped every later KaTeX render | Per-formula `try` / `catch` (`data-math-error`); TeX limits (see L5) |
 | L3 | Low | Upload guidance allowed SVG and said nothing on serving uploads | [Permissions → Uploads](#permissions); USAGE example lists raster types |
 | I1 | Info | `safeUrl()` accepted control-character prefixes before `//host` | TS and PHP strip them first |
@@ -205,7 +215,7 @@ auditor.
 | I5 | Info | Auto-mount is a script gadget next to sanitised untrusted HTML | Documented with the manual-mount mode |
 | I6 | Info | Dev-only `minimatch` advisory via ESLint; Actions pinned by tag | Not shipped; org convention |
 | L4 | Low | Line feeds were not counted: 100 KB of `a\n` peaked at ~90 MB | Line feeds count in `max_inline_markers`; worst case within the defaults ~39 MB ([Parser cost](#parser-cost)) |
-| L5 | Low | 160 nested superscripts / 190 subscripts crashed the reader's tab within the 200-group cap | Depth cap 50 counting groups, scripts, `\left` and `\begin`; KaTeX module guarded for the editor too |
+| L5 | Low | 160 nested superscripts / 190 subscripts crashed the reader's tab within the 200-group cap; `\bgroup`, `\begingroup` and macros bypassed the first depth cap | Depth cap 50 counting `{}`, `\left`, `\begin`, `\bgroup`, `\begingroup`; ≤ 200 scripts; macro definitions refused; `macros: {}`, `trust: false`, `maxExpand: 500` forced; KaTeX module guarded for the editor too |
 | I7 | Info | One document could send ~10 000 handles / ~2 000 page ids to a resolver | `max_references` (500) distinct ids / handles per resolver call; resolvers should still chunk their queries |
 
 ### Parser cost

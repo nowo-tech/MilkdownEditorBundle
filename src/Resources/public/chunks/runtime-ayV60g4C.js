@@ -25,7 +25,7 @@ function l(e, t, n, r = !1) {
 	if (i.localName !== "svg") throw Error("mermaid: not an SVG");
 	i.querySelectorAll("script, foreignObject").forEach((e) => e.remove()), [i, ...i.querySelectorAll("*")].forEach((e) => {
 		for (let t of [...e.attributes]) /^on/i.test(t.name) && e.removeAttribute(t.name);
-		r || v(e);
+		r || S(e);
 	});
 	let o = document.importNode(i, !0);
 	return o.querySelectorAll("g[data-nowo-style]").forEach((e) => {
@@ -35,7 +35,7 @@ function l(e, t, n, r = !1) {
 			return;
 		}
 		let i = document.createElementNS("http://www.w3.org/2000/svg", "style");
-		i.setAttribute("nonce", t), i.textContent = r ? n : g(n), e.replaceWith(i);
+		i.setAttribute("nonce", t), i.textContent = r ? n : b(n), e.replaceWith(i);
 	}), o.setAttribute("role", "img"), o.setAttribute("aria-label", n), o;
 }
 var u = /* @__PURE__ */ new Set([
@@ -73,7 +73,24 @@ function m(e) {
 	}
 	return t + e.slice(n);
 }
-function h(e) {
+var h = /\b(?:style|classDef|linkStyle|cssClass)\b(?:\s+(?:"[^"]*"|\S+))?\s*/i, g = /url\(|image-set\(|@import|expression\(/i;
+function _(e) {
+	let t = [], n = 0, r = "", i = 0;
+	for (let a = 0; a < e.length; a++) {
+		let o = e[a];
+		r ? o === r && (r = "") : o === "\"" || o === "'" ? r = o : o === "(" ? n++ : o === ")" ? n = Math.max(0, n - 1) : (o === "," || o === ";") && n === 0 && (t.push(e.slice(i, a + 1)), i = a + 1);
+	}
+	return t.push(e.slice(i)), t;
+}
+function v(e) {
+	return e.split("\n").map((e) => {
+		let t = y(e), n = h.exec(t);
+		if (!n || !g.test(t)) return e;
+		let r = t.slice(0, n.index + n[0].length);
+		return (r + _(t.slice(r.length)).filter((e) => !g.test(e)).join("")).replace(/[\s,;]+$/, "");
+	}).join("\n");
+}
+function y(e) {
 	return e.replace(/\/\*[\s\S]*?(?:\*\/|$)/g, "").replace(/\\(?:([0-9a-f]{1,6})[ \t\n\r\f]?|(\r\n|[\n\r\f])|([\s\S]))/gi, (e, t, n, r) => {
 		if (t !== void 0) {
 			let e = parseInt(t, 16);
@@ -82,12 +99,12 @@ function h(e) {
 		return r ?? "";
 	});
 }
-function g(e) {
-	let t = h(e).replace(/@import\b[^;]*;?/gi, "").replace(/@font-face\s*\{[^}]*\}?/gi, "").replace(/(?:-webkit-)?image-set\((?:[^()]|\([^()]*\))*\)/gi, "none").replace(/url\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*?))\s*\)/gi, (e, t, n, r) => _(t ?? n ?? r ?? "") ? e : "none");
-	for (let e of t.matchAll(/url\(\s*['"]?([^'")]*)/gi)) if (!_(e[1] ?? "")) return "";
+function b(e) {
+	let t = y(e).replace(/@import\b[^;]*;?/gi, "").replace(/@font-face\s*\{[^}]*\}?/gi, "").replace(/(?:-webkit-)?image-set\((?:[^()]|\([^()]*\))*\)/gi, "none").replace(/url\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*?))\s*\)/gi, (e, t, n, r) => x(t ?? n ?? r ?? "") ? e : "none");
+	for (let e of t.matchAll(/url\(\s*['"]?([^'")]*)/gi)) if (!x(e[1] ?? "")) return "";
 	return /@import|image-set\(/i.test(t) ? "" : t;
 }
-function _(e) {
+function x(e) {
 	let t = e.replace(/[\t\n\r]/g, "").replace(/^[\u0000-\u0020]+/, "");
 	if (t === "" || t.startsWith("#") || /^data:image\/(?:png|gif|jpeg|webp)[;,]/i.test(t)) return !0;
 	try {
@@ -96,20 +113,20 @@ function _(e) {
 		return !1;
 	}
 }
-function v(e) {
+function S(e) {
 	let t = e.localName.toLowerCase();
-	if (u.has(t)) for (let t of [...e.attributes]) t.localName === "href" && !_(t.value) && e.removeAttributeNode(t);
+	if (u.has(t)) for (let t of [...e.attributes]) t.localName === "href" && !x(t.value) && e.removeAttributeNode(t);
 	if (d.has(t) && /href/i.test(e.getAttribute("attributeName") ?? "")) {
 		e.remove();
 		return;
 	}
 	let n = e.getAttribute("style");
 	if (n !== null) {
-		let t = g(n);
+		let t = b(n);
 		t !== n && e.setAttribute("style", t);
 	}
 }
-async function y(e, o, s, u, d = !1) {
+async function C(e, o, s, u, d = !1) {
 	let h = await (t ??= i.load());
 	h.initialize({
 		startOnLoad: !1,
@@ -120,7 +137,7 @@ async function y(e, o, s, u, d = !1) {
 		fontFamily: "inherit",
 		secure: d ? f : [...f, ...p]
 	});
-	let g = d ? e : m(e), _ = r.then(async () => {
+	let g = d ? e : v(m(e)), _ = r.then(async () => {
 		try {
 			let { svg: e } = await c(o, () => h.render(`nowo-mermaid-${++n}`, g));
 			return l(e, o, u, d);
@@ -131,7 +148,7 @@ async function y(e, o, s, u, d = !1) {
 	return r = _.then(() => void 0, () => void 0), _;
 }
 // src/Resources/assets/src/i18n.ts
-var b = {
+var w = {
 	"editor.label": "Content",
 	"editor.placeholder": "Write, or type / for blocks, [[ to link a page, @ to mention, : for icons",
 	"editor.button": "Editor action",
@@ -201,12 +218,12 @@ var b = {
 	"collab.online": "Live",
 	"collab.offline": "Offline: changes are kept and sent when the connection returns"
 };
-function x(e, t, n = {}) {
-	return (e[t] ?? b[t] ?? t).replace(/\{(\w+)\}/g, (e, t) => t in n ? String(n[t]) : e);
+function T(e, t, n = {}) {
+	return (e[t] ?? w[t] ?? t).replace(/\{(\w+)\}/g, (e, t) => t in n ? String(n[t]) : e);
 }
 // src/Resources/assets/src/runtime.ts
-var S = () => ({
-	messages: b,
+var E = () => ({
+	messages: w,
 	spriteUrl: null,
 	icons: /* @__PURE__ */ new Set(),
 	resolvePage: async (e) => ({
@@ -217,12 +234,12 @@ var S = () => ({
 	}),
 	nonce: "",
 	dark: () => !1
-}), C = e(S(), "nowoMilkdownRuntime"), w = (e, t, n = {}) => x(e.messages, t, n);
-function T(e, t) {
+}), D = e(E(), "nowoMilkdownRuntime"), O = (e, t, n = {}) => T(e.messages, t, n);
+function k(e, t) {
 	if (!e.spriteUrl || !e.icons.has(t)) return null;
 	let n = "http://www.w3.org/2000/svg", r = document.createElementNS(n, "svg");
 	r.setAttribute("class", "nowo-milkdown-icon"), r.setAttribute("aria-hidden", "true"), r.setAttribute("focusable", "false");
 	let i = document.createElementNS(n, "use");
 	return i.setAttribute("href", `${e.spriteUrl}#tabler-${t}`), r.append(i), r;
 }
-export { y as a, w as i, T as n, C as r, S as t };
+export { C as a, O as i, k as n, D as r, E as t };
