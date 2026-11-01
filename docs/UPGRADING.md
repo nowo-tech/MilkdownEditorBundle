@@ -5,6 +5,7 @@
 - [General procedure](#general-procedure)
 - [1.1.0](#110)
 - [1.0.0](#100)
+  - [Coming from TiptapEditorBundle](#coming-from-tiptapeditorbundle)
 
 ## General procedure
 

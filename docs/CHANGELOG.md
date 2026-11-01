@@ -5,6 +5,10 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-01
+
+Security hardening (Appendix CE): renderer cost budget, 100 KB default, Mermaid remote-resource filter, KaTeX depth and macro limits See [UPGRADING](UPGRADING.md#to-110).
+
 Planned as **1.1.0** (minor): security fixes that change defaults and add options.
 
 ### Added
