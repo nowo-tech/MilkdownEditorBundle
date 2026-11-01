@@ -22,6 +22,31 @@ test.describe('Milkdown editor demo', () => {
     expect(await copy.evaluate((b) => getComputedStyle(b).opacity)).toBe('1');
   });
 
+  for (const motion of ['no-preference', 'reduce'] as const) {
+    test(`keyboard: code-block buttons are visible and focus-ringed when tabbed to (motion ${motion})`, async ({ page }) => {
+      await page.emulateMedia({ reducedMotion: motion });
+      await openDemo(page);
+      await page.mouse.move(0, 0); // no hover: only the keyboard focus may reveal the buttons
+      const tool = page.locator('.nowo-milkdown .milkdown-code-block .tools button').first();
+      await expect(tool).toHaveCSS('opacity', '0');
+      await page.locator('body').click({ position: { x: 1, y: 1 } });
+      for (let i = 0; i < 40 && !(await tool.evaluate((b) => b === document.activeElement)); i++) {
+        await page.keyboard.press('Tab');
+      }
+      await expect(tool).toBeFocused();
+      expect(await tool.evaluate((b) => b.matches(':focus-visible'))).toBe(true);
+      if (motion === 'reduce') {
+        expect(await tool.evaluate((b) => getComputedStyle(b).opacity)).toBe('1'); // no fade
+      }
+      await expect(tool).toHaveCSS('opacity', '1');
+      await expect(page.locator('.nowo-milkdown .milkdown-code-block .tools-button-group > button').first()).toHaveCSS('opacity', '1');
+      await expect(tool).toHaveCSS('outline-style', 'solid');
+      await expect(tool).toHaveCSS('outline-width', '2px');
+      expect(await seriousViolations(page)).toEqual([]);
+      await expect(tool).toBeFocused();
+    });
+  }
+
   test('axe with the suggestion list open', async ({ page }) => {
     await openDemo(page);
     await caretAtEnd(page);
