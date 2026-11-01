@@ -21,17 +21,35 @@ export async function watch(page: Page): Promise<{ errors: string[] }> {
 
 export const violations = (page: Page): Promise<Violation[]> => page.evaluate(() => (window as unknown as { __csp: Violation[] }).__csp);
 
-/** Opens the demo and waits until both editors are mounted. */
+/**
+ * Opens the demo and waits until both editors are mounted and the layout is final: the editor's Mermaid preview is
+ * lazy-loaded and, on a cold first load, lands after the first click. It then grows its code block by ~70px and moves
+ * the block under the pointer, which starts Crepe's 200 ms fade-in of the code-block buttons.
+ */
 export async function openDemo(page: Page, query = ''): Promise<void> {
   await page.goto(`/${query}`);
   await expect(page.locator('.nowo-milkdown .ProseMirror')).toHaveCount(2);
   await page.waitForFunction(() => document.querySelectorAll('.nowo-milkdown .cm-editor').length > 0);
+  await expect(page.locator('.nowo-milkdown .milkdown-code-block .preview svg')).toBeVisible({ timeout: 15000 });
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
+}
+
+/**
+ * Waits until no finite CSS transition or animation is running. axe blends a half-faded element's colours with its
+ * background: the code-block buttons fading in on hover (opacity 0 → 1 over 200 ms) read below 4.5:1 for most of the
+ * fade, although they reach about 7:1 at rest in both themes.
+ */
+export async function settled(page: Page): Promise<void> {
+  await page.waitForFunction(() =>
+    document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity),
+  );
 }
 
 export const editable = (page: Page) => page.getByRole('textbox', { name: 'Page content' });
 
 /** axe with WCAG 2.1 A/AA; returns serious and critical violations only. */
 export async function seriousViolations(page: Page): Promise<{ id: string; impact: string | null | undefined; targets: string[] }[]> {
+  await settled(page);
   const result = await new AxeBuilder({ page }).include('main').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   return result.violations
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')

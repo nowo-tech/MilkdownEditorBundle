@@ -196,11 +196,26 @@ in 66 server-side payloads, Mermaid / KaTeX payloads under three CSPs, the edito
 statement that league/commonmark's memory use was "bounded by `max_input_length`" was wrong: with the 1 MB default,
 about 100 KB of `*_` exhausted PHP's default 128M `memory_limit`.
 
-The auditor's re-verifications of PR #5 graded it **Pass (good) / Low** twice. At `b236447`, L1 was only partly fixed
-(requests went out while Mermaid laid the diagram out, and restored `<style>` blocks were not filtered) and L4, L5
-and I7 were new. At `a065b1d`, two residuals remained: `classDiagram` `style` / `stateDiagram` `classDef` `url()`
-(L1) and a depth bypass through `\bgroup`, `\begingroup` and macros (L5). The table lists the 1.1.0 state; the
-re-grade belongs to the independent auditor.
+The auditor's re-verifications of PR #5 graded it **Pass (good) / Low** twice, each with partial fixes. At
+`b236447`, L1 was only partly fixed (requests went out while Mermaid laid the diagram out, and restored `<style>`
+blocks were not filtered) and L4, L5 and I7 were new. At `a065b1d`, two residuals remained: `classDiagram` `style` /
+`stateDiagram` `classDef` `url()` (L1) and a depth bypass through `\bgroup`, `\begingroup` and macros (L5).
+
+**Final grade: Pass (good) / Info** on `8eb4285`, the commit shipped in **v1.1.0**. The auditor measured both
+residuals closed (no remote request from Mermaid style statements with no CSP or a lax CSP; no tab crash from
+`\bgroup` / `\begingroup` / macro formulas, on the read side or in the editor), reproduced the committed assets byte
+for byte and found `pnpm audit --prod` and `composer audit` clean. No Critical, High, Medium or Low finding remains;
+only the documented Info items I3–I6 stay open. No GitHub security advisory (GHSA) was published: the impact of every
+finding was availability only and needs an authenticated author who can save Markdown.
+
+| Pass | Commit | Grade |
+|------|--------|-------|
+| Initial audit | `ffc5739` (1.0.0) | Pass (conditional) / Medium |
+| Re-verification 1 | `b236447` (PR #5) | Pass (good) / Low (partial fixes) |
+| Re-verification 2 | `a065b1d` (PR #5) | Pass (good) / Low (partial fixes) |
+| Re-verification 3 (final) | `8eb4285` (PR #5, shipped in 1.1.0) | **Pass (good) / Info** |
+
+The findings table lists the 1.1.0 state.
 
 | # | Severity | Finding | Fix (1.1.0) |
 |---|----------|---------|-------------|

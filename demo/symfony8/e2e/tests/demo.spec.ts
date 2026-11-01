@@ -10,6 +10,18 @@ test.describe('Milkdown editor demo', () => {
     });
   }
 
+  test('axe waits for the code-block buttons to finish fading in', async ({ page }) => {
+    await openDemo(page);
+    // Crepe fades the buttons in over 200 ms on hover; slowed down here so axe would start mid-fade.
+    await page.addStyleTag({ content: '.nowo-milkdown .milkdown-code-block .tools button { transition-duration: 1s !important }' });
+    await page.locator('.nowo-milkdown .milkdown-code-block').first().hover();
+    const copy = page.locator('.nowo-milkdown .milkdown-code-block .copy-button').first();
+    await expect.poll(() => copy.evaluate((b) => Number(getComputedStyle(b).opacity))).toBeGreaterThan(0);
+    expect(await copy.evaluate((b) => Number(getComputedStyle(b).opacity))).toBeLessThan(1);
+    expect(await seriousViolations(page)).toEqual([]);
+    expect(await copy.evaluate((b) => getComputedStyle(b).opacity)).toBe('1');
+  });
+
   test('axe with the suggestion list open', async ({ page }) => {
     await openDemo(page);
     await caretAtEnd(page);
