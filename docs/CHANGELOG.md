@@ -5,6 +5,10 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-01
+
+Code-block buttons visible on keyboard focus (focus-within / focus-visible, reduced motion) See [UPGRADING](https://github.com/nowo-tech/MilkdownEditorBundle/blob/v1.1.1/docs/UPGRADING.md#to-111).
+
 ### Fixed
 
 - Accessibility: the code-block buttons (language picker, copy, preview toggle) were only shown on hover (`opacity: 0`
