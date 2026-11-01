@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Nowo\MilkdownEditorBundle\DependencyInjection;
 
 use Nowo\MilkdownEditorBundle\Feature;
+use Nowo\MilkdownEditorBundle\Markdown\DocumentProcessor;
+use Nowo\MilkdownEditorBundle\Markdown\MilkdownMarkdownRenderer;
 use Nowo\MilkdownEditorBundle\Theme;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
@@ -127,7 +129,18 @@ final class Configuration implements ConfigurationInterface
                 ->booleanNode('allow_remote_images')->info('Render images from other hosts; when false they become plain links.')->defaultFalse()->end()
                 ->booleanNode('math')->info('Parse $inline$ and $$block$$ math (rendered client-side with KaTeX).')->defaultTrue()->end()
                 ->integerNode('max_nesting_level')->min(1)->max(1000)->defaultValue(50)->end()
-                ->integerNode('max_input_length')->info('Longer input is rendered as escaped plain text.')->min(1)->defaultValue(1000000)->end()
+                ->integerNode('max_input_length')
+                    ->info('Longer input (bytes) is rendered as escaped plain text; also the default max length of MilkdownEditorType.')
+                    ->min(1)->defaultValue(MilkdownMarkdownRenderer::DEFAULT_MAX_INPUT_LENGTH)
+                ->end()
+                ->integerNode('max_inline_markers')
+                    ->info('Input with more inline delimiter characters ([ ] * _ ` ! < & @ : $ ~ | \\) and line feeds is rendered as escaped plain text.')
+                    ->min(1)->defaultValue(MilkdownMarkdownRenderer::DEFAULT_MAX_INLINE_MARKERS)
+                ->end()
+                ->integerNode('max_references')
+                    ->info('Distinct page ids and mention handles sent to each resolver per document; later ones render as not visible / plain text.')
+                    ->min(1)->defaultValue(DocumentProcessor::DEFAULT_MAX_REFERENCES)
+                ->end()
                 ->scalarNode('icon_sprite_url')->info('Sprite URL for :tabler-NAME: icons in rendered HTML.')->defaultNull()->end()
                 ->append($this->iconsNode('Icon names the renderer turns into SVG (others stay text).'))
                 ->arrayNode('mark_colors')

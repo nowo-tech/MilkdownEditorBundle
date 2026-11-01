@@ -6,6 +6,7 @@
 - [Profiles](#profiles)
 - [Features](#features)
 - [Markdown renderer](#markdown-renderer)
+  - [Renderer limits](#renderer-limits)
 - [Form options](#form-options)
 - [Theme tokens](#theme-tokens)
 - [Locales](#locales)
@@ -32,7 +33,9 @@ nowo_milkdown_editor:
         allow_remote_images: false      # images from other hosts become links
         math: true                      # $inline$ and $$block$$ math
         max_nesting_level: 50
-        max_input_length: 1000000       # longer input renders as escaped text
+        max_input_length: 100000        # bytes; longer input renders as escaped text (also the form's max_length)
+        max_inline_markers: 10000       # more [ ] * _ ` ! < & @ : $ ~ | \ characters and line feeds: escaped text
+        max_references: 500             # distinct page ids / handles sent to each resolver per document
         icon_sprite_url: ~
         icons: []
         mark_colors: [yellow, green, blue, red, purple, gray]
@@ -92,6 +95,22 @@ See the reference above. Hosts implement the resolver interfaces (see [USAGE.md]
 `PageResolverInterface`, `UserResolverInterface`, `IconResolverInterface` (default: the configured allowlist) and
 tagged `DirectiveRendererInterface` services.
 
+### Renderer limits
+
+league/commonmark allocates about **1.5 KB of memory per inline delimiter** (`[ ] * _ ` ` ! < & @ : $ ~ | \`) and
+per soft line break while it parses a paragraph, and the dialect parsers add CPU on top (about 5 s per MB of
+delimiter-dense input). Two limits keep a hostile document within PHP's default `memory_limit` (128M):
+
+| Option | Default | Over the limit |
+|--------|---------|----------------|
+| `max_input_length` | `100000` bytes | Rendered as escaped plain text; `MilkdownEditorType` rejects it on save (`Length`, bytes) |
+| `max_inline_markers` | `10000` delimiters + line feeds | Rendered as escaped plain text |
+| `max_references` | `500` | Later page links render *Content not visible*, later mentions plain `@handle` |
+
+With the defaults the worst input measured peaks at about 39 MB (process total) and 1.2 s (PHP 8.4); see
+[SECURITY.md](SECURITY.md#parser-cost). For longer documents raise both limits together with `memory_limit`
+(keep `max_inline_markers` below `memory_limit / 3 KB`).
+
 ## Form options
 
 | Option | Type | Default | Notes |
@@ -110,7 +129,8 @@ tagged `DirectiveRendererInterface` services.
 | `upload_max_size` | `int` | profile | Bytes |
 | `upload_accept` | `list<string>` | profile | |
 | `collaboration` | `?array{url, hub_url, topic, user?: {name, color}}` | `null` | Opt-in Yjs over Mercure |
-| `csp_nonce` | `?string` | `null` | Null: `CspNonceProviderInterface` |
+| `csp_nonce` | `?string` | `null` | Null: `CspNonceProviderInterface`; stamped on the module `<script>` and `<link>` only |
+| `max_length` | `?int` | `markdown.max_input_length` | Bytes; adds a `Length` constraint when symfony/validator is installed (null: none) |
 
 `disabled: true` makes the editor read-only.
 

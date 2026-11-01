@@ -32,6 +32,12 @@ The field's value is Markdown (`\n` line endings). The rendered widget is the fi
 editor writes back to the textarea on every change and before the form submits. The field's label names the editor
 (`aria-labelledby`).
 
+With symfony/validator installed the field gets a `Length` constraint of `max_length` **bytes** (default: the
+renderer's `markdown.max_input_length`, 100 000), added to your own `constraints`, so a document the renderer would
+show as plain text is rejected when it is saved. `'max_length' => null` removes it; raise
+`nowo_milkdown_editor.markdown.max_input_length` for longer documents (see
+[CONFIGURATION](CONFIGURATION.md#renderer-limits)).
+
 ## Markdown dialect
 
 | Syntax | Meaning |
@@ -91,13 +97,19 @@ show *Content not visible* and no link. URLs other than relative or http(s) are 
 'upload_url'        => $this->generateUrl('app_upload'),
 'upload_csrf_token' => $csrfTokenManager->getToken('upload')->getValue(),
 'upload_max_size'   => 5 * 1024 * 1024,
-'upload_accept'     => ['image/*', 'application/pdf'],
+'upload_accept'     => ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'application/pdf'],
 ```
 
 Dropped, pasted or picked (*Insert file*) files are POSTed as multipart field `file` with the token in the
 `X-CSRF-Token` header. Answer with `{"url": "/files/…", "name": "a.png", "image": true, "alt": "…"}`; images become
-`![alt](url)`, other files `[name](url)`. HTTP 413 shows *too large*; other errors *could not be uploaded*. The
-endpoint must validate the token, the size and the type again.
+`![alt](url)`, other files `[name](url)`. HTTP 413 shows *too large*; other errors *could not be uploaded*.
+
+The browser checks are a convenience only: a direct POST skips them. The endpoint must validate the token and the
+size again, detect the type from the content (do not trust the client's type or name) and **never accept
+`image/svg+xml` or HTML** (`image/*` includes SVG, which can carry script). Serve stored files with
+`X-Content-Type-Options: nosniff`, `Content-Disposition: attachment` for non-images and
+`Content-Security-Policy: sandbox`, or from a separate cookie-less origin (see
+[SECURITY](SECURITY.md#permissions)).
 
 ## Collaboration
 
@@ -131,7 +143,8 @@ public function __construct(private MarkdownRendererInterface $markdown) {}
 $html = $this->markdown->render($page->getBody());
 ```
 
-Implement and alias the resolvers:
+Implement and alias the resolvers. They get every distinct page id / handle of a document in one call (at most
+`markdown.max_references`, 500 by default) — chunk your queries if your storage needs it:
 
 ```php
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\{PageResolverInterface, ResolvedPage};
@@ -161,7 +174,8 @@ Leaf directives (`::beacon{type=issue id=…}`) are rendered by autoconfigured `
 Unknown leaf directives render as an empty placeholder `div`.
 
 Raw HTML is escaped (or stripped), unsafe link schemes are dropped and remote images become links unless
-`allow_remote_images` is on. A resolver that throws is logged (`warning`, no content) and its references render as
+`allow_remote_images` is on. Documents over `max_input_length` bytes or with more than `max_inline_markers` inline
+delimiters render as escaped plain text (a parser-cost bound, see [SECURITY](SECURITY.md#parser-cost)). A resolver that throws is logged (`warning`, no content) and its references render as
 not visible.
 
 ## Rendering Mermaid and math on read pages
@@ -178,10 +192,19 @@ The PHP renderer outputs ```` <pre><code class="language-mermaid"> ```` and `[da
 await window.NowoMilkdownEditor.renderRichContent(document.getElementById('page-body'), { nonce: cspNonce });
 ```
 
+Diagrams do not load images from other origins: Mermaid image shapes (`A@{ img: … }`) are removed before rendering,
+`themeCSS` / `themeVariables` / `fontFamily` cannot be set from `%%{init}%%`, `style` / `classDef` / `linkStyle`
+lines lose `url(…)` declarations, and remote `href`s and `url(…)` are removed from the SVG. Pass
+`allowRemoteImages: true` only when the renderer's `allow_remote_images` is on as well. A formula KaTeX cannot
+render, or one over 5 000 characters, 50 nesting levels or 200 scripts, or one that defines macros, keeps its source
+and gets `data-math-error`; the others still render.
+
 ## JavaScript API and Stimulus
 
 The module mounts every widget on load, on `turbo:load` and when one is added to the page. Add
-`data-nowo-milkdown-manual` on `<html>` to disable auto-mounting. `window.NowoMilkdownEditor` exposes `mount(el)`,
+`data-nowo-milkdown-manual` on `<html>` to disable auto-mounting — recommended on pages that also show untrusted
+HTML through a sanitizer that keeps `data-*` attributes (see [SECURITY](SECURITY.md#permissions)). The editor
+reads the CSP nonce from its `<script nonce>` element. `window.NowoMilkdownEditor` exposes `mount(el)`,
 `unmount(el)`, `mountAll(scope)`, `instance(el)` (a promise of `{getMarkdown, setMarkdown, focus, destroy, …}`),
 `renderRichContent(root, options)` and `createStimulusController(Controller)`:
 

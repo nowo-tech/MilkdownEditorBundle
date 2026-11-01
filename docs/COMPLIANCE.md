@@ -69,7 +69,7 @@ Legend: ✅ met · — not applicable (reason given) · ⏳ outside the reposito
 | REQ-TEST-001 / 002 / 010 | ✅ | `tests/Unit`, `tests/Integration`, PHPUnit 11 attributes |
 | REQ-TEST-003 / 006 | ✅ | PHP 100% lines (`make test-coverage-100`), [COVERAGE.md](COVERAGE.md) |
 | REQ-TEST-004 / 005 | — | No Python, no database |
-| REQ-TEST-007 / 008 / 009 | ✅ | README: PHP 100%, TS/JS 90.66%, Python N/A; `.scripts/php-coverage-percent.sh`, `.scripts/ts-coverage-percent.sh` |
+| REQ-TEST-007 / 008 / 009 | ✅ | README: PHP 100%, TS/JS 91.19%, Python N/A; `.scripts/php-coverage-percent.sh`, `.scripts/ts-coverage-percent.sh` |
 | REQ-TEST-011 | ✅ | `make demo-smoke`, `.github/workflows/demo-smoke.yml` |
 
 ## Makefile and Git

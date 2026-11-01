@@ -85,11 +85,12 @@ final readonly class DialectRenderer implements NodeRendererInterface
     }
 
     /**
-     * Keeps relative URLs and http(s) URLs; anything else (javascript:, data:…) becomes ''.
+     * Keeps relative URLs and http(s) URLs; anything else (javascript:, data:…) becomes ''. Leading and trailing C0
+     * controls / spaces and inner tabs / newlines are removed first, as browsers do when they parse a URL.
      */
     public static function safeUrl(string $url): string
     {
-        $url = trim($url);
+        $url = self::cleanUrl($url);
         if (preg_match('~^[\\\\/][\\\\/]~', $url) === 1) {
             return ''; // protocol-relative (`//host`, `/\host`, `\\host`): another origin
         }
@@ -98,6 +99,14 @@ final readonly class DialectRenderer implements NodeRendererInterface
         }
 
         return $url;
+    }
+
+    /**
+     * `$url` as a browser reads it: without leading / trailing C0 controls and spaces, nor tabs and newlines inside.
+     */
+    public static function cleanUrl(string $url): string
+    {
+        return str_replace(["\t", "\n", "\r"], '', trim($url, "\x00..\x20\x7f"));
     }
 
     private function wikiLink(WikiLink $node): string

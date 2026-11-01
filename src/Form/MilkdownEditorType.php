@@ -8,6 +8,7 @@ use Nowo\MilkdownEditorBundle\Csp\CspNonceProviderInterface;
 use Nowo\MilkdownEditorBundle\DependencyInjection\Configuration;
 use Nowo\MilkdownEditorBundle\Feature;
 use Nowo\MilkdownEditorBundle\Form\DataTransformer\MarkdownNewlineTransformer;
+use Nowo\MilkdownEditorBundle\Markdown\MilkdownMarkdownRenderer;
 use Nowo\MilkdownEditorBundle\ProfileRegistry;
 use Nowo\MilkdownEditorBundle\Theme;
 use Symfony\Component\Form\AbstractType;
@@ -18,10 +19,14 @@ use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\Exception\InvalidOptionsException;
 use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraint;
+use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+use function class_exists;
 use function in_array;
 use function is_array;
+use function is_int;
 use function is_string;
 use function sprintf;
 
@@ -31,7 +36,8 @@ use function sprintf;
  *
  * Options: `profile`, `features`, `theme`, `min_height`, `placeholder`, `suggestions` (`@`, `[[`, `:` → candidate
  * URL), `link_title_url`, `icon_sprite_url`, `icons`, `upload_url`, `upload_csrf_token`, `upload_max_size`,
- * `upload_accept`, `collaboration`, `csp_nonce`.
+ * `upload_accept`, `collaboration`, `csp_nonce`, `max_length` (bytes; with symfony/validator a `Length` constraint is
+ * added, by default the renderer's `max_input_length`, so oversized Markdown is rejected when it is written).
  *
  * @extends AbstractType<string>
  *
@@ -69,11 +75,13 @@ final class MilkdownEditorType extends AbstractType
      * @param ProfileRegistry $profiles Named profiles
      * @param CspNonceProviderInterface|null $nonceProvider Nonce of the current response (when `csp_nonce` is null)
      * @param TranslatorInterface|null $translator Translates the editor UI strings
+     * @param int $maxInputLength Default `max_length` (the renderer's `max_input_length`)
      */
     public function __construct(
         private readonly ProfileRegistry $profiles,
         private readonly ?CspNonceProviderInterface $nonceProvider = null,
         private readonly ?TranslatorInterface $translator = null,
+        private readonly int $maxInputLength = MilkdownMarkdownRenderer::DEFAULT_MAX_INPUT_LENGTH,
     ) {
     }
 
@@ -122,7 +130,6 @@ final class MilkdownEditorType extends AbstractType
                 'accept'    => $options['upload_accept'],
             ],
             'collaboration' => $options['collaboration'],
-            'nonce'         => $nonce ?? '',
             'messages'      => (object) $this->messages(),
         ];
     }
@@ -147,6 +154,7 @@ final class MilkdownEditorType extends AbstractType
             'upload_csrf_token' => null,
             'collaboration'     => null,
             'csp_nonce'         => null,
+            'max_length'        => $this->maxInputLength,
             'features'          => static fn (Options $o): array => $profile($o)['features'],
             'theme'             => static fn (Options $o): string => $profile($o)['theme'],
             'min_height'        => static fn (Options $o): string => $profile($o)['min_height'],
@@ -165,6 +173,8 @@ final class MilkdownEditorType extends AbstractType
         $resolver->setAllowedTypes('upload_csrf_token', ['null', 'string']);
         $resolver->setAllowedTypes('collaboration', ['null', 'array']);
         $resolver->setAllowedTypes('csp_nonce', ['null', 'string']);
+        $resolver->setAllowedTypes('max_length', ['null', 'int']);
+        $resolver->setAllowedValues('max_length', static fn (?int $value): bool => $value === null || $value >= 1);
         $resolver->setAllowedTypes('features', 'array');
         $resolver->setAllowedValues('theme', Theme::values());
         $resolver->setAllowedTypes('min_height', 'string');
@@ -201,6 +211,18 @@ final class MilkdownEditorType extends AbstractType
         });
         $resolver->setNormalizer('suggestions', static fn (Options $o, array $value): array => self::normaliseSuggestions($value));
         $resolver->setNormalizer('collaboration', static fn (Options $o, ?array $value): ?array => $value === null ? null : self::normaliseCollaboration($value));
+        if ($resolver->isDefined('constraints') && class_exists(Length::class)) {
+            $resolver->addNormalizer('constraints', static function (Options $o, mixed $value): mixed {
+                $max = $o['max_length'];
+                if (!is_int($max) || $max < 1) {
+                    return $value;
+                }
+                $constraints   = $value instanceof Constraint ? [$value] : (is_array($value) ? $value : []);
+                $constraints[] = new Length(max: $max, countUnit: Length::COUNT_BYTES);
+
+                return $constraints;
+            });
+        }
     }
 
     /**

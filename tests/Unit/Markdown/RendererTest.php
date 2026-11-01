@@ -40,7 +40,7 @@ final class RendererTest extends TestCase
     private array $pageCalls = [];
 
     /**
-     * @param array{html_input?: string, allow_remote_images?: bool, math?: bool, max_input_length?: int} $options
+     * @param array{html_input?: string, allow_remote_images?: bool, math?: bool, max_input_length?: int, max_inline_markers?: int, max_references?: int} $options
      * @param list<DirectiveRendererInterface> $directives
      */
     private function renderer(array $options = [], array $directives = [], ?PageResolverInterface $pages = null, ?UserResolverInterface $users = null, ?AbstractLogger $logger = null, ?TranslatorInterface $translator = null): MilkdownMarkdownRenderer
@@ -138,6 +138,33 @@ final class RendererTest extends TestCase
     {
         $this->renderer()->render('[[wiki:' . self::ID . ']] [[wiki:' . self::ID . ']] [[wiki:' . self::HIDDEN . ']] text');
         self::assertSame([[self::ID, self::HIDDEN]], $this->pageCalls);
+    }
+
+    /**
+     * Re-verification I7: at most `max_references` distinct ids / handles reach each resolver per document.
+     */
+    #[Test]
+    public function resolverFanOutIsCapped(): void
+    {
+        $handles = [];
+        $users   = new class($handles) implements UserResolverInterface {
+            /** @param list<list<string>> $calls */
+            public function __construct(public array &$calls)
+            {
+            }
+
+            public function resolveUsers(array $handles): array
+            {
+                $this->calls[] = $handles;
+
+                return ['ada' => new ResolvedUser('Ada'), 'zed' => new ResolvedUser('Zed')];
+            }
+        };
+        $html = $this->renderer(['max_references' => 1], [], null, $users)->render('[[wiki:' . self::ID . ']] [[wiki:' . self::HIDDEN . ']] @ada @zed');
+        self::assertSame([[self::ID]], $this->pageCalls);
+        self::assertSame([['ada']], $handles);
+        self::assertStringContainsString('Content not visible', $html);
+        self::assertStringContainsString('title="Ada">@ada</span> @zed', $html);
     }
 
     #[Test]
@@ -259,6 +286,13 @@ final class RendererTest extends TestCase
         yield 'protocol relative' => ['//evil', ''];
         yield 'backslash relative' => ['/\\evil', ''];
         yield 'query colon' => ['/a?b=c:d', '/a?b=c:d'];
+        // Appendix CE I1: browsers drop leading C0 / spaces and inner tabs / newlines before parsing a URL.
+        yield 'form feed protocol relative' => ["\f//evil.example/x", ''];
+        yield 'C0 protocol relative' => ["\x01//evil.example/x", ''];
+        yield 'space protocol relative' => [' //evil.example/x', ''];
+        yield 'tab inside protocol relative' => ["/\t/evil.example/x", ''];
+        yield 'C0 javascript' => ["\x01javascript:alert(1)", ''];
+        yield 'trailing controls' => ["/a\x00 ", '/a'];
     }
 
     #[Test]
@@ -273,7 +307,7 @@ final class RendererTest extends TestCase
     {
         $r     = $this->renderer();
         $start = microtime(true);
-        $html  = $r->render(str_repeat(':a[', 10000));
+        $html  = $r->render(str_repeat(':a[', 4000));
         self::assertStringStartsWith('<p>:a[', $html);
         $nested = $r->render(str_repeat(':a[', 30) . 'x' . str_repeat(']', 30));
         self::assertStringContainsString('x', $nested);
@@ -284,6 +318,54 @@ final class RendererTest extends TestCase
         // Attributes never span lines: the mark keeps its default colour and the braces stay text.
         self::assertStringContainsString('nowo-md-mark--yellow">a</mark>{color=', $r->render(":mark[a]{color=\ngreen}"));
         self::assertLessThan(5.0, microtime(true) - $start);
+    }
+
+    /**
+     * Appendix CE M1: about 1.5 KB of parser memory per inline delimiter. The auditor's PoC (1 MB of `*_`, 1.5 GB
+     * before the fix) and a delimiter-dense document under the length limit render as escaped text without parsing.
+     */
+    #[Test]
+    public function delimiterFloodsRenderAsEscapedTextWithinBoundedMemory(): void
+    {
+        $r = $this->renderer();
+        $r->render('warm *up*');
+        // Re-verification L4: line feeds count too (99.9 KB of `a\n` peaked at ~90 MB).
+        foreach ([str_repeat('*_', 500000), str_repeat('*_', 25000), str_repeat('[', 50000), str_repeat(' @a', 20000), str_repeat("a\n", 49999)] as $payload) {
+            gc_collect_cycles();
+            memory_reset_peak_usage();
+            $before = memory_get_usage();
+            $start  = microtime(true);
+            $html   = $r->render($payload);
+            self::assertLessThan(2.0, microtime(true) - $start);
+            self::assertLessThan(16 * 1048576, memory_get_peak_usage() - $before);
+            self::assertStringStartsWith('<p>' . substr(DialectRenderer::e($payload), 0, 1), $html);
+            self::assertStringNotContainsString('<em>', $html);
+        }
+    }
+
+    #[Test]
+    public function theWorstDocumentWithinTheDefaultBudgetIsParsedWithinBoundedMemory(): void
+    {
+        $r       = $this->renderer();
+        $payload = str_repeat('*_', intdiv(MilkdownMarkdownRenderer::DEFAULT_MAX_INLINE_MARKERS, 2));
+        self::assertSame(MilkdownMarkdownRenderer::DEFAULT_MAX_INLINE_MARKERS, MilkdownMarkdownRenderer::countInlineMarkers($payload));
+        gc_collect_cycles();
+        memory_reset_peak_usage();
+        $before = memory_get_usage();
+        $html   = $r->render($payload);
+        self::assertLessThan(64 * 1048576, memory_get_peak_usage() - $before);
+        self::assertStringContainsString('<em>', $html);
+    }
+
+    #[Test]
+    public function theMarkerBudgetIsConfigurable(): void
+    {
+        self::assertSame(14, MilkdownMarkdownRenderer::countInlineMarkers('[]*_`!<&@:$~|\\x y.'));
+        self::assertSame(3, MilkdownMarkdownRenderer::countInlineMarkers("a\nb\n\n"));
+        $r = $this->renderer(['max_inline_markers' => 2]);
+        self::assertSame('<p>a <em>b</em> c</p>', trim($r->render('a *b* c')));
+        self::assertSame('<p>*a* _b_</p>', trim($r->render('*a* _b_')));
+        self::assertSame("<p>a<br>\n*b*</p>", $this->renderer(['max_inline_markers' => 1])->render("a\r\n*b*"));
     }
 
     /**
@@ -298,6 +380,8 @@ final class RendererTest extends TestCase
         yield 'backslash' => ['/\\evil.example/p.png', true];
         yield 'data image' => ['data:image/png;base64,AA', false];
         yield 'data other' => ['data:text/html,x', true];
+        yield 'form feed protocol relative' => ["\f//evil.example/x", true];
+        yield 'C0 protocol relative' => ["\x01//evil.example/x", true];
     }
 
     #[Test]

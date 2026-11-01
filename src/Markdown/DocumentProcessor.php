@@ -17,20 +17,27 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\UserResolverInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
+use function array_slice;
+
 /**
  * After parsing, resolves every page link and mention of the document in one call per resolver (FR-061: per viewer),
- * prepares host directive renderers, and turns remote images into links when they are not allowed.
+ * prepares host directive renderers, and turns remote images into links when they are not allowed. At most
+ * `max_references` distinct page ids and handles are sent to each resolver; later ones render as not visible / text.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  */
 final readonly class DocumentProcessor
 {
+    /** Default `max_references`: distinct page ids and mention handles resolved per document. */
+    public const DEFAULT_MAX_REFERENCES = 500;
+
     /**
      * @param PageResolverInterface $pages Page link resolver
      * @param UserResolverInterface $users Mention resolver
      * @param iterable<DirectiveRendererInterface> $directiveRenderers Host renderers of leaf directives
      * @param bool $allowRemoteImages Keep images from other hosts
      * @param LoggerInterface|null $logger Logs resolver failures (never document content)
+     * @param int $maxReferences Distinct page ids / handles sent to each resolver per document
      */
     public function __construct(
         private PageResolverInterface $pages,
@@ -38,6 +45,7 @@ final readonly class DocumentProcessor
         private iterable $directiveRenderers = [],
         private bool $allowRemoteImages = false,
         private ?LoggerInterface $logger = null,
+        private int $maxReferences = self::DEFAULT_MAX_REFERENCES,
     ) {
     }
 
@@ -69,7 +77,8 @@ final readonly class DocumentProcessor
         }
 
         if ($links !== []) {
-            $found = $this->call(fn (): array => $this->pages->resolvePages(array_keys($links)), 'page');
+            $ids   = array_slice(array_keys($links), 0, $this->maxReferences);
+            $found = array_intersect_key($this->call(fn (): array => $this->pages->resolvePages($ids), 'page'), array_flip($ids));
             foreach ($links as $id => $nodes) {
                 foreach ($nodes as $link) {
                     $link->page = $found[$id] ?? null;
@@ -77,7 +86,8 @@ final readonly class DocumentProcessor
             }
         }
         if ($mentions !== []) {
-            $found = $this->call(fn (): array => $this->users->resolveUsers(array_map('strval', array_keys($mentions))), 'user');
+            $handles = array_slice(array_map('strval', array_keys($mentions)), 0, $this->maxReferences);
+            $found   = array_intersect_key($this->call(fn (): array => $this->users->resolveUsers($handles), 'user'), array_flip($handles));
             foreach ($mentions as $handle => $nodes) {
                 foreach ($nodes as $mention) {
                     $mention->user = $found[$handle] ?? null;
@@ -119,7 +129,7 @@ final readonly class DocumentProcessor
      */
     public static function isRemote(string $url): bool
     {
-        $url = trim($url);
+        $url = DialectRenderer::cleanUrl($url);
         if (preg_match('~^[\\\\/][\\\\/]~', $url) === 1) {
             return true;
         }

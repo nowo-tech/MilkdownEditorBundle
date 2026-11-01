@@ -78,7 +78,20 @@ export function parseOptions(raw: string | undefined | null): EditorOptions {
         }
       : null,
     collaboration: collaboration(data.collaboration),
-    nonce: str(data.nonce),
+    nonce: str(data.nonce) || pageNonce(),
     messages,
   };
+}
+
+/**
+ * The page's CSP nonce, read from the editor module's `<script nonce>` (or any nonce'd script) through the `nonce`
+ * property: browsers hide the attribute value, so the nonce is never copied into a readable `data-*` attribute.
+ *
+ * @param doc - The document holding the scripts
+ * @returns The nonce, or '' when no script carries one
+ */
+export function pageNonce(doc: Document = document): string {
+  const scripts = [...doc.querySelectorAll<HTMLScriptElement>('script[nonce]')];
+  const own = scripts.find((s) => s.src.includes('milkdown-editor')) ?? scripts[0];
+  return own ? own.nonce || own.getAttribute('nonce') || '' : '';
 }

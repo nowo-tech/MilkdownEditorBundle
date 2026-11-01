@@ -76,7 +76,8 @@ language without overriding templates.
   JSON: features, theme, min height, placeholder, label, read-only, suggestions, link-title URL, icons, upload,
   collaboration, nonce and translated UI strings.
 - **FR-FORM-002** Options are validated (features, `math` / `mermaid` need `code_mirror`, triggers, CSS lengths,
-  icon names, collaboration keys); line endings are normalised to LF.
+  icon names, collaboration keys); line endings are normalised to LF; with symfony/validator a `Length` constraint
+  (`max_length` bytes, default `max_input_length`) rejects documents the renderer would not parse.
 - **FR-FORM-003** The CSP nonce comes from the `csp_nonce` option or `CspNonceProviderInterface` (default: the
   `csp_nonce` request attribute).
 
@@ -84,9 +85,11 @@ language without overriding templates.
 
 - **FR-MD-001** CommonMark + GFM + the dialect: page links, mentions, Tabler icons, text / container / leaf
   directives, inline and block math; raw HTML escaped or stripped, unsafe links dropped, remote images as links,
-  bounded nesting and input length.
-- **FR-MD-002** References are resolved in one call per resolver per document; missing pages render *Content not
-  visible*; failing resolvers are logged and hide their references.
+  bounded nesting; input over `max_input_length` bytes or `max_inline_markers` inline delimiters is rendered as
+  escaped text without parsing (line feeds count as markers).
+- **FR-MD-002** References are resolved in one call per resolver per document (at most `max_references` distinct
+  ids / handles); missing pages render *Content not visible*; failing resolvers are logged and hide their
+  references.
 - **FR-MD-003** Host leaf directives are prepared in one batch and rendered by tagged `DirectiveRendererInterface`
   services.
 
@@ -106,8 +109,11 @@ language without overriding templates.
 - **FR-EDIT-002** Suggestion hook (listbox pattern, capture-phase keys, debounced remote sources, max 10) and the `/`
   block menu.
 - **FR-EDIT-003** Accessibility: named controls, editable name, Tab handling, focus rings, contrast-safe tokens.
-- **FR-LAZY-001** Mermaid (strict, no HTML labels, nonce-stamped styles, sanitised SVG), KaTeX (`trust: false`),
-  `renderRichContent()` for read pages, Yjs + Mercure provider.
+- **FR-LAZY-001** Mermaid (strict, no HTML labels, nonce-stamped styles, sanitised SVG without remote resources),
+  KaTeX (`trust: false`, no macros, TeX ≤ 5 000 chars, 50 nesting levels and 200 scripts in the editor and on read
+  pages, one formula's failure isolated), Mermaid source pre-filtered (image shapes, style statements, CSS config
+  keys) and its styles CSS-unescaped and
+  filtered, `renderRichContent()` for read pages, Yjs + Mercure provider.
 - **FR-TS-002** Upload hook (checks, progress, CSRF header, safe answers) and *Insert file* / *Insert icon* buttons.
 - **FR-THEME-001** One stylesheet styles the widget and the read-only render through `--nowo-milkdown-*` custom
   properties, with light, dark and `auto` (follows `prefers-color-scheme`) themes.

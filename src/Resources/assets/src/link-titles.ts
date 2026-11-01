@@ -68,11 +68,16 @@ export function createPageResolver(url: string | null, fetchImpl: typeof fetch =
 /**
  * Keeps relative and http(s) URLs only (never `javascript:` or `data:`).
  *
- * @param value - A URL from an endpoint answer
+ * @param input - A URL from an endpoint answer
  * @returns The URL, or '' when it is not safe
  */
-export function safeUrl(value: unknown): string {
-  if (typeof value !== 'string' || value === '') return '';
+export function safeUrl(input: unknown): string {
+  if (typeof input !== 'string') return '';
+  // As the URL parser does: drop leading / trailing C0 controls and spaces and every tab or newline, so that
+  // `"\x01//host"` or `"/\t/host"` cannot hide a protocol-relative URL.
+  // eslint-disable-next-line no-control-regex
+  const value = input.replace(/[\t\n\r]/g, '').replace(/^[\u0000-\u0020]+|[\u0000-\u0020]+$/g, '');
+  if (value === '') return '';
   // Protocol-relative forms (`//host`, `/\host`, `\\host`) point at another origin.
   if (/^[\\/][\\/]/.test(value)) return '';
   if (/^(?:\/|\.{1,2}\/|#|\?)/.test(value)) return value;

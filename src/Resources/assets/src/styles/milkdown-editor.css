@@ -512,7 +512,8 @@
 
 /* Previews */
 .nowo-milkdown-preview-error,
-.nowo-md-mermaid--error {
+.nowo-md-mermaid--error,
+[data-math-error] {
   color: var(--nowo-milkdown-danger);
   font-size: 0.875rem;
 }

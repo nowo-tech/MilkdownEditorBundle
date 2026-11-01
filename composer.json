@@ -66,6 +66,7 @@
         "symfony/browser-kit": "^7.4 || ^8.0",
         "symfony/css-selector": "^7.4 || ^8.0",
         "symfony/translation": "^7.4 || ^8.0",
+        "symfony/validator": "^7.4 || ^8.0",
         "symfony/yaml": "^7.4 || ^8.0",
         "vincentlanglet/twig-cs-fixer": "^4.1"
     },
@@ -124,6 +125,9 @@
             "/node_modules",
             "/src/Resources/assets/tests"
         ]
+    },
+    "suggest": {
+        "symfony/validator": "Adds the default Length constraint (max_input_length bytes) to MilkdownEditorType"
     },
     "config": {
         "sort-packages": true,
