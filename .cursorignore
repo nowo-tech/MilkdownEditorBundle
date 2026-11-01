@@ -27,8 +27,12 @@
 /demo/**/e2e/test-results/
 /demo/**/e2e/playwright-report/
 
-# Bundle public generated assets (source maps; IIFE is committed)
-/src/Resources/public/js/*.map
+# Bundle public generated assets (Vite build of src/Resources/assets/src, committed for assets:install)
+/src/Resources/public/chunks/
+/src/Resources/public/katex/
+/src/Resources/public/milkdown-editor.js
+/src/Resources/public/milkdown-editor.css
+/src/Resources/public/**/*.map
 
 # Caches / analysis
 /.php-cs-fixer.cache

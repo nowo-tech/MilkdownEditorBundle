@@ -4,11 +4,20 @@ Checklist of every `REQ-*` of the nowo bundle standards (`BUNDLES_FULL_SPECS_DET
 bundle: a form type with TypeScript assets, a Markdown renderer, Twig, translations and a FrankenPHP demo. No
 Doctrine, database, controllers, Messenger or admin UI.
 
-**Last audited:** 2026-10-31 · **Tooling:** `make release-check` (all gates below) and the monorepo
+**Last audited:** 2026-11-01 · **Tooling:** `make release-check` (all gates below) and the monorepo
 `.scripts/audit-bundles-checklist.py` checks run for this bundle only (81 / 81 pass or N/A, GitHub repository
 settings included).
 
 Legend: ✅ met · — not applicable (reason given) · ⏳ outside the repository (GitHub settings / monorepo records).
+
+## Table of contents
+
+- [Docker and demos](#docker-and-demos)
+- [Package, PHP, configuration](#package-php-configuration)
+- [Quality](#quality)
+- [Makefile and Git](#makefile-and-git)
+- [Documentation and Twig](#documentation-and-twig)
+- [Spec Kit, assets, CI, security, IDE](#spec-kit-assets-ci-security-ide)
 
 ## Docker and demos
 
@@ -91,7 +100,7 @@ Legend: ✅ met · — not applicable (reason given) · ⏳ outside the reposito
 
 | REQ | Status | Evidence |
 |-----|--------|----------|
-| REQ-SPECKIT-001 / 002 / 003 | ✅ | `.specify/`, `.cursor/skills/speckit-*`, `specs/001-baseline/` (78/78 units), [SPEC-KIT.md](SPEC-KIT.md) |
+| REQ-SPECKIT-001 / 002 / 003 | ✅ | `.specify/`, `.cursor/skills/speckit-*`, `specs/001-baseline/` (79/79 units), [SPEC-KIT.md](SPEC-KIT.md) |
 | REQ-ASSETS-001 – 004 | ✅ | Vite ES module + lazy chunks in `src/Resources/public/`, English JSDoc, kebab-case files, `nowo_milkdown_editor` asset package |
 | REQ-UX-001 | ✅ | Auto-mount + `createStimulusController()`, no `innerHTML` with user data (ESLint rule), listeners cleaned on destroy |
 | REQ-CI-001 / 002 | ✅ | `.github/workflows/ci.yml` (tests, coverage 100%, PHPStan, Rector, Igor, Twig, TS lint / tests / size, git-hygiene), `.scrutinizer.yml` |

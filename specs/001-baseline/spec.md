@@ -109,8 +109,18 @@ language without overriding templates.
 - **FR-LAZY-001** Mermaid (strict, no HTML labels, nonce-stamped styles, sanitised SVG), KaTeX (`trust: false`),
   `renderRichContent()` for read pages, Yjs + Mercure provider.
 - **FR-TS-002** Upload hook (checks, progress, CSRF header, safe answers) and *Insert file* / *Insert icon* buttons.
+- **FR-THEME-001** One stylesheet styles the widget and the read-only render through `--nowo-milkdown-*` custom
+  properties, with light, dark and `auto` (follows `prefers-color-scheme`) themes.
 - **FR-I18N-001** UI strings in en, es, de, fr, it, nl, pt (`NowoMilkdownEditorBundle` domain), same keys as the
   TypeScript defaults.
+
+### Build
+
+- **FR-BUILD-001** `src/Resources/public/milkdown-editor.js` and its `chunks/` are the Vite ES-module build of
+  `src/Resources/assets/src/index.ts`; KaTeX's stylesheet and fonts are copied to `katex/`. The build is committed
+  and published by `assets:install`.
+- **FR-BUILD-002** `src/Resources/public/milkdown-editor.css` is the build of
+  `src/Resources/assets/src/styles/milkdown-editor.css`.
 
 ## Success criteria
 
@@ -119,7 +129,7 @@ language without overriding templates.
 - **SC-002** Demo e2e: axe 0 serious / critical (light, dark, suggestion list open), 0 CSP violations under the
   strict nonce policy, Tab leaves the editor, Markdown stable across two saves.
 - **SC-003** Up-front JavaScript ≤ 400 kB gzip with code highlighting loaded on demand (`make bundle-size`).
-- **SC-004** The code inventory maps **78/78** production units ([code-inventory.md](code-inventory.md)).
+- **SC-004** The code inventory maps **79/79** production units ([code-inventory.md](code-inventory.md)).
 
 ## Key entities
 
