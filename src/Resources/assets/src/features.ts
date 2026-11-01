@@ -10,6 +10,7 @@ import { placeholder } from '@milkdown/crepe/feature/placeholder';
 import { table } from '@milkdown/crepe/feature/table';
 import { toolbar } from '@milkdown/crepe/feature/toolbar';
 import { KATEX_STYLESHEET, ensureStylesheet } from './assets';
+import { guardKatex, type Katex } from './preview/render';
 import { t, type Runtime } from './runtime';
 import type { EditorOptions } from './types';
 
@@ -17,6 +18,7 @@ import type { EditorOptions } from './types';
 export const lazyFeatures = {
   code: () => import('./features/code'),
   math: () => import('@milkdown/crepe/feature/latex'),
+  katex: () => import('katex'),
   topBar: () => import('@milkdown/crepe/feature/top-bar'),
 };
 
@@ -36,6 +38,9 @@ export async function addFeatures(builder: CrepeBuilder, options: EditorOptions,
   // CodeMirror before LaTeX: the LaTeX preview wraps the code block's renderPreview.
   if (code) code.addCodeMirror(builder, runtime, on.has('mermaid'));
   if (math) {
+    // Crepe's inline math and block preview call KaTeX directly: bound them like the read side (TeX length / depth).
+    const katex = await lazyFeatures.katex();
+    guardKatex((katex.default ?? katex) as unknown as Katex);
     ensureStylesheet(KATEX_STYLESHEET, runtime.nonce);
     builder.addFeature(math.latex, {
       katexOptions: { trust: false, strict: 'ignore', maxExpand: 1000, maxSize: 50 },

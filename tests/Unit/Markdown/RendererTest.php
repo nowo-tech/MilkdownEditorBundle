@@ -40,7 +40,7 @@ final class RendererTest extends TestCase
     private array $pageCalls = [];
 
     /**
-     * @param array{html_input?: string, allow_remote_images?: bool, math?: bool, max_input_length?: int, max_inline_markers?: int} $options
+     * @param array{html_input?: string, allow_remote_images?: bool, math?: bool, max_input_length?: int, max_inline_markers?: int, max_references?: int} $options
      * @param list<DirectiveRendererInterface> $directives
      */
     private function renderer(array $options = [], array $directives = [], ?PageResolverInterface $pages = null, ?UserResolverInterface $users = null, ?AbstractLogger $logger = null, ?TranslatorInterface $translator = null): MilkdownMarkdownRenderer
@@ -138,6 +138,33 @@ final class RendererTest extends TestCase
     {
         $this->renderer()->render('[[wiki:' . self::ID . ']] [[wiki:' . self::ID . ']] [[wiki:' . self::HIDDEN . ']] text');
         self::assertSame([[self::ID, self::HIDDEN]], $this->pageCalls);
+    }
+
+    /**
+     * Re-verification I7: at most `max_references` distinct ids / handles reach each resolver per document.
+     */
+    #[Test]
+    public function resolverFanOutIsCapped(): void
+    {
+        $handles = [];
+        $users   = new class($handles) implements UserResolverInterface {
+            /** @param list<list<string>> $calls */
+            public function __construct(public array &$calls)
+            {
+            }
+
+            public function resolveUsers(array $handles): array
+            {
+                $this->calls[] = $handles;
+
+                return ['ada' => new ResolvedUser('Ada'), 'zed' => new ResolvedUser('Zed')];
+            }
+        };
+        $html = $this->renderer(['max_references' => 1], [], null, $users)->render('[[wiki:' . self::ID . ']] [[wiki:' . self::HIDDEN . ']] @ada @zed');
+        self::assertSame([[self::ID]], $this->pageCalls);
+        self::assertSame([['ada']], $handles);
+        self::assertStringContainsString('Content not visible', $html);
+        self::assertStringContainsString('title="Ada">@ada</span> @zed', $html);
     }
 
     #[Test]
@@ -302,7 +329,8 @@ final class RendererTest extends TestCase
     {
         $r = $this->renderer();
         $r->render('warm *up*');
-        foreach ([str_repeat('*_', 500000), str_repeat('*_', 25000), str_repeat('[', 50000), str_repeat(' @a', 20000)] as $payload) {
+        // Re-verification L4: line feeds count too (99.9 KB of `a\n` peaked at ~90 MB).
+        foreach ([str_repeat('*_', 500000), str_repeat('*_', 25000), str_repeat('[', 50000), str_repeat(' @a', 20000), str_repeat("a\n", 49999)] as $payload) {
             gc_collect_cycles();
             memory_reset_peak_usage();
             $before = memory_get_usage();
@@ -310,7 +338,7 @@ final class RendererTest extends TestCase
             $html   = $r->render($payload);
             self::assertLessThan(2.0, microtime(true) - $start);
             self::assertLessThan(16 * 1048576, memory_get_peak_usage() - $before);
-            self::assertStringStartsWith('<p>' . substr(DialectRenderer::e($payload), 0, 6), $html);
+            self::assertStringStartsWith('<p>' . substr(DialectRenderer::e($payload), 0, 1), $html);
             self::assertStringNotContainsString('<em>', $html);
         }
     }
@@ -333,6 +361,7 @@ final class RendererTest extends TestCase
     public function theMarkerBudgetIsConfigurable(): void
     {
         self::assertSame(14, MilkdownMarkdownRenderer::countInlineMarkers('[]*_`!<&@:$~|\\x y.'));
+        self::assertSame(3, MilkdownMarkdownRenderer::countInlineMarkers("a\nb\n\n"));
         $r = $this->renderer(['max_inline_markers' => 2]);
         self::assertSame('<p>a <em>b</em> c</p>', trim($r->render('a *b* c')));
         self::assertSame('<p>*a* _b_</p>', trim($r->render('*a* _b_')));

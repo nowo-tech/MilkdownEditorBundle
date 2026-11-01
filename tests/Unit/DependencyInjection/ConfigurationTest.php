@@ -16,11 +16,11 @@ final class ConfigurationTest extends TestCase
     /**
      * @param array<string, mixed> $config
      *
-     * @return array{default_profile: string, profiles: array<string, array{features: list<string>, theme: string}>, markdown: array{html_input: string, allow_unsafe_links: bool, allow_remote_images: bool, max_input_length: int, max_inline_markers: int}}
+     * @return array{default_profile: string, profiles: array<string, array{features: list<string>, theme: string}>, markdown: array{html_input: string, allow_unsafe_links: bool, allow_remote_images: bool, max_input_length: int, max_inline_markers: int, max_references: int}}
      */
     private function process(array $config): array
     {
-        /** @var array{default_profile: string, profiles: array<string, array{features: list<string>, theme: string}>, markdown: array{html_input: string, allow_unsafe_links: bool, allow_remote_images: bool, max_input_length: int, max_inline_markers: int}} $processed */
+        /** @var array{default_profile: string, profiles: array<string, array{features: list<string>, theme: string}>, markdown: array{html_input: string, allow_unsafe_links: bool, allow_remote_images: bool, max_input_length: int, max_inline_markers: int, max_references: int}} $processed */
         $processed = (new Processor())->processConfiguration(new Configuration(), [$config]);
 
         return $processed;
@@ -38,6 +38,7 @@ final class ConfigurationTest extends TestCase
         self::assertFalse($c['markdown']['allow_remote_images']);
         self::assertSame(100000, $c['markdown']['max_input_length']);
         self::assertSame(10000, $c['markdown']['max_inline_markers']);
+        self::assertSame(500, $c['markdown']['max_references']);
     }
 
     #[Test]

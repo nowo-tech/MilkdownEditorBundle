@@ -143,7 +143,8 @@ public function __construct(private MarkdownRendererInterface $markdown) {}
 $html = $this->markdown->render($page->getBody());
 ```
 
-Implement and alias the resolvers:
+Implement and alias the resolvers. They get every distinct page id / handle of a document in one call (at most
+`markdown.max_references`, 500 by default) — chunk your queries if your storage needs it:
 
 ```php
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\{PageResolverInterface, ResolvedPage};
@@ -191,9 +192,10 @@ The PHP renderer outputs ```` <pre><code class="language-mermaid"> ```` and `[da
 await window.NowoMilkdownEditor.renderRichContent(document.getElementById('page-body'), { nonce: cspNonce });
 ```
 
-Diagrams do not load images from other origins (Mermaid image shapes, `<use href>`, remote `url(…)` styles): pass
-`allowRemoteImages: true` only when the renderer's `allow_remote_images` is on as well. A formula KaTeX cannot render,
-or one over 5 000 characters or 200 nested groups, keeps its source and gets `data-math-error`; the others still
+Diagrams do not load images from other origins: Mermaid image shapes (`A@{ img: … }`) are removed before rendering,
+`themeCSS` / `themeVariables` / `fontFamily` cannot be set from `%%{init}%%`, and remote `href`s and `url(…)` are
+removed from the SVG. Pass `allowRemoteImages: true` only when the renderer's `allow_remote_images` is on as well. A formula KaTeX cannot render,
+or one over 5 000 characters or 50 nesting levels, keeps its source and gets `data-math-error`; the others still
 render.
 
 ## JavaScript API and Stimulus

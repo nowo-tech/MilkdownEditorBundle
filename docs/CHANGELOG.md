@@ -5,38 +5,57 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
-### Security
+Planned as **1.1.0** (minor): security fixes that change defaults and add options.
 
-Fixes for the independent REQ-SEC-004 audit of 1.0.0 (Appendix CE: Pass (conditional) / Medium).
+### Added
 
-- **M1 (Medium, stored DoS):** league/commonmark uses about 1.5 KB of memory per inline delimiter, so the old 1 MB
-  `max_input_length` let ~100 KB of `*_` exhaust PHP's default 128M `memory_limit` on every render.
-  `max_input_length` now defaults to 100 000 bytes; a new `max_inline_markers` budget (default 10 000) renders
-  delimiter-dense input as escaped text without parsing; `MilkdownEditorType` gets a matching `Length` constraint
-  (bytes, option `max_length`) when symfony/validator is installed. Worst case within the defaults: ~35 MB, 0.7 s.
-- **L1 (Low):** Mermaid diagrams rendered by `renderRichContent()` (and the editor preview) no longer load images
-  from other origins: remote `href`s of `image`, `use`, `feImage` and `pattern` and remote `url(…)` styles are
-  dropped unless `allowRemoteImages: true`.
-- **L2 (Low):** each KaTeX formula renders in its own `try` / `catch` (`data-math-error` on failure) and formulas over
-  5 000 characters or 200 nested groups are skipped, so one hostile formula no longer stops the others.
-- **L3 (Low, docs):** upload guidance excludes SVG / HTML and asks for server-side type detection, `nosniff`,
-  `Content-Disposition: attachment` and a sandbox CSP or separate origin.
-- **I1:** `safeUrl()` (TS and PHP) and the remote-image check strip leading C0 controls / spaces and inner tabs /
-  newlines before checking for protocol-relative URLs.
-- **I2:** the CSP nonce is no longer copied into `data-nowo-milkdown-options`; the editor reads it from its
-  `<script nonce>` element.
-- **I3–I5:** documented Mermaid's inline handlers under a nonce CSP, the global prototype patch while Mermaid
-  renders (its style stash is now emptied after each render) and the manual-mount mode for pages with untrusted
-  HTML.
+- Renderer options `nowo_milkdown_editor.markdown.max_inline_markers` (default 10 000) and `max_references`
+  (default 500).
+- `MilkdownEditorType` option `max_length` (bytes; default `markdown.max_input_length`; `null` turns it off): a
+  `Length` constraint when symfony/validator is installed (now suggested).
+- `renderRichContent()` option `allowRemoteImages` (default `false`).
 
 ### Changed
 
+- `nowo_milkdown_editor.markdown.max_input_length` defaults to 100 000 bytes (was 1 000 000).
+- The CSP nonce is no longer written into `data-nowo-milkdown-options`; the editor reads it from its `<script nonce>`.
+- Mermaid diagrams (read side and editor preview) no longer load remote images or set `themeCSS` / `themeVariables`
+  / `fontFamily` from `%%{init}%%` or front matter unless `allowRemoteImages` is on.
+- KaTeX formulas nested deeper than 50 levels are shown as source with `data-math-error`.
 - `make release-check` starts the Docker stack (`ensure-up`) before the co-author trailer check, in the order of the
   bundle standards.
 - `.cursorignore` excludes the committed Vite build (`src/Resources/public/chunks/`, `katex/`, `milkdown-editor.*`)
   instead of a stale `js/*.map` pattern.
 - Development and demo lock files: `league/commonmark` 2.10.7 and, in the demo, `nowo-tech/twig-inspector-bundle`
   1.3.2 (the bundle's constraints are unchanged).
+
+### Security
+
+Fixes for the independent REQ-SEC-004 audit of 1.0.0 (Appendix CE: Pass (conditional) / Medium) and its
+re-verification of the first fix (Pass (good) / Low).
+
+- **M1 (Medium, stored DoS):** league/commonmark uses about 1.5 KB of memory per inline delimiter, so the old 1 MB
+  `max_input_length` let ~100 KB of `*_` exhaust PHP's default 128M `memory_limit` on every render. Input over
+  `max_input_length` or `max_inline_markers` now renders as escaped text without parsing, and the form rejects it.
+- **L4 (Low):** line feeds count in `max_inline_markers` (100 KB of `a\n` peaked at ~90 MB). Worst case within the
+  defaults: ~39 MB, 1.2 s (PHP 8.4).
+- **L1 (Low):** Mermaid image shapes are removed from the source and the CSS keys are Mermaid `secure` keys, so nothing
+  is fetched while Mermaid lays the diagram out; the SVG then loses remote `href`s, SMIL `href` animations and, after
+  CSS unescaping, remote `url()`, `image-set()`, `@import` and `@font-face` in inline and restored styles. (The first
+  attempt only filtered the final SVG.)
+- **L2 (Low):** each KaTeX formula renders in its own `try` / `catch` (`data-math-error` on failure).
+- **L5 (Low):** formulas over 5 000 characters or 50 nesting levels (groups, scripts, `\left`, `\begin`) are not
+  handed to KaTeX — 160 nested superscripts crashed the reader's tab; the guard covers the editor's math too.
+- **L3 (Low, docs):** upload guidance excludes SVG / HTML and asks for server-side type detection, `nosniff`,
+  `Content-Disposition: attachment` and a sandbox CSP or separate origin.
+- **I1:** `safeUrl()` (TS and PHP) and the remote-image check strip leading C0 controls / spaces and inner tabs /
+  newlines before checking for protocol-relative URLs.
+- **I2:** the CSP nonce is no longer copied into `data-nowo-milkdown-options`.
+- **I7:** at most `max_references` distinct page ids / handles reach each resolver per document (and only answers for
+  requested keys are used).
+- **I3–I5:** documented Mermaid's inline handlers under a nonce CSP, the global prototype patch while Mermaid
+  renders (its style stash is now emptied after each render) and the manual-mount mode for pages with untrusted
+  HTML.
 
 ### Documentation
 

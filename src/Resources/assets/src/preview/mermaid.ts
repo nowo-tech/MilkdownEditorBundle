@@ -98,7 +98,7 @@ export function parseSvg(svg: string, nonce: string, label: string, allowRemoteI
     }
     const style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
     style.setAttribute('nonce', nonce);
-    style.textContent = css;
+    style.textContent = allowRemoteImages ? css : sanitizeCss(css);
     holder.replaceWith(style);
   });
   node.setAttribute('role', 'img');
@@ -109,8 +109,81 @@ export function parseSvg(svg: string, nonce: string, label: string, allowRemoteI
 /** SVG elements whose `href` loads a resource (image shapes, external `<use>`, filters, patterns). */
 const RESOURCE_ELEMENTS = new Set(['image', 'use', 'feimage', 'pattern']);
 
-/** A CSS `url(…)` that names a scheme or a protocol-relative host. */
-const REMOTE_CSS_URL = /url\(\s*['"]?\s*(?:(?!data:image\/)[a-z][a-z0-9+.-]*:|[\\/]{2})/i;
+/** SMIL elements that could set an `href` after the diagram is inserted. */
+const ANIMATION_ELEMENTS = new Set(['set', 'animate']);
+
+/** Mermaid keys that are always fixed by `initialize()`, never by `%%{init}%%` or front matter. */
+export const MERMAID_SECURE_KEYS = ['secure', 'securityLevel', 'startOnLoad', 'maxTextSize', 'suppressErrorRendering', 'maxEdges'];
+
+/** Keys that put author CSS into the diagram (`themeCSS`, theme colours / fonts written into its `<style>`). */
+export const MERMAID_CSS_KEYS = ['themeCSS', 'themeVariables', 'fontFamily', 'altFontFamily'];
+
+/**
+ * Removes image shapes from Mermaid source: every `@{ … }` shape metadata block that mentions `img` (in any case or
+ * spelling, or with a YAML escape) is dropped, so Mermaid never lays out an `<image>` in the live document — the
+ * browser would fetch it before the SVG is sanitised.
+ *
+ * @param source - Mermaid source
+ * @returns The source without image shape metadata
+ */
+export function stripImageShapes(source: string): string {
+  let out = '';
+  let i = 0;
+  while (i < source.length) {
+    const start = source.indexOf('@{', i);
+    if (start < 0) break;
+    let end = start + 2;
+    let quote = '';
+    for (; end < source.length; end++) {
+      const ch = source[end]!;
+      if (quote) {
+        if (ch === '\\') end++;
+        else if (ch === quote) quote = '';
+      } else if (ch === '"' || ch === "'") quote = ch;
+      else if (ch === '}') break;
+    }
+    const block = source.slice(start, end + 1);
+    out += source.slice(i, start) + (/img|\\/i.test(block) ? '' : block);
+    i = end + 1;
+  }
+  return out + source.slice(i);
+}
+
+/**
+ * CSS as the browser reads it: comments removed and escapes (`\75 rl(`, `\(`) decoded.
+ *
+ * @param css - CSS text
+ * @returns The decoded text
+ */
+export function decodeCss(css: string): string {
+  return css.replace(/\/\*[\s\S]*?(?:\*\/|$)/g, '').replace(/\\(?:([0-9a-f]{1,6})[ \t\n\r\f]?|(\r\n|[\n\r\f])|([\s\S]))/gi, (_m, hex?: string, _nl?: string, ch?: string) => {
+    if (hex !== undefined) {
+      const code = parseInt(hex, 16);
+      return code > 0 && code <= 0x10ffff && (code < 0xd800 || code > 0xdfff) ? String.fromCodePoint(code) : '\ufffd';
+    }
+    return ch ?? '';
+  });
+}
+
+/**
+ * CSS without resource loads to other origins (`allow_remote_images: false`): escapes are decoded first, `@import`
+ * and `@font-face` rules are removed, `image-set()` and every `url()` that is not local become `none`; anything still
+ * naming a remote `url(` afterwards drops the whole text.
+ *
+ * @param css - A style block or a `style` attribute
+ * @returns Safe CSS
+ */
+export function sanitizeCss(css: string): string {
+  const out = decodeCss(css)
+    .replace(/@import\b[^;]*;?/gi, '')
+    .replace(/@font-face\s*\{[^}]*\}?/gi, '')
+    .replace(/(?:-webkit-)?image-set\((?:[^()]|\([^()]*\))*\)/gi, 'none')
+    .replace(/url\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*?))\s*\)/gi, (m, dq?: string, sq?: string, bare?: string) =>
+      isLocalResource(dq ?? sq ?? bare ?? '') ? m : 'none',
+    );
+  for (const m of out.matchAll(/url\(\s*['"]?([^'")]*)/gi)) if (!isLocalResource(m[1] ?? '')) return '';
+  return /@import|image-set\(/i.test(out) ? '' : out;
+}
 
 /**
  * Whether `value` may be loaded: a fragment, an inline `data:image/(png|gif|jpeg|webp)` or a same-origin URL.
@@ -132,21 +205,33 @@ export function isLocalResource(value: string): boolean {
 
 /**
  * Removes resource loads to other origins from one SVG element (`allow_remote_images: false`, the default): tracking
- * pixels through Mermaid image shapes or `<use href>`, and `url(…)` in inline styles.
+ * pixels through Mermaid image shapes or `<use href>`, `<set>` / `<animate>` of an `href`, and `url(…)` in styles.
  *
  * @param el - An element of the parsed diagram
  */
 function dropRemoteResources(el: Element): void {
-  if (RESOURCE_ELEMENTS.has(el.localName.toLowerCase())) {
+  const name = el.localName.toLowerCase();
+  if (RESOURCE_ELEMENTS.has(name)) {
     for (const attr of [...el.attributes]) {
       if (attr.localName === 'href' && !isLocalResource(attr.value)) el.removeAttributeNode(attr);
     }
   }
+  if (ANIMATION_ELEMENTS.has(name) && /href/i.test(el.getAttribute('attributeName') ?? '')) {
+    el.remove();
+    return;
+  }
   const style = el.getAttribute('style');
-  if (style !== null && REMOTE_CSS_URL.test(style)) el.removeAttribute('style');
+  if (style !== null) {
+    const safe = sanitizeCss(style);
+    if (safe !== style) el.setAttribute('style', safe);
+  }
 }
 
-/** Renders one diagram; rejects with Mermaid's error for invalid source. */
+/**
+ * Renders one diagram; rejects with Mermaid's error for invalid source. Mermaid lays the diagram out in the live
+ * document, so unless remote images are allowed the source is filtered first: image shapes are removed and the CSS
+ * keys (`themeCSS`, `themeVariables`, `fontFamily`) cannot be set from `%%{init}%%` or front matter.
+ */
 export async function renderMermaid(source: string, nonce: string, dark: boolean, label: string, allowRemoteImages = false): Promise<SVGSVGElement> {
   const mermaid = await (loader ??= mermaidLoader.load());
   mermaid.initialize({
@@ -156,10 +241,12 @@ export async function renderMermaid(source: string, nonce: string, dark: boolean
     flowchart: { htmlLabels: false },
     theme: dark ? 'dark' : 'neutral',
     fontFamily: 'inherit',
+    secure: allowRemoteImages ? MERMAID_SECURE_KEYS : [...MERMAID_SECURE_KEYS, ...MERMAID_CSS_KEYS],
   });
+  const text = allowRemoteImages ? source : stripImageShapes(source);
   const run = queue.then(async () => {
     try {
-      const { svg } = await withStyleNonce(nonce, () => mermaid.render(`nowo-mermaid-${++counter}`, source));
+      const { svg } = await withStyleNonce(nonce, () => mermaid.render(`nowo-mermaid-${++counter}`, text));
       return parseSvg(svg, nonce, label, allowRemoteImages);
     } finally {
       stash.length = 0; // placeholders are resolved: keep the page from accumulating diagram CSS

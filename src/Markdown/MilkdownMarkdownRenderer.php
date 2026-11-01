@@ -38,13 +38,16 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface
     /** Default `max_inline_markers`: CommonMark allocates about 1.5 KB per inline delimiter while parsing. */
     public const DEFAULT_MAX_INLINE_MARKERS = 10000;
 
-    /** Bytes that start or end an inline construct (CommonMark core, GFM and the dialect). */
-    public const INLINE_MARKERS = '[]*_`!<&@:$~|\\';
+    /**
+     * Bytes that cost a parser node or match array each: the delimiters of inline constructs (CommonMark core, GFM and
+     * the dialect) and the line feed (one `Newline` node per soft break).
+     */
+    public const INLINE_MARKERS = "[]*_`!<&@:\$~|\\\n";
 
     private ?MarkdownConverter $converter = null;
 
     /**
-     * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, max_nesting_level?: int, max_input_length?: int, max_inline_markers?: int, mark_colors?: list<string>} $options The `nowo_milkdown_editor.markdown` configuration
+     * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, max_nesting_level?: int, max_input_length?: int, max_inline_markers?: int, max_references?: int, mark_colors?: list<string>} $options The `nowo_milkdown_editor.markdown` configuration
      * @param PageResolverInterface $pages Page link resolver (per viewer)
      * @param UserResolverInterface $users Mention resolver
      * @param IconResolverInterface $icons Icon allowlist and sprite
@@ -65,7 +68,7 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface
 
     /**
      * Safe HTML for `$markdown`. Input longer than `max_input_length` bytes, or with more than `max_inline_markers`
-     * inline delimiter characters, is rendered as escaped text without parsing: the parser's memory and CPU grow
+     * inline delimiter characters and line feeds, is rendered as escaped text without parsing: the parser's memory and CPU grow
      * with the number of delimiters, so this bounds the cost of a hostile document.
      */
     public function render(string $markdown): string
@@ -108,7 +111,14 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface
         $environment->addExtension(new GithubFlavoredMarkdownExtension());
         $environment->addExtension(new MilkdownDialectExtension(
             new DialectRenderer($this->icons, $this->directiveRenderers, $this->options['mark_colors'] ?? ['yellow'], $this->translator),
-            new DocumentProcessor($this->pages, $this->users, $this->directiveRenderers, $this->options['allow_remote_images'] ?? false, $this->logger),
+            new DocumentProcessor(
+                $this->pages,
+                $this->users,
+                $this->directiveRenderers,
+                $this->options['allow_remote_images'] ?? false,
+                $this->logger,
+                $this->options['max_references'] ?? DocumentProcessor::DEFAULT_MAX_REFERENCES,
+            ),
             $math,
         ));
 

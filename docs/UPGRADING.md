@@ -3,7 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
-- [1.0.1](#101)
+- [1.1.0](#110)
 - [1.0.0](#100)
 
 ## General procedure
@@ -19,21 +19,30 @@ Public API covered by Semantic Versioning: the configuration tree, profile keys,
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
 
-## 1.0.1
+## 1.1.0
 
-Security release (independent audit, Appendix CE). Check these if you store long documents:
+Security release (independent audit, Appendix CE). It is a minor version because defaults change and options are
+added. Check these if you store long documents or rely on diagram styling:
 
 - **`nowo_milkdown_editor.markdown.max_input_length` defaults to `100000` bytes (was `1000000`).** Longer documents
-  now render as escaped plain text. A new `max_inline_markers` limit (default `10000`) does the same for documents
-  with more inline delimiter characters. If your documents are longer, raise both (and `memory_limit`); see
-  [CONFIGURATION](CONFIGURATION.md#renderer-limits).
+  now render as escaped plain text. The new `max_inline_markers` limit (default `10000`) does the same for documents
+  with more inline delimiter characters **and line feeds** (a 100 KB document has about 2 500 lines). If your
+  documents are longer, raise both (and `memory_limit`); see [CONFIGURATION](CONFIGURATION.md#renderer-limits).
+- **`max_references` (default `500`)**: only the first 500 distinct page ids and the first 500 handles of a document
+  are sent to the resolvers; later ones render as *Content not visible* / plain `@handle`. Resolvers only see the
+  keys they were asked for, and answers for other keys are ignored.
 - **`MilkdownEditorType` adds a `Length` constraint** (bytes, default `max_input_length`) when symfony/validator is
   installed. Saving a longer document now fails validation. Set the field option `'max_length' => null` to keep the
   old behaviour, or another value per field.
 - **The CSP nonce is no longer written into `data-nowo-milkdown-options`.** The editor reads it from its
   `<script nonce>` element. If you override `Form/milkdown_editor_theme.html.twig`, keep the
   `nowo_milkdown_editor_assets(milkdown_nonce|default(null))` call (or load the module with a nonce yourself).
-- `renderRichContent()` drops remote images in Mermaid diagrams; pass `{ allowRemoteImages: true }` to keep them.
+- **Mermaid:** image shapes (`A@{ img: … }`) are removed and `themeCSS`, `themeVariables`, `fontFamily` and
+  `altFontFamily` can no longer be set from `%%{init}%%` or front matter. Pass
+  `renderRichContent(root, { allowRemoteImages: true })` to keep them on read pages (the editor preview always
+  filters).
+- **KaTeX:** formulas nested deeper than 50 levels (or over 5 000 characters) show their source with
+  `data-math-error`, in the editor and on read pages.
 
 ## 1.0.0
 

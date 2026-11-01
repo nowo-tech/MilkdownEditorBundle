@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { isLocalResource, mermaidLoader, parseSvg, renderMermaid, resetMermaid, withStyleNonce } from '../src/preview/mermaid';
-import { KATEX_OPTIONS, MAX_TEX_DEPTH, MAX_TEX_LENGTH, katexLoader, renderRichContent, texWithinLimits } from '../src/preview/render';
+import { MERMAID_CSS_KEYS, decodeCss, isLocalResource, mermaidLoader, parseSvg, renderMermaid, resetMermaid, sanitizeCss, stripImageShapes, withStyleNonce } from '../src/preview/mermaid';
+import { KATEX_OPTIONS, MAX_TEX_DEPTH, MAX_TEX_LENGTH, guardKatex, katexLoader, renderRichContent, texWithinLimits, type Katex } from '../src/preview/render';
 import { codeMirrorConfig } from '../src/features/code';
 import { defaultRuntime } from '../src/runtime';
 import { tick } from './helpers';
@@ -62,13 +62,74 @@ describe('mermaid', () => {
     expect(href('ok1')).toBe('data:image/png;base64,AA');
     expect(href('ok2')).toBe('#shape');
     expect(href('ok3')).toBe('/local.png');
-    expect(svg.querySelector('#s1')!.hasAttribute('style')).toBe(false);
+    expect(svg.querySelector('#s1')!.getAttribute('style')).toBe('fill:none');
     expect(svg.querySelector('#s2')!.getAttribute('style')).toBe('fill:url(#grad)');
     expect(href('a1')).toBe('https://example.test/');
     const allowed = parseSvg(REMOTE, '', 'D', true);
     expect(allowed.querySelector('#i1')!.getAttribute('href')).toBe('https://evil.test/mermaid-img-shape.png');
     expect(isLocalResource('')).toBe(true);
     expect(isLocalResource('http://[bad')).toBe(false);
+  });
+
+  // Re-verification L1: the auditor's URL spellings (bisect R1–R8) are all treated as remote.
+  it.each([
+    'https://evil.test/R1.png',
+    '//evil.test/R2.png',
+    '\\\\evil.test/R3.png',
+    '/\\evil.test/R4.png',
+    'HtTpS://evil.test/R6.png',
+    'https:evil.test/R7.png',
+    'ht\ttps://evil.test/R8.png',
+    ' \x01//evil.test/R9.png',
+  ])('%s is not a local resource', (url) => {
+    expect(isLocalResource(url)).toBe(false);
+  });
+
+  it('removes image shapes from the source before Mermaid lays it out', () => {
+    const src = 'flowchart TD\nA@{ img: "https://evil.test/R1.png", label: "x", pos: "t", w: 60, h: 60 }\nB@{ shape: rect, label: "ok" }\nC@{ IMG: //evil.test/R2.png }\nD@{ "\\x69mg": "x" }\nE@{ label: "a}b", img: \'//e\' }\nA --> B';
+    const out = stripImageShapes(src);
+    expect(out).not.toMatch(/img/i);
+    expect(out).toContain('B@{ shape: rect, label: "ok" }');
+    expect(out).toContain('A --> B');
+    expect(stripImageShapes('graph TD\nA[img: text] --> B@{ label: "x')).toBe('graph TD\nA[img: text] --> B@{ label: "x');
+  });
+
+  it('decodes CSS escapes and comments, then drops remote url(), image-set() and @import', () => {
+    expect(decodeCss('a{b:\\75 rl(x)} /* c */ \\(\\0 \\110000')).toBe('a{b:url(x)}  (\ufffd\ufffd');
+    expect(sanitizeCss('rect, path, g, svg { background-image: url(https://evil.test/C1); fill: url("//evil.test/C1fill") }')).toBe('rect, path, g, svg { background-image: none; fill: none }');
+    expect(sanitizeCss('g{fill:\\75 rl(https://evil.test/C4)}')).toBe('g{fill:none}');
+    expect(sanitizeCss('g{fill:U/**/RL(https://evil.test/C5)}')).toBe('g{fill:none}');
+    expect(sanitizeCss("g{cursor:url('//evil.test/C6'),auto;mask:url(//evil.test/C7)}")).toBe('g{cursor:none,auto;mask:none}');
+    // `\\\\host` in CSS unescapes to one backslash: a same-origin path, as the browser resolves it.
+    expect(sanitizeCss('g{mask:url(\\\\evil.test/x)}')).toBe('g{mask:url(\\evil.test/x)}');
+    expect(sanitizeCss('@import url(https://evil.test/i.css); g{x:image-set("https://evil.test/a.png" 1x)} @font-face{src:url(https://evil.test/f.woff)}')).toBe(' g{x:none} ');
+    expect(sanitizeCss('.a{fill:url(#grad)} .b{background:url(data:image/png;base64,AA)} .c{background:url(/local.png)}')).toBe('.a{fill:url(#grad)} .b{background:url(data:image/png;base64,AA)} .c{background:url(/local.png)}');
+    expect(sanitizeCss('g{x:url("https://evil.test/a)b")}')).toBe('g{x:none}');
+    expect(sanitizeCss('g{x:url(https://evil.test/a"}')).toBe('');
+    expect(sanitizeCss('g{x:image-set(}')).toBe('');
+  });
+
+  it('filters restored styles and SMIL href animations unless remote images are allowed', () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg"><style>g{fill:\\75 rl(https://evil.test/C4)}</style><image id="i"><set attributeName="href" to="https://evil.test/s.png"/></image><animate id="a2" attributeName="x"/></svg>';
+    const node = parseSvg(svg, 'n', 'D');
+    expect(node.querySelector('style')?.textContent).toBe('g{fill:none}');
+    expect(node.querySelector('set')).toBeNull();
+    expect(node.querySelector('#a2')).not.toBeNull();
+    const allowed = parseSvg(svg, 'n', 'D', true);
+    expect(allowed.querySelector('style')?.textContent).toBe('g{fill:\\75 rl(https://evil.test/C4)}');
+    expect(allowed.querySelector('set')).not.toBeNull();
+  });
+
+  it('keeps themeCSS / themeVariables / fontFamily out of %%{init}%% unless remote images are allowed', async () => {
+    const initialize = vi.fn();
+    const render = vi.fn(async (_id: string, _text: string) => ({ svg: SVG }));
+    vi.spyOn(mermaidLoader, 'load').mockResolvedValue({ initialize, render });
+    await renderMermaid('flowchart TD\nA@{ img: "https://evil.test/x.png" }', '', false, 'D');
+    expect((initialize.mock.calls[0]![0] as { secure: string[] }).secure).toEqual(expect.arrayContaining(['secure', 'securityLevel', ...MERMAID_CSS_KEYS]));
+    expect(render.mock.calls[0]![1]).toBe('flowchart TD\nA');
+    await renderMermaid('flowchart TD\nA@{ img: "https://evil.test/x.png" }', '', false, 'D', true);
+    expect((initialize.mock.calls[1]![0] as { secure: string[] }).secure).not.toContain('themeCSS');
+    expect(render.mock.calls[1]![1]).toContain('img:');
   });
 
   it('renders with strict security and no HTML labels, loading Mermaid once', async () => {
@@ -149,6 +210,47 @@ describe('renderRichContent', () => {
     expect(texWithinLimits('{'.repeat(MAX_TEX_DEPTH) + '}'.repeat(MAX_TEX_DEPTH))).toBe(true);
     expect(texWithinLimits('{'.repeat(MAX_TEX_DEPTH + 1))).toBe(false);
     expect(texWithinLimits('}}{x}'.repeat(300))).toBe(true);
+    // Re-verification L5: 160 nested superscripts / 190 subscripts crashed the tab; \left and \begin nest too.
+    expect(MAX_TEX_DEPTH).toBe(50);
+    expect(texWithinLimits(`${'x^{'.repeat(160)}x${'}'.repeat(160)}`)).toBe(false);
+    expect(texWithinLimits(`${'x_{'.repeat(190)}x${'}'.repeat(190)}`)).toBe(false);
+    expect(texWithinLimits(`${'x^{'.repeat(50)}x${'}'.repeat(50)}`)).toBe(true);
+    expect(texWithinLimits('\\left('.repeat(51))).toBe(false);
+    expect(texWithinLimits('\\begin{matrix}'.repeat(51))).toBe(false);
+    expect(texWithinLimits('\\left( x \\right) '.repeat(100) + '\\begin{a}\\end{a}'.repeat(100))).toBe(true);
+    expect(texWithinLimits('\\leftarrow \\{ \\endash '.repeat(100))).toBe(true);
+  });
+
+  it('guards KaTeX itself, so the editor\'s LaTeX is bounded too', () => {
+    const inner: Katex = { render: vi.fn((tex: string, el: HTMLElement) => {
+      if (tex === 'boom') throw new RangeError('stack');
+      el.textContent = `K(${tex})`;
+    }), renderToString: vi.fn((tex: string) => {
+      if (tex === 'boom') throw new RangeError('stack');
+      return `<b>${tex}</b>`;
+    }) };
+    const katex = guardKatex(inner);
+    expect(guardKatex(katex)).toBe(katex);
+    const el = document.createElement('span');
+    katex.render('x', el, {});
+    expect(el.textContent).toBe('K(x)');
+    for (const tex of ['boom', `${'x^{'.repeat(160)}x`]) {
+      const bad = document.createElement('span');
+      katex.render(tex, bad, {});
+      expect(bad.dataset.mathError).toBe('true');
+      expect(bad.textContent).toBe(tex);
+      expect(katex.renderToString!(tex, {})).toMatch(/^<span data-math-error="true">/);
+    }
+    expect(katex.renderToString!('<x>', {})).toBe('<b><x></b>');
+    expect(katex.renderToString!(`<i>${'{'.repeat(51)}`, {})).toBe(`<span data-math-error="true">&lt;i&gt;${'{'.repeat(51)}</span>`);
+    expect(guardKatex({ render: () => undefined } as Katex).renderToString).toBeUndefined();
+  });
+
+  it('the real KaTeX loader returns a guarded module', async () => {
+    const katex = await katexLoader.load();
+    const el = document.createElement('span');
+    katex.render(`${'x^{'.repeat(160)}x${'}'.repeat(160)}`, el, {});
+    expect(el.dataset.mathError).toBe('true');
   });
 
   it('the real loaders return modules', async () => {

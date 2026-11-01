@@ -5,10 +5,13 @@
 import { KATEX_STYLESHEET, ensureStylesheet } from '../assets';
 import { renderMermaid } from './mermaid';
 
-type Katex = { render: (tex: string, el: HTMLElement, options: Record<string, unknown>) => void };
+export type Katex = {
+  render: (tex: string, el: HTMLElement, options: Record<string, unknown>) => void;
+  renderToString?: (tex: string, options: Record<string, unknown>) => string;
+};
 
 export const katexLoader = {
-  load: (): Promise<Katex> => import('katex').then((m) => (m.default ?? m) as unknown as Katex),
+  load: (): Promise<Katex> => import('katex').then((m) => guardKatex((m.default ?? m) as unknown as Katex)),
 };
 
 export type RenderOptions = { nonce?: string; dark?: boolean; diagramLabel?: string; allowRemoteImages?: boolean };
@@ -16,8 +19,11 @@ export type RenderOptions = { nonce?: string; dark?: boolean; diagramLabel?: str
 /** Longest TeX source rendered, in characters (longer formulas stay as text). */
 export const MAX_TEX_LENGTH = 5000;
 
-/** Deepest `{` nesting rendered (KaTeX recurses per group and can overflow the stack). */
-export const MAX_TEX_DEPTH = 200;
+/**
+ * Deepest nesting rendered: `{…}` groups (including `^{…}` / `_{…}` scripts and command arguments), `\left…\right`
+ * and `\begin…\end`. KaTeX recurses per level; about 160 nested superscripts crash the browser tab outright.
+ */
+export const MAX_TEX_DEPTH = 50;
 
 /**
  * Whether a formula is small enough to hand to KaTeX.
@@ -28,11 +34,55 @@ export const MAX_TEX_DEPTH = 200;
 export function texWithinLimits(tex: string): boolean {
   if (tex.length > MAX_TEX_LENGTH) return false;
   let depth = 0;
-  for (const ch of tex) {
-    if (ch === '{' && ++depth > MAX_TEX_DEPTH) return false;
-    if (ch === '}') depth = Math.max(0, depth - 1);
+  for (const [token] of tex.matchAll(/\\(?:left|begin)(?![a-z])|\\(?:right|end)(?![a-z])|\\[\s\S]|[{}]/gi)) {
+    if (token === '{' || /^\\(?:left|begin)$/i.test(token)) {
+      if (++depth > MAX_TEX_DEPTH) return false;
+    } else if (token === '}' || /^\\(?:right|end)$/i.test(token)) {
+      depth = Math.max(0, depth - 1);
+    }
   }
   return true;
+}
+
+const guarded = new WeakSet<object>();
+
+/**
+ * Makes `katex.render` / `renderToString` refuse formulas over the limits and swallow any error (a `RangeError`
+ * escapes `throwOnError: false`). The module object is shared, so this also covers the editor's LaTeX (Crepe's inline
+ * math and block preview call the same functions). A refused formula keeps its source as text with
+ * `data-math-error`.
+ *
+ * @param katex - The KaTeX module object (patched in place, once)
+ * @returns The same object
+ */
+export function guardKatex<K extends Katex>(katex: K): K {
+  if (guarded.has(katex)) return katex;
+  guarded.add(katex);
+  const render = katex.render.bind(katex);
+  katex.render = (tex, el, options) => {
+    try {
+      if (!texWithinLimits(tex)) throw new RangeError('formula too large');
+      render(tex, el, options);
+    } catch {
+      el.textContent = tex;
+      el.setAttribute('data-math-error', 'true');
+    }
+  };
+  const toString = katex.renderToString?.bind(katex);
+  if (toString) {
+    katex.renderToString = (tex, options) => {
+      try {
+        if (!texWithinLimits(tex)) throw new RangeError('formula too large');
+        return toString(tex, options);
+      } catch {
+        const span = document.createElement('span');
+        span.setAttribute('data-math-error', 'true');
+        span.textContent = tex;
+        return span.outerHTML;
+      }
+    };
+  }
+  return katex;
 }
 
 /** Safe KaTeX options: no `\href` / `\url` (trust off), bounded macro expansion and sizes. */

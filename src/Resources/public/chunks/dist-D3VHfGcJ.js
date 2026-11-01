@@ -2,7 +2,7 @@ import { n as e } from "./rolldown-runtime-CwxnZyOB.js";
 import { i as t, n, r, t as i } from "./dist-Y2YZkjNP.js";
 import { B as a, C as o, I as s, N as c, P as l, _ as ee, d as u, h as d, j as f, k as p, m as te, o as ne, p as m, r as re, y as ie } from "./dist-DF6chiwp.js";
 import { F as h, a as g } from "./code-block-HJyGFXxl.js";
-import { a as _, i as ae, r as oe } from "./code-CTPPrnGd.js";
+import { a as _, i as ae, r as oe } from "./code-B8QGyiG0.js";
 // node_modules/.pnpm/@lezer+javascript@1.5.6/node_modules/@lezer/javascript/dist/index.js
 var se = 317, ce = 318, v = 1, le = 2, ue = 3, de = 4, fe = 319, pe = 321, me = 322, he = 5, ge = 6, y = 0, b = [
 	9,

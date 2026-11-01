@@ -51,7 +51,9 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
 - The PHP renderer escapes raw HTML (`html_input: escape`, or `strip`), drops unsafe link schemes
   (`allow_unsafe_links: false`), turns remote images into links (`allow_remote_images: false`) and bounds nesting
   (`max_nesting_level`). Input over `max_input_length` (100 000 bytes) or with more than `max_inline_markers`
-  (10 000) inline delimiter characters is rendered as escaped text without parsing (see [Parser cost](#parser-cost)).
+  (10 000) inline delimiter characters and line feeds is rendered as escaped text without parsing (see
+  [Parser cost](#parser-cost)). At most `max_references` (500) distinct page ids and mention handles per document
+  reach each resolver; later ones render as not visible / plain text.
   `MilkdownEditorType` adds a matching `Length` constraint (bytes) when symfony/validator is installed, so such input
   is rejected when it is saved.
 - Every value in dialect HTML is escaped; resolver URLs keep relative and http(s) forms only; icon, directive and
@@ -62,12 +64,24 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
   (TS and PHP strip leading C0 controls / spaces and inner tabs / newlines first, as browsers do); chips never store
   titles in Markdown.
 - Mermaid runs with `securityLevel: 'strict'` and `htmlLabels: false`; its SVG is parsed with `DOMParser`, scripts,
-  `foreignObject` and `on*` attributes are removed. Unless `renderRichContent(root, { allowRemoteImages: true })` is
-  used, `href` / `xlink:href` of `image`, `use`, `feImage` and `pattern` elements are dropped when they leave the
-  page's origin (fragments and `data:image/(png|gif|jpeg|webp)` stay) and inline styles with a remote `url(…)` are
-  removed; the editor's Mermaid preview always drops them. KaTeX runs with `trust: false` (no `\href`), bounded
-  `maxExpand` and `maxSize`; formulas over 5 000 characters or 200 nested groups are not rendered, and each formula
-  renders in its own `try` / `catch`, so one failure (marked `data-math-error`) never stops the others.
+  `foreignObject` and `on*` attributes are removed.
+- **Remote resources in diagrams** (unless `renderRichContent(root, { allowRemoteImages: true })`; the editor's
+  Mermaid preview always applies them). Mermaid lays a diagram out in the live document before the bundle sees the
+  SVG, so the filtering starts with the source:
+  1. image-shape metadata (`A@{ img: … }`, any spelling or YAML escape) is removed before `mermaid.render()`;
+  2. `themeCSS`, `themeVariables`, `fontFamily` and `altFontFamily` are Mermaid `secure` keys, so `%%{init}%%` and
+     front matter cannot set them;
+  3. in the returned SVG, `href` / `xlink:href` of `image`, `use`, `feImage` and `pattern` leaving the page's origin
+     are dropped (fragments and `data:image/(png|gif|jpeg|webp)` stay), `<set>` / `<animate>` of an `href` are removed,
+     and every inline style and restored `<style>` block is CSS-unescaped (`\75 rl(`, comments, case) and loses
+     `@import`, `@font-face`, `image-set()` and non-local `url()`.
+  The auditor's variants (absolute, `//host`, `\\host`, `/\host`, mixed case, `https:host`, a tab in the scheme,
+  `themeCSS` rules, escaped `url(`) fetched nothing with no CSP. A CSP `img-src` remains the backstop.
+- KaTeX runs with `trust: false` (no `\href`), bounded `maxExpand` and `maxSize`. Formulas over 5 000 characters or
+  50 nesting levels (`{…}` groups including `^{…}` / `_{…}` scripts, `\left…\right`, `\begin…\end`) are not
+  rendered — about 160 nested superscripts crash the browser tab, which no `try` / `catch` can catch. The guard
+  patches the shared KaTeX module, so the editor's inline math and LaTeX preview are bounded too; each read-side
+  formula renders in its own `try` / `catch`, so one failure (marked `data-math-error`) never stops the others.
 - Crepe's image-block feature (rewrites alt text, loads remote images) and the emoji plugin (CDN images) are not used.
 
 ## Content Security Policy
@@ -142,8 +156,8 @@ host's token in `X-CSRF-Token`; the host validates it.
 5. CSP: 0 violations in the demo e2e under the strict nonce policy.
 6. No `eval`, `new Function`, inline handlers or `innerHTML` with user data (ESLint rule).
 7. Per-viewer resolution: hidden pages never leak titles or ids (tests).
-8. Input bounds: `max_input_length`, `max_inline_markers`, `max_nesting_level`, the form `Length` constraint, TeX
-   length / depth, 10 suggestions, 50 ids per title request.
+8. Input bounds: `max_input_length`, `max_inline_markers`, `max_references`, `max_nesting_level`, the form `Length`
+   constraint, TeX length / depth, 10 suggestions, 50 ids per title request.
 9. Logging carries no user content.
 10. Dependencies pinned; Dependabot enabled.
 11. AI security audit passed with a good grade (below).
@@ -171,14 +185,18 @@ leaks, CSP bypasses, Mermaid / KaTeX injection, option parsing, uploads and work
 An independent static + PoC audit of v1.0.0 graded it **Pass (conditional) / Medium** (no Critical or High; no XSS
 in 66 server-side payloads, Mermaid / KaTeX payloads under three CSPs, the editor and HTML paste). The 1.0.0
 statement that league/commonmark's memory use was "bounded by `max_input_length`" was wrong: with the 1 MB default,
-about 100 KB of `*_` exhausted PHP's default 128M `memory_limit`. Fixed in 1.0.1; the re-grade belongs to the
-independent auditor.
+about 100 KB of `*_` exhausted PHP's default 128M `memory_limit`.
 
-| # | Severity | Finding | Fix (1.0.1) |
+The auditor's re-verification of the first fix (PR #5 at `b236447`) graded it **Pass (good) / Low**, with L1 only
+partly fixed (requests went out while Mermaid laid the diagram out, and restored `<style>` blocks were not filtered)
+and three new findings (L4, L5, I7). The table lists the 1.1.0 state; the re-grade belongs to the independent
+auditor.
+
+| # | Severity | Finding | Fix (1.1.0) |
 |---|----------|---------|-------------|
 | M1 | Medium | Stored DoS: ~1.5 KB of parser memory per inline delimiter; 1 MB default → ~1.5 GB, fatal error at 128M | `max_input_length` 100 000 bytes; `max_inline_markers` budget (10 000) before parsing; form `Length` constraint; regression tests |
-| L1 | Low | Read-side Mermaid image shapes loaded remote images despite `allow_remote_images: false` | Remote `href`s of `image` / `use` / `feImage` / `pattern` and remote `url(…)` styles dropped |
-| L2 | Low | One deeply nested formula (`RangeError`) stopped every later KaTeX render | Per-formula `try` / `catch` (`data-math-error`); TeX ≤ 5 000 chars and ≤ 200 nested groups |
+| L1 | Low | Read-side Mermaid image shapes and `themeCSS` loaded remote images despite `allow_remote_images: false` | Source pre-filter (image shapes, CSS `secure` keys) so nothing is fetched during layout; remote `href`s, SMIL `href` animations and CSS-unescaped remote `url()` / `@import` / `image-set()` removed from the SVG and its restored styles (first attempt in PR #5 was partial) |
+| L2 | Low | One deeply nested formula (`RangeError`) stopped every later KaTeX render | Per-formula `try` / `catch` (`data-math-error`); TeX limits (see L5) |
 | L3 | Low | Upload guidance allowed SVG and said nothing on serving uploads | [Permissions → Uploads](#permissions); USAGE example lists raster types |
 | I1 | Info | `safeUrl()` accepted control-character prefixes before `//host` | TS and PHP strip them first |
 | I2 | Info | Nonce copied into `data-nowo-milkdown-options` | Read from the script's `nonce` property; no longer emitted |
@@ -186,15 +204,20 @@ independent auditor.
 | I4 | Info | DOM prototypes patched globally while Mermaid renders | Stash emptied after each render; documented |
 | I5 | Info | Auto-mount is a script gadget next to sanitised untrusted HTML | Documented with the manual-mount mode |
 | I6 | Info | Dev-only `minimatch` advisory via ESLint; Actions pinned by tag | Not shipped; org convention |
+| L4 | Low | Line feeds were not counted: 100 KB of `a\n` peaked at ~90 MB | Line feeds count in `max_inline_markers`; worst case within the defaults ~39 MB ([Parser cost](#parser-cost)) |
+| L5 | Low | 160 nested superscripts / 190 subscripts crashed the reader's tab within the 200-group cap | Depth cap 50 counting groups, scripts, `\left` and `\begin`; KaTeX module guarded for the editor too |
+| I7 | Info | One document could send ~10 000 handles / ~2 000 page ids to a resolver | `max_references` (500) distinct ids / handles per resolver call; resolvers should still chunk their queries |
 
 ### Parser cost
 
-league/commonmark scans each paragraph once per inline parser and allocates about 1.5 KB per delimiter it finds;
-the bundle's dialect parsers add CPU on top. Worst inputs within the defaults (100 000 bytes, 10 000 delimiters),
-measured with the auditor's PoC families on PHP 8.4 at `memory_limit=128M`: peak 35 MB, at most 0.7 s (`:a[` per
-paragraph, `:::a` container lines), 0.4 s for 100 KB of `www.` autolinks. Plain prose is parsed in milliseconds.
-Raising either limit raises those costs linearly: keep the delimiter budget under `memory_limit / 3 KB` and size
-`max_input_length` for your longest real document.
+league/commonmark scans each paragraph once per inline parser and allocates about 1.5 KB per delimiter or soft line
+break it finds; the bundle's dialect parsers add CPU on top. Worst inputs within the defaults (100 000 bytes, 10 000
+delimiters and line feeds), measured with the auditor's PoC families plus line-feed shapes on PHP 8.4 at
+`memory_limit=128M`, total process peak (`memory_get_peak_usage()`, about 20 MB of it the PHP runtime and
+autoloader): at most **39 MB** (10 000 lines of `a`) and **1.2 s** (10 000 one-word list items); 0.7 s for `:a[` per
+paragraph, 0.6 s for headings, 0.4 s for 100 KB of `www.` autolinks. Plain prose is parsed in milliseconds. Raising
+either limit raises those costs linearly: keep the budget under `memory_limit / 3 KB` (minus what your request
+already uses) and size `max_input_length` for your longest real document.
 
 ## Reporting a vulnerability
 
