@@ -15,6 +15,9 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\UserResolverInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+use function count_chars;
+use function ord;
+use function str_split;
 use function strlen;
 
 /**
@@ -26,10 +29,22 @@ use function strlen;
  */
 final class MilkdownMarkdownRenderer implements MarkdownRendererInterface
 {
+    /**
+     * Default `max_input_length` in bytes. With the default marker budget the worst input measured peaks at about
+     * 35 MB and 0.7 s (PHP 8.4), well within PHP's default `memory_limit` of 128M.
+     */
+    public const DEFAULT_MAX_INPUT_LENGTH = 100000;
+
+    /** Default `max_inline_markers`: CommonMark allocates about 1.5 KB per inline delimiter while parsing. */
+    public const DEFAULT_MAX_INLINE_MARKERS = 10000;
+
+    /** Bytes that start or end an inline construct (CommonMark core, GFM and the dialect). */
+    public const INLINE_MARKERS = '[]*_`!<&@:$~|\\';
+
     private ?MarkdownConverter $converter = null;
 
     /**
-     * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, max_nesting_level?: int, max_input_length?: int, mark_colors?: list<string>} $options The `nowo_milkdown_editor.markdown` configuration
+     * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, max_nesting_level?: int, max_input_length?: int, max_inline_markers?: int, mark_colors?: list<string>} $options The `nowo_milkdown_editor.markdown` configuration
      * @param PageResolverInterface $pages Page link resolver (per viewer)
      * @param UserResolverInterface $users Mention resolver
      * @param IconResolverInterface $icons Icon allowlist and sprite
@@ -49,16 +64,33 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface
     }
 
     /**
-     * Safe HTML for `$markdown`; input longer than `max_input_length` is rendered as escaped text.
+     * Safe HTML for `$markdown`. Input longer than `max_input_length` bytes, or with more than `max_inline_markers`
+     * inline delimiter characters, is rendered as escaped text without parsing: the parser's memory and CPU grow
+     * with the number of delimiters, so this bounds the cost of a hostile document.
      */
     public function render(string $markdown): string
     {
         $markdown = str_replace(["\r\n", "\r"], "\n", $markdown);
-        if (strlen($markdown) > ($this->options['max_input_length'] ?? 1000000)) {
+        if (strlen($markdown) > ($this->options['max_input_length'] ?? self::DEFAULT_MAX_INPUT_LENGTH)
+            || self::countInlineMarkers($markdown) > ($this->options['max_inline_markers'] ?? self::DEFAULT_MAX_INLINE_MARKERS)) {
             return '<p>' . nl2br(DialectRenderer::e($markdown), false) . '</p>';
         }
 
         return $this->converter()->convert($markdown)->getContent();
+    }
+
+    /**
+     * Number of {@see self::INLINE_MARKERS} bytes in `$markdown` (one pass, no per-match allocation).
+     */
+    public static function countInlineMarkers(string $markdown): int
+    {
+        $bytes = count_chars($markdown, 1);
+        $count = 0;
+        foreach (str_split(self::INLINE_MARKERS) as $char) {
+            $count += $bytes[ord($char)] ?? 0;
+        }
+
+        return $count;
     }
 
     private function converter(): MarkdownConverter

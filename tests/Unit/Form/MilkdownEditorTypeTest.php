@@ -13,9 +13,12 @@ use Nowo\MilkdownEditorBundle\Theme;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
+use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
 use Symfony\Component\Form\PreloadedExtension;
 use Symfony\Component\Form\Test\TypeTestCase;
 use Symfony\Component\OptionsResolver\Exception\InvalidOptionsException;
+use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\Validation;
 
 final class MilkdownEditorTypeTest extends TypeTestCase
 {
@@ -30,7 +33,38 @@ final class MilkdownEditorTypeTest extends TypeTestCase
             }
         };
 
-        return [new PreloadedExtension([new MilkdownEditorType(new ProfileRegistry(['default' => self::PROFILE, 'wiki' => ['features' => ['code_mirror', 'math']] + self::PROFILE], 'default'), $nonce)], [])];
+        return [
+            new PreloadedExtension([new MilkdownEditorType(new ProfileRegistry(['default' => self::PROFILE, 'wiki' => ['features' => ['code_mirror', 'math']] + self::PROFILE], 'default'), $nonce, null, 10)], []),
+            new ValidatorExtension(Validation::createValidator()),
+        ];
+    }
+
+    /**
+     * Appendix CE M1: oversized Markdown is rejected when it is written (bytes, default `max_input_length`).
+     */
+    #[Test]
+    public function aLengthConstraintMatchesTheRendererLimit(): void
+    {
+        $form = $this->factory->create(MilkdownEditorType::class);
+        $form->submit('ééééé!');
+        self::assertFalse($form->isValid());
+        $form = $this->factory->create(MilkdownEditorType::class);
+        $form->submit('short');
+        self::assertTrue($form->isValid());
+
+        $form = $this->factory->create(MilkdownEditorType::class, null, ['max_length' => 3, 'constraints' => new NotBlank()]);
+        $form->submit('');
+        self::assertFalse($form->isValid());
+        $form = $this->factory->create(MilkdownEditorType::class, null, ['max_length' => 3, 'constraints' => [new NotBlank()]]);
+        $form->submit('abcd');
+        self::assertFalse($form->isValid());
+
+        $form = $this->factory->create(MilkdownEditorType::class, null, ['max_length' => null]);
+        $form->submit(str_repeat('x', 50));
+        self::assertTrue($form->isValid());
+
+        $this->expectException(InvalidOptionsException::class);
+        $this->factory->create(MilkdownEditorType::class, null, ['max_length' => 0]);
     }
 
     #[Test]
@@ -46,7 +80,8 @@ final class MilkdownEditorTypeTest extends TypeTestCase
         $o = $view->vars['milkdown_options'];
         self::assertSame(['toolbar'], $o['features']);
         self::assertSame('dark', $o['theme']);
-        self::assertSame('abc', $o['nonce']);
+        self::assertArrayNotHasKey('nonce', $o); // Appendix CE I2: the script's nonce property is read instead
+        self::assertSame('abc', $view->vars['milkdown_nonce']);
         self::assertTrue($o['readonly']);
         self::assertSame('', $o['label']);
         self::assertSame(['url' => '/up', 'csrfToken' => null, 'maxSize' => 5, 'accept' => ['image/*']], $o['upload']);
@@ -71,7 +106,7 @@ final class MilkdownEditorTypeTest extends TypeTestCase
         $o = $view->vars['milkdown_options'];
         self::assertSame(['code_mirror', 'mermaid'], $o['features']);
         self::assertSame(['bug', 'alert-triangle'], $o['icons']);
-        self::assertSame('x', $o['nonce']);
+        self::assertSame('x', $view->vars['milkdown_nonce']);
         self::assertSame('20px', $o['minHeight']);
         self::assertSame('Type', $o['placeholder']);
         self::assertNull($o['upload']);

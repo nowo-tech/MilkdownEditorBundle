@@ -6,6 +6,7 @@ namespace Nowo\MilkdownEditorBundle\Tests\Unit\DependencyInjection;
 
 use Nowo\MilkdownEditorBundle\DependencyInjection\Compiler\TwigPathsPass;
 use Nowo\MilkdownEditorBundle\DependencyInjection\NowoMilkdownEditorExtension;
+use Nowo\MilkdownEditorBundle\Form\MilkdownEditorType;
 use Nowo\MilkdownEditorBundle\Markdown\MilkdownMarkdownRenderer;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\AllowlistIconResolver;
 use PHPUnit\Framework\Attributes\Test;
@@ -23,12 +24,13 @@ final class ExtensionTest extends TestCase
     {
         $container = new ContainerBuilder();
         $extension = new NowoMilkdownEditorExtension();
-        $extension->load([['markdown' => ['icons' => ['bug'], 'icon_sprite_url' => '/s.svg']]], $container);
+        $extension->load([['markdown' => ['icons' => ['bug'], 'icon_sprite_url' => '/s.svg', 'max_input_length' => 5000]]], $container);
         self::assertSame('nowo_milkdown_editor', $extension->getAlias());
         self::assertSame('default', $container->getParameter('nowo_milkdown_editor.default_profile'));
         self::assertSame(['bug'], $container->getDefinition(AllowlistIconResolver::class)->getArgument('$icons'));
         self::assertSame('/s.svg', $container->getDefinition(AllowlistIconResolver::class)->getArgument('$spriteUrl'));
         self::assertIsArray($container->getDefinition(MilkdownMarkdownRenderer::class)->getArgument('$options'));
+        self::assertSame(5000, $container->getDefinition(MilkdownEditorType::class)->getArgument('$maxInputLength'));
     }
 
     #[Test]

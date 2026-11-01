@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { DEFAULT_MESSAGES, translate } from '../src/i18n';
-import { DEFAULT_FEATURES, normaliseFeatures, parseOptions } from '../src/options';
+import { DEFAULT_FEATURES, normaliseFeatures, pageNonce, parseOptions } from '../src/options';
 import { createPageResolver, safeUrl } from '../src/link-titles';
 import { CONTROL_NAMES, editableAttributes, nameControls, watchControls } from '../src/plugins/a11y';
 import { defaultRuntime, iconSvg } from '../src/runtime';
@@ -103,6 +103,15 @@ describe('link titles', () => {
     expect(safeUrl('//evil.example')).toBe('');
     expect(safeUrl('/\\evil.example')).toBe('');
     expect(safeUrl('../up')).toBe('../up');
+    // Appendix CE I1: leading C0 controls / spaces and inner tabs or newlines cannot hide a protocol-relative URL.
+    expect(safeUrl(' //evil.example/x')).toBe('');
+    expect(safeUrl('\t//evil.example/x')).toBe('');
+    expect(safeUrl('\x01//evil.example/x')).toBe('');
+    expect(safeUrl('\f//evil.example/x')).toBe('');
+    expect(safeUrl('/\t/evil.example/x')).toBe('');
+    expect(safeUrl('\x01javascript:alert(1)')).toBe('');
+    expect(safeUrl(' /a \x00')).toBe('/a');
+    expect(safeUrl('\x01')).toBe('');
   });
 });
 
@@ -171,5 +180,30 @@ describe('published assets', () => {
     expect(ensureStylesheet('katex/katex.min.css')).toBe(link);
     setAssetBase('');
     expect(ensureStylesheet('x.css').href).toContain('x.css');
+  });
+});
+
+describe('pageNonce (Appendix CE I2)', () => {
+  it('reads the nonce from the module script, else any nonced script, never from the options JSON', () => {
+    const doc = document.implementation.createHTMLDocument('t');
+    expect(pageNonce(doc)).toBe('');
+    const other = doc.createElement('script');
+    other.setAttribute('nonce', 'other');
+    doc.head.append(other);
+    expect(pageNonce(doc)).toBe('other');
+    const own = doc.createElement('script');
+    own.src = '/bundles/nowomilkdowneditor/milkdown-editor.js';
+    own.setAttribute('nonce', 'own');
+    doc.head.append(own);
+    expect(pageNonce(doc)).toBe('own');
+    Object.defineProperty(own, 'nonce', { value: 'hidden-attribute', configurable: true });
+    expect(pageNonce(doc)).toBe('hidden-attribute');
+    // Options without a nonce fall back to the page's script nonce; an explicit one (older templates) still wins.
+    const tag = document.createElement('script');
+    tag.setAttribute('nonce', 'page');
+    document.head.append(tag);
+    expect(parseOptions('{}').nonce).toBe('page');
+    expect(parseOptions('{"nonce":"json"}').nonce).toBe('json');
+    tag.remove();
   });
 });

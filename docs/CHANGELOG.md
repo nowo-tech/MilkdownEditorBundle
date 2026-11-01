@@ -5,6 +5,30 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Security
+
+Fixes for the independent REQ-SEC-004 audit of 1.0.0 (Appendix CE: Pass (conditional) / Medium).
+
+- **M1 (Medium, stored DoS):** league/commonmark uses about 1.5 KB of memory per inline delimiter, so the old 1 MB
+  `max_input_length` let ~100 KB of `*_` exhaust PHP's default 128M `memory_limit` on every render.
+  `max_input_length` now defaults to 100 000 bytes; a new `max_inline_markers` budget (default 10 000) renders
+  delimiter-dense input as escaped text without parsing; `MilkdownEditorType` gets a matching `Length` constraint
+  (bytes, option `max_length`) when symfony/validator is installed. Worst case within the defaults: ~35 MB, 0.7 s.
+- **L1 (Low):** Mermaid diagrams rendered by `renderRichContent()` (and the editor preview) no longer load images
+  from other origins: remote `href`s of `image`, `use`, `feImage` and `pattern` and remote `url(…)` styles are
+  dropped unless `allowRemoteImages: true`.
+- **L2 (Low):** each KaTeX formula renders in its own `try` / `catch` (`data-math-error` on failure) and formulas over
+  5 000 characters or 200 nested groups are skipped, so one hostile formula no longer stops the others.
+- **L3 (Low, docs):** upload guidance excludes SVG / HTML and asks for server-side type detection, `nosniff`,
+  `Content-Disposition: attachment` and a sandbox CSP or separate origin.
+- **I1:** `safeUrl()` (TS and PHP) and the remote-image check strip leading C0 controls / spaces and inner tabs /
+  newlines before checking for protocol-relative URLs.
+- **I2:** the CSP nonce is no longer copied into `data-nowo-milkdown-options`; the editor reads it from its
+  `<script nonce>` element.
+- **I3–I5:** documented Mermaid's inline handlers under a nonce CSP, the global prototype patch while Mermaid
+  renders (its style stash is now emptied after each render) and the manual-mount mode for pages with untrusted
+  HTML.
+
 ### Changed
 
 - `make release-check` starts the Docker stack (`ensure-up`) before the co-author trailer check, in the order of the

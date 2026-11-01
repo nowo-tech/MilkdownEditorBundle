@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\MilkdownEditorBundle\DependencyInjection;
 
+use Nowo\MilkdownEditorBundle\Form\MilkdownEditorType;
 use Nowo\MilkdownEditorBundle\Markdown\MilkdownMarkdownRenderer;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\AllowlistIconResolver;
 use Symfony\Component\Config\FileLocator;
@@ -53,7 +54,7 @@ final class NowoMilkdownEditorExtension extends Extension implements PrependExte
      */
     public function load(array $configs, ContainerBuilder $container): void
     {
-        /** @var array{default_profile: string, profiles: array<string, array<string, mixed>>, markdown: array<string, mixed>&array{icon_sprite_url: ?string, icons: list<string>}} $config */
+        /** @var array{default_profile: string, profiles: array<string, array<string, mixed>>, markdown: array<string, mixed>&array{icon_sprite_url: ?string, icons: list<string>, max_input_length: int}} $config */
         $config = $this->processConfiguration(new Configuration(), $configs);
 
         $container->setParameter(Configuration::ALIAS . '.default_profile', $config['default_profile']);
@@ -67,6 +68,8 @@ final class NowoMilkdownEditorExtension extends Extension implements PrependExte
             ->setArgument('$icons', $config['markdown']['icons']);
         $container->getDefinition(MilkdownMarkdownRenderer::class)
             ->setArgument('$options', $config['markdown']);
+        $container->getDefinition(MilkdownEditorType::class)
+            ->setArgument('$maxInputLength', $config['markdown']['max_input_length']);
     }
 
     /**

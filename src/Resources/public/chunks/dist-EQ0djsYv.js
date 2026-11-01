@@ -1,6 +1,6 @@
 import { N as e, P as t, U as n, o as r, r as i } from "./dist-DF6chiwp.js";
-import { html as a } from "./dist-DT1nBfgc.js";
-import { r as o } from "./dist-DET5C6i5.js";
+import { html as a } from "./dist-Ck2mpiW7.js";
+import { r as o } from "./dist-Bzq_gY2i.js";
 import { n as s, r as c } from "./dist-Y2YZkjNP.js";
 // node_modules/.pnpm/@codemirror+lang-angular@0.1.4/node_modules/@codemirror/lang-angular/dist/index.js
 var l = 1, u = 33, d = 34, f = 35, p = 36, m = /*@__PURE__*/ new s((e) => {

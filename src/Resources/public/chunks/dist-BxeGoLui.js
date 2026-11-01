@@ -1,7 +1,7 @@
 import { F as e, I as t, X as n, a as r, x as i, z as a } from "./code-block-HJyGFXxl.js";
 import { C as o, D as s, E as c, H as l, I as u, L as d, M as f, N as p, P as m, R as h, U as g, V as ee, a as te, b as ne, i as re, j as _, o as ie, p as ae, s as oe, y as se, z as v } from "./dist-DF6chiwp.js";
-import { n as ce } from "./code-Dvo1_Wn9.js";
-import { html as le, htmlCompletionSource as ue } from "./dist-DT1nBfgc.js";
+import { n as ce } from "./code-CTPPrnGd.js";
+import { html as le, htmlCompletionSource as ue } from "./dist-Ck2mpiW7.js";
 // node_modules/.pnpm/@lezer+markdown@1.8.1/node_modules/@lezer/markdown/dist/index.js
 var de = class e {
 	static create(t, n, r, i, a) {

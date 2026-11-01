@@ -2,7 +2,7 @@ import { n as e } from "./rolldown-runtime-CwxnZyOB.js";
 import { B as t, C as n, D as r, E as i, F as a, G as o, H as s, I as c, J as l, K as u, L as d, M as f, N as p, O as m, P as h, Q as ee, R as te, S as ne, T as re, U as g, V as ie, W as _, X as ae, Y as v, Z as y, _ as oe, a as b, b as se, c as ce, d as le, f as ue, h as de, i as fe, j as pe, k as x, l as me, m as he, n as ge, p as _e, q as S, r as C, s as ve, t as ye, u as be, v as xe, w as Se, x as Ce, y as we, z as Te } from "./code-block-HJyGFXxl.js";
 import { A as Ee, E as De, L as Oe, O as w, P as T, S as ke, T as Ae, a as E, c as je, f as Me, g as Ne, j as D, l as Pe, n as Fe, o as Ie, t as Le, v as Re, w as ze, x as Be } from "./dist-DF6chiwp.js";
 import { Qt as Ve } from "./lib-BQh94dfB.js";
-import { a as O, t as He } from "./mermaid-DZnH89fa.js";
+import { a as O, t as He } from "./mermaid-CwFSCT3q.js";
 // node_modules/.pnpm/@codemirror+autocomplete@6.20.4/node_modules/@codemirror/autocomplete/dist/index.js
 var Ue = class {
 	constructor(e, t, n, r) {
@@ -3615,7 +3615,7 @@ function Z(e) {
 	return new Ie(je.define(e));
 }
 function Q(e) {
-	return import("./dist-CV7JfbcV.js").then((t) => t.sql({ dialect: t[e] }));
+	return import("./dist-CEDNVFFM.js").then((t) => t.sql({ dialect: t[e] }));
 }
 var jo = [
 	/*@__PURE__*/ E.of({
@@ -3665,7 +3665,7 @@ var jo = [
 		name: "Go",
 		extensions: ["go"],
 		load() {
-			return import("./dist-Bis2yA6k.js").then((e) => e.go());
+			return import("./dist-DMRLA5GE.js").then((e) => e.go());
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -3678,7 +3678,7 @@ var jo = [
 			"hbs"
 		],
 		load() {
-			return import("./dist-DT1nBfgc.js").then((e) => e.html());
+			return import("./dist-Ck2mpiW7.js").then((e) => e.html());
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -3701,7 +3701,7 @@ var jo = [
 			"cjs"
 		],
 		load() {
-			return import("./dist-DET5C6i5.js").then((e) => e.t).then((e) => e.javascript());
+			return import("./dist-Bzq_gY2i.js").then((e) => e.t).then((e) => e.javascript());
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -3712,7 +3712,7 @@ var jo = [
 			"jinja2"
 		],
 		load() {
-			return import("./dist-BTsnSP8c.js").then((e) => e.jinja());
+			return import("./dist-CfJml3vk.js").then((e) => e.jinja());
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -3727,7 +3727,7 @@ var jo = [
 		name: "JSX",
 		extensions: ["jsx"],
 		load() {
-			return import("./dist-DET5C6i5.js").then((e) => e.t).then((e) => e.javascript({ jsx: !0 }));
+			return import("./dist-Bzq_gY2i.js").then((e) => e.t).then((e) => e.javascript({ jsx: !0 }));
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -3741,7 +3741,7 @@ var jo = [
 		name: "Liquid",
 		extensions: ["liquid"],
 		load() {
-			return import("./dist-9NnqhhQd.js").then((e) => e.liquid());
+			return import("./dist-oGSBSAZ6.js").then((e) => e.liquid());
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -3758,7 +3758,7 @@ var jo = [
 			"mkd"
 		],
 		load() {
-			return import("./dist-B23DvlnR.js").then((e) => e.markdown());
+			return import("./dist-BxeGoLui.js").then((e) => e.markdown());
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -3784,7 +3784,7 @@ var jo = [
 			"phtml"
 		],
 		load() {
-			return import("./dist-BJqNM6iF.js").then((e) => e.php());
+			return import("./dist-B_Pg-mk7.js").then((e) => e.php());
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -3810,7 +3810,7 @@ var jo = [
 		],
 		filename: /^(BUCK|BUILD)$/,
 		load() {
-			return import("./dist-CQ25JRx9.js").then((e) => e.python());
+			return import("./dist-br0EwPLS.js").then((e) => e.python());
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -3851,7 +3851,7 @@ var jo = [
 		name: "TSX",
 		extensions: ["tsx"],
 		load() {
-			return import("./dist-DET5C6i5.js").then((e) => e.t).then((e) => e.javascript({
+			return import("./dist-Bzq_gY2i.js").then((e) => e.t).then((e) => e.javascript({
 				jsx: !0,
 				typescript: !0
 			}));
@@ -3866,7 +3866,7 @@ var jo = [
 			"cts"
 		],
 		load() {
-			return import("./dist-DET5C6i5.js").then((e) => e.t).then((e) => e.javascript({ typescript: !0 }));
+			return import("./dist-Bzq_gY2i.js").then((e) => e.t).then((e) => e.javascript({ typescript: !0 }));
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -4785,13 +4785,13 @@ var jo = [
 		name: "Vue",
 		extensions: ["vue"],
 		load() {
-			return import("./dist-Dy6nR1gz.js").then((e) => e.vue());
+			return import("./dist-DwbdY8-R.js").then((e) => e.vue());
 		}
 	}),
 	/*@__PURE__*/ E.of({
 		name: "Angular Template",
 		load() {
-			return import("./dist-CTPjWJjS.js").then((e) => e.angular());
+			return import("./dist-EQ0djsYv.js").then((e) => e.angular());
 		}
 	})
 ], $ = (e) => `var(--nowo-milkdown-code-${e})`, Mo = Le.define([

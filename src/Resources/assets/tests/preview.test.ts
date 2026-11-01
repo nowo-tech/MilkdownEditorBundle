@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { mermaidLoader, parseSvg, renderMermaid, resetMermaid, withStyleNonce } from '../src/preview/mermaid';
-import { KATEX_OPTIONS, katexLoader, renderRichContent } from '../src/preview/render';
+import { isLocalResource, mermaidLoader, parseSvg, renderMermaid, resetMermaid, withStyleNonce } from '../src/preview/mermaid';
+import { KATEX_OPTIONS, MAX_TEX_DEPTH, MAX_TEX_LENGTH, katexLoader, renderRichContent, texWithinLimits } from '../src/preview/render';
 import { codeMirrorConfig } from '../src/features/code';
 import { defaultRuntime } from '../src/runtime';
 import { tick } from './helpers';
@@ -37,6 +37,38 @@ describe('mermaid', () => {
     expect(parseSvg(SVG, '', 'D').querySelector('style, [data-nowo-style]')).toBeNull();
     expect(parseSvg('<svg xmlns="http://www.w3.org/2000/svg"><g data-nowo-style="99999"></g></svg>', 'n', 'D').querySelector('g')).toBeNull();
     expect(() => parseSvg('<div xmlns="http://www.w3.org/1999/xhtml"></div>', '', 'D')).toThrow('not an SVG');
+  });
+
+  // Appendix CE L1: the auditor's PoC `A@{ img: "https://evil.test/…" }` becomes an SVG <image href>.
+  const REMOTE = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <image id="i1" href="https://evil.test/mermaid-img-shape.png"/>
+    <image id="i2" xlink:href="//evil.test/p.png"/>
+    <use id="u1" href="https://evil.test/sprite.svg#a"/>
+    <filter><feImage id="f1" href="http://evil.test/f.png"/></filter>
+    <pattern id="p1" href="&#9; //evil.test/p"/>
+    <image id="ok1" href="data:image/png;base64,AA"/>
+    <image id="bad1" href="data:image/svg+xml,&lt;svg/&gt;"/>
+    <use id="ok2" href="#shape"/>
+    <image id="ok3" href="/local.png"/>
+    <g id="s1" style="fill:url(https://evil.test/x.png)"/>
+    <g id="s2" style="fill:url(#grad)"/>
+    <a id="a1" href="https://example.test/"/>
+  </svg>`;
+
+  it('drops resource URLs on other origins unless remote images are allowed', () => {
+    const svg = parseSvg(REMOTE, '', 'D');
+    const href = (id: string): string | null => svg.querySelector(`#${id}`)!.getAttribute('href') ?? svg.querySelector(`#${id}`)!.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
+    for (const id of ['i1', 'i2', 'u1', 'f1', 'p1', 'bad1']) expect(href(id)).toBeNull();
+    expect(href('ok1')).toBe('data:image/png;base64,AA');
+    expect(href('ok2')).toBe('#shape');
+    expect(href('ok3')).toBe('/local.png');
+    expect(svg.querySelector('#s1')!.hasAttribute('style')).toBe(false);
+    expect(svg.querySelector('#s2')!.getAttribute('style')).toBe('fill:url(#grad)');
+    expect(href('a1')).toBe('https://example.test/');
+    const allowed = parseSvg(REMOTE, '', 'D', true);
+    expect(allowed.querySelector('#i1')!.getAttribute('href')).toBe('https://evil.test/mermaid-img-shape.png');
+    expect(isLocalResource('')).toBe(true);
+    expect(isLocalResource('http://[bad')).toBe(false);
   });
 
   it('renders with strict security and no HTML labels, loading Mermaid once', async () => {
@@ -87,6 +119,36 @@ describe('renderRichContent', () => {
     expect(render.mock.calls[1]![2]).toMatchObject({ ...KATEX_OPTIONS, displayMode: true, trust: false });
     await renderRichContent(root);
     expect(render).toHaveBeenCalledTimes(2);
+  });
+
+  // Appendix CE L2: `{`×6000 overflowed KaTeX's stack (RangeError) and stopped every later formula.
+  it('one failing or oversized formula does not stop the others', async () => {
+    const render = vi.fn((tex: string, el: HTMLElement) => {
+      if (tex === 'boom') throw new RangeError('Maximum call stack size exceeded');
+      el.textContent = `K(${tex})`;
+    });
+    vi.spyOn(katexLoader, 'load').mockResolvedValue({ render });
+    const root = document.createElement('div');
+    const deep = `${'{'.repeat(6000)}x${'}'.repeat(6000)}`;
+    root.innerHTML = `<span data-math="inline">boom</span><span data-math="inline"></span><span data-math="inline">x^2</span>`;
+    root.children[1]!.textContent = deep;
+    await expect(renderRichContent(root)).resolves.toBeUndefined();
+    const [boom, nested, ok] = [...root.children] as HTMLElement[];
+    expect(boom!.dataset.mathError).toBe('true');
+    expect(boom!.textContent).toBe('boom');
+    expect(nested!.dataset.mathError).toBe('true');
+    expect(nested!.textContent).toBe(deep);
+    expect(ok!.textContent).toBe('K(x^2)');
+    expect(ok!.dataset.mathError).toBeUndefined();
+    expect(render).toHaveBeenCalledTimes(2); // the nested formula never reaches KaTeX
+  });
+
+  it('bounds TeX length and brace depth', () => {
+    expect(texWithinLimits('x'.repeat(MAX_TEX_LENGTH))).toBe(true);
+    expect(texWithinLimits('x'.repeat(MAX_TEX_LENGTH + 1))).toBe(false);
+    expect(texWithinLimits('{'.repeat(MAX_TEX_DEPTH) + '}'.repeat(MAX_TEX_DEPTH))).toBe(true);
+    expect(texWithinLimits('{'.repeat(MAX_TEX_DEPTH + 1))).toBe(false);
+    expect(texWithinLimits('}}{x}'.repeat(300))).toBe(true);
   });
 
   it('the real loaders return modules', async () => {

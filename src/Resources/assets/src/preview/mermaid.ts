@@ -2,7 +2,9 @@
  * Mermaid previews (FR-086): loaded on demand, strict security level, no HTML labels. Mermaid writes a `<style>` into
  * every diagram; while it renders, style elements created by script get the page nonce and strings parsed with
  * `DOMParser` keep their styles as inert placeholders; the returned SVG is parsed (never `innerHTML`) and its styles
- * are restored as nonce-stamped elements. Renders run one at a time (the patches are global while they run).
+ * are restored as nonce-stamped elements. Renders run one at a time (the patches are global while they run) and the
+ * style stash is emptied after each one. Unless remote images are allowed, `href`s of image / use / feImage /
+ * pattern elements that leave the page's origin and inline styles with a remote `url(…)` are dropped.
  */
 type Mermaid = {
   initialize: (config: Record<string, unknown>) => void;
@@ -75,15 +77,17 @@ export async function withStyleNonce<T>(nonce: string, fn: () => Promise<T>): Pr
  * @param svg - Mermaid's output
  * @param nonce - The page nonce
  * @param label - Accessible name of the diagram
+ * @param allowRemoteImages - Keep resource URLs on other origins (default: drop them)
  * @returns The SVG element, owned by the page document
  */
-export function parseSvg(svg: string, nonce: string, label: string): SVGSVGElement {
+export function parseSvg(svg: string, nonce: string, label: string, allowRemoteImages = false): SVGSVGElement {
   const doc = new DOMParser().parseFromString(stashStyles(svg), 'image/svg+xml');
   const root = doc.documentElement;
   if (root.localName !== 'svg') throw new Error('mermaid: not an SVG');
   root.querySelectorAll('script, foreignObject').forEach((el) => el.remove());
   [root, ...root.querySelectorAll('*')].forEach((el) => {
     for (const attr of [...el.attributes]) if (/^on/i.test(attr.name)) el.removeAttribute(attr.name);
+    if (!allowRemoteImages) dropRemoteResources(el);
   });
   const node = document.importNode(root, true) as unknown as SVGSVGElement;
   node.querySelectorAll('g[data-nowo-style]').forEach((holder) => {
@@ -102,8 +106,48 @@ export function parseSvg(svg: string, nonce: string, label: string): SVGSVGEleme
   return node;
 }
 
+/** SVG elements whose `href` loads a resource (image shapes, external `<use>`, filters, patterns). */
+const RESOURCE_ELEMENTS = new Set(['image', 'use', 'feimage', 'pattern']);
+
+/** A CSS `url(…)` that names a scheme or a protocol-relative host. */
+const REMOTE_CSS_URL = /url\(\s*['"]?\s*(?:(?!data:image\/)[a-z][a-z0-9+.-]*:|[\\/]{2})/i;
+
+/**
+ * Whether `value` may be loaded: a fragment, an inline `data:image/(png|gif|jpeg|webp)` or a same-origin URL.
+ *
+ * @param value - An `href` value
+ * @returns True when no other origin is contacted
+ */
+export function isLocalResource(value: string): boolean {
+  // eslint-disable-next-line no-control-regex
+  const url = value.replace(/[\t\n\r]/g, '').replace(/^[\u0000-\u0020]+/, '');
+  if (url === '' || url.startsWith('#')) return true;
+  if (/^data:image\/(?:png|gif|jpeg|webp)[;,]/i.test(url)) return true;
+  try {
+    return new URL(url, document.baseURI).origin === new URL(document.baseURI).origin;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Removes resource loads to other origins from one SVG element (`allow_remote_images: false`, the default): tracking
+ * pixels through Mermaid image shapes or `<use href>`, and `url(…)` in inline styles.
+ *
+ * @param el - An element of the parsed diagram
+ */
+function dropRemoteResources(el: Element): void {
+  if (RESOURCE_ELEMENTS.has(el.localName.toLowerCase())) {
+    for (const attr of [...el.attributes]) {
+      if (attr.localName === 'href' && !isLocalResource(attr.value)) el.removeAttributeNode(attr);
+    }
+  }
+  const style = el.getAttribute('style');
+  if (style !== null && REMOTE_CSS_URL.test(style)) el.removeAttribute('style');
+}
+
 /** Renders one diagram; rejects with Mermaid's error for invalid source. */
-export async function renderMermaid(source: string, nonce: string, dark: boolean, label: string): Promise<SVGSVGElement> {
+export async function renderMermaid(source: string, nonce: string, dark: boolean, label: string, allowRemoteImages = false): Promise<SVGSVGElement> {
   const mermaid = await (loader ??= mermaidLoader.load());
   mermaid.initialize({
     startOnLoad: false,
@@ -113,13 +157,19 @@ export async function renderMermaid(source: string, nonce: string, dark: boolean
     theme: dark ? 'dark' : 'neutral',
     fontFamily: 'inherit',
   });
-  const run = queue.then(() => withStyleNonce(nonce, () => mermaid.render(`nowo-mermaid-${++counter}`, source)));
+  const run = queue.then(async () => {
+    try {
+      const { svg } = await withStyleNonce(nonce, () => mermaid.render(`nowo-mermaid-${++counter}`, source));
+      return parseSvg(svg, nonce, label, allowRemoteImages);
+    } finally {
+      stash.length = 0; // placeholders are resolved: keep the page from accumulating diagram CSS
+    }
+  });
   queue = run.then(
     () => undefined,
     () => undefined,
   );
-  const { svg } = await run;
-  return parseSvg(svg, nonce, label);
+  return run;
 }
 
 /** Test hook: forget the loaded module. */

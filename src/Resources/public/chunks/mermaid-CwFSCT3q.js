@@ -115,14 +115,15 @@ async function m(e, t) {
 		Document.prototype.createElement = n, Document.prototype.createElementNS = r, DOMParser.prototype.parseFromString = i;
 	}
 }
-function h(e, t, n) {
-	let r = new DOMParser().parseFromString(p(e), "image/svg+xml").documentElement;
-	if (r.localName !== "svg") throw Error("mermaid: not an SVG");
-	r.querySelectorAll("script, foreignObject").forEach((e) => e.remove()), [r, ...r.querySelectorAll("*")].forEach((e) => {
+function h(e, t, n, r = !1) {
+	let i = new DOMParser().parseFromString(p(e), "image/svg+xml").documentElement;
+	if (i.localName !== "svg") throw Error("mermaid: not an SVG");
+	i.querySelectorAll("script, foreignObject").forEach((e) => e.remove()), [i, ...i.querySelectorAll("*")].forEach((e) => {
 		for (let t of [...e.attributes]) /^on/i.test(t.name) && e.removeAttribute(t.name);
+		r || y(e);
 	});
-	let i = document.importNode(r, !0);
-	return i.querySelectorAll("g[data-nowo-style]").forEach((e) => {
+	let a = document.importNode(i, !0);
+	return a.querySelectorAll("g[data-nowo-style]").forEach((e) => {
 		let n = d[Number(e.getAttribute("data-nowo-style"))];
 		if (!t || n === void 0) {
 			e.remove();
@@ -130,11 +131,31 @@ function h(e, t, n) {
 		}
 		let r = document.createElementNS("http://www.w3.org/2000/svg", "style");
 		r.setAttribute("nonce", t), r.textContent = n, e.replaceWith(r);
-	}), i.setAttribute("role", "img"), i.setAttribute("aria-label", n), i;
+	}), a.setAttribute("role", "img"), a.setAttribute("aria-label", n), a;
 }
-async function g(e, t, n, r) {
-	let i = await (s ??= u.load());
-	i.initialize({
+var g = /* @__PURE__ */ new Set([
+	"image",
+	"use",
+	"feimage",
+	"pattern"
+]), _ = /url\(\s*['"]?\s*(?:(?!data:image\/)[a-z][a-z0-9+.-]*:|[\\/]{2})/i;
+function v(e) {
+	let t = e.replace(/[\t\n\r]/g, "").replace(/^[\u0000-\u0020]+/, "");
+	if (t === "" || t.startsWith("#") || /^data:image\/(?:png|gif|jpeg|webp)[;,]/i.test(t)) return !0;
+	try {
+		return new URL(t, document.baseURI).origin === new URL(document.baseURI).origin;
+	} catch {
+		return !1;
+	}
+}
+function y(e) {
+	if (g.has(e.localName.toLowerCase())) for (let t of [...e.attributes]) t.localName === "href" && !v(t.value) && e.removeAttributeNode(t);
+	let t = e.getAttribute("style");
+	t !== null && _.test(t) && e.removeAttribute("style");
+}
+async function b(e, t, n, r, i = !1) {
+	let a = await (s ??= u.load());
+	a.initialize({
 		startOnLoad: !1,
 		securityLevel: "strict",
 		htmlLabels: !1,
@@ -142,9 +163,14 @@ async function g(e, t, n, r) {
 		theme: n ? "dark" : "neutral",
 		fontFamily: "inherit"
 	});
-	let a = l.then(() => m(t, () => i.render(`nowo-mermaid-${++c}`, e)));
-	l = a.then(() => void 0, () => void 0);
-	let { svg: o } = await a;
-	return h(o, t, r);
+	let o = l.then(async () => {
+		try {
+			let { svg: n } = await m(t, () => a.render(`nowo-mermaid-${++c}`, e));
+			return h(n, t, r, i);
+		} finally {
+			d.length = 0;
+		}
+	});
+	return l = o.then(() => void 0, () => void 0), o;
 }
-export { a, i, r as n, o as r, g as t };
+export { a, i, r as n, o as r, b as t };

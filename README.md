@@ -151,7 +151,7 @@ See [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md).
 
 - Tests: PHPUnit (unit, integration), Vitest (TypeScript, jsdom with the real editor), Playwright + axe (demo e2e)
 - PHP: 100%
-- TS/JS: 90.66%
+- TS/JS: 90.89%
 - Python: N/A
 
 PHP line coverage target: **100%** of `src/` (gate **100%**, `make test-coverage-100`). TypeScript coverage is the

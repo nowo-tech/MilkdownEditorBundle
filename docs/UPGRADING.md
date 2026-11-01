@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
+- [1.0.1](#101)
 - [1.0.0](#100)
 
 ## General procedure
@@ -17,6 +18,22 @@
 Public API covered by Semantic Versioning: the configuration tree, profile keys, form options, Twig filter / function
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
+
+## 1.0.1
+
+Security release (independent audit, Appendix CE). Check these if you store long documents:
+
+- **`nowo_milkdown_editor.markdown.max_input_length` defaults to `100000` bytes (was `1000000`).** Longer documents
+  now render as escaped plain text. A new `max_inline_markers` limit (default `10000`) does the same for documents
+  with more inline delimiter characters. If your documents are longer, raise both (and `memory_limit`); see
+  [CONFIGURATION](CONFIGURATION.md#renderer-limits).
+- **`MilkdownEditorType` adds a `Length` constraint** (bytes, default `max_input_length`) when symfony/validator is
+  installed. Saving a longer document now fails validation. Set the field option `'max_length' => null` to keep the
+  old behaviour, or another value per field.
+- **The CSP nonce is no longer written into `data-nowo-milkdown-options`.** The editor reads it from its
+  `<script nonce>` element. If you override `Form/milkdown_editor_theme.html.twig`, keep the
+  `nowo_milkdown_editor_assets(milkdown_nonce|default(null))` call (or load the module with a nonce yourself).
+- `renderRichContent()` drops remote images in Mermaid diagrams; pass `{ allowRemoteImages: true }` to keep them.
 
 ## 1.0.0
 

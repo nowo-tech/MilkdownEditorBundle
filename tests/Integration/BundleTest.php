@@ -93,12 +93,13 @@ final class BundleTest extends TestCase
         self::assertStringContainsString('nonce="n0nce"', $html);
         self::assertStringContainsString('/bundles/nowomilkdowneditor/milkdown-editor.js', $html);
         self::assertSame(1, preg_match('/data-nowo-milkdown-options="([^"]+)"/', $html, $m));
-        /** @var array{suggestions: array<string, string>, icons: list<string>, iconSpriteUrl: string, nonce: string, label: string, messages: array<string, string>, upload: array{url: string}} $options */
+        /** @var array{suggestions: array<string, string>, icons: list<string>, iconSpriteUrl: string, label: string, messages: array<string, string>, upload: array{url: string}} $options */
         $options = json_decode(html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5), true, 512, JSON_THROW_ON_ERROR);
         self::assertSame(['@' => '/users', '[[' => '/pages'], $options['suggestions']);
         self::assertSame(['bug'], $options['icons']);
         self::assertSame('/sprite.svg', $options['iconSpriteUrl']);
-        self::assertSame('n0nce', $options['nonce']);
+        self::assertArrayNotHasKey('nonce', $options);
+        self::assertStringNotContainsString('n0nce', $m[1]);
         self::assertSame('Body', $options['label']);
         self::assertSame('Content not visible', $options['messages']['ref.hidden']);
         self::assertSame('/upload', $options['upload']['url']);

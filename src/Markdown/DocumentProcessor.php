@@ -119,7 +119,7 @@ final readonly class DocumentProcessor
      */
     public static function isRemote(string $url): bool
     {
-        $url = trim($url);
+        $url = DialectRenderer::cleanUrl($url);
         if (preg_match('~^[\\\\/][\\\\/]~', $url) === 1) {
             return true;
         }
