@@ -133,6 +133,7 @@ See [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md).
 - [Upgrading](docs/UPGRADING.md)
 - [Release](docs/RELEASE.md)
 - [Security](docs/SECURITY.md)
+- [Roadmap](docs/ROADMAP.md)
 - [Engram](docs/ENGRAM.md)
 - [Spec-driven development](docs/SPEC-DRIVEN-DEVELOPMENT.md)
 - [GitHub Spec Kit](docs/SPEC-KIT.md)
