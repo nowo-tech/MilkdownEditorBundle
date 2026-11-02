@@ -4,7 +4,7 @@ import { $ as Re, A as ze, B as I, D as Be, E as Ve, F as He, H as Ue, I as We, 
 import { n as xt, r as St, t as Ct } from "./chunks/dist-l-LsHPFA.js";
 import { a as wt, i as Tt, n as Et, r as Dt, t as Ot } from "./chunks/lib-Dnrxd25z.js";
 import { t as kt } from "./chunks/purify.es-CZ6K1J3y.js";
-import { a as At, i as V, n as jt, r as Mt, t as Nt } from "./chunks/runtime-DQm0O8E9.js";
+import { a as At, i as V, n as jt, r as Mt, t as Nt } from "./chunks/runtime-CUYOndt9.js";
 // node_modules/.pnpm/@milkdown+plugin-clipboard@7.23.0/node_modules/@milkdown/plugin-clipboard/lib/index.js
 function Pt(e) {
 	if (!e) return !1;
@@ -3269,7 +3269,7 @@ async function Ro(e, t = {}) {
 }
 // src/Resources/assets/src/features.ts
 var zo = {
-	code: () => import("./chunks/code-D1I1cBpF.js").then((e) => e.t),
+	code: () => import("./chunks/code-B0fi1tHz.js").then((e) => e.t),
 	math: () => import("./chunks/latex-QGqP_is5.js"),
 	katex: () => import("./chunks/katex-DNCsLolD.js"),
 	topBar: () => import("./chunks/top-bar-DYiK01Rv.js")
@@ -5159,19 +5159,19 @@ async function Jl(e, t = {}) {
 		dark: () => Wl(e)
 	};
 	e.classList.add("nowo-milkdown"), e.dataset.theme = r.theme, e.style.setProperty("--nowo-milkdown-min-height", r.minHeight), n.hidden = !0, n.value = Ul(n.value);
-	let { bar: o, surface: s, announce: c } = Kl(e, a), l = Gl(n), u = n.value, d = new _n({
+	let { bar: o, surface: s, status: c, announce: l } = Kl(e, a), u = Gl(n), d = n.value, f = new _n({
 		root: s,
-		defaultValue: r.collaboration ? "" : u
-	}), f = d.editor, p = r.collaboration ? await import("./chunks/collab-CveG3HSm.js") : null;
-	f.config((e) => {
+		defaultValue: r.collaboration ? "" : d
+	}), p = f.editor, m = r.collaboration ? await import("./chunks/collab-CuzCQLal.js") : null;
+	p.config((e) => {
 		if (e.set(Mt.key, a), e.update(Ce, (e) => ({
 			...e,
 			attributes: {
-				...gl(r.label || V(a, "editor.label"), l?.id ?? null, r.readonly),
+				...gl(r.label || V(a, "editor.label"), u?.id ?? null, r.readonly),
 				id: `nowo-milkdown-${++Hl}`
 			}
 		})), r.upload) {
-			let t = Bl(r.upload, c);
+			let t = Bl(r.upload, l);
 			e.update(rn.key, (e) => ({
 				...e,
 				uploader: (e, n) => t(e, n)
@@ -5181,24 +5181,24 @@ async function Jl(e, t = {}) {
 		options: r,
 		runtime: a,
 		remember: i.remember
-	}))).use(Dl), p && f.use(p.collab), await Bo(d, r, a), d.on((e) => e.markdownUpdated((e, t) => {
+	}))).use(Dl), m && p.use(m.collab), await Bo(f, r, a), f.on((e) => e.markdownUpdated((e, t) => {
 		n.value !== t && (n.value = t, n.dispatchEvent(new Event("input", { bubbles: !0 })), n.dispatchEvent(new Event("change", { bubbles: !0 })));
-	})), r.readonly && d.setReadonly(!0), await d.create();
-	let m = () => d.getMarkdown(), h = () => {
-		n.value = m();
-	}, g = n.form;
-	g?.addEventListener("submit", h, !0), g?.addEventListener("formdata", h, !0);
-	let _ = () => f.action((e) => e.get(M).focus());
-	l?.addEventListener("click", _);
-	let v = hl(s, a);
+	})), r.readonly && f.setReadonly(!0), await f.create();
+	let h = () => f.getMarkdown(), g = () => {
+		n.value = h();
+	}, _ = n.form;
+	_?.addEventListener("submit", g, !0), _?.addEventListener("formdata", g, !0);
+	let v = () => p.action((e) => e.get(M).focus());
+	u?.addEventListener("click", v);
+	let y = hl(s, a);
 	if (r.upload && !r.readonly) {
 		let e = r.upload;
 		ql(o, V(a, "upload.button"), () => {
 			let t = document.createElement("input");
 			t.type = "file", t.multiple = !0, e.accept.length && (t.accept = e.accept.join(",")), t.addEventListener("change", () => {
 				if (!t.files?.length) return;
-				let n = Bl(e, c);
-				f.action(async (e) => {
+				let n = Bl(e, l);
+				p.action(async (e) => {
 					let r = e.get(M), i = await n(t.files, r.state.schema), a = r.state.tr;
 					for (let e of i) a = a.replaceSelectionWith(e, !1);
 					i.length && r.dispatch(a.scrollIntoView()), r.focus();
@@ -5206,36 +5206,40 @@ async function Jl(e, t = {}) {
 			}), t.click();
 		});
 	}
-	(r.suggestions[":"] || r.icons.length > 0) && !r.readonly && ql(o, V(a, "icon.button"), () => f.action((e) => {
+	(r.suggestions[":"] || r.icons.length > 0) && !r.readonly && ql(o, V(a, "icon.button"), () => p.action((e) => {
 		let t = e.get(M), { $from: n } = t.state.selection, r = n.parent.textBetween(0, n.parentOffset, void 0, "￼");
 		t.dispatch(t.state.tr.insertText(r === "" || /\s$/.test(r) ? ":" : " :")), t.focus();
 	})), o.childElementCount || o.remove();
-	let y = null, b = () => void 0;
-	if (p && r.collaboration) {
+	let b = null, x = () => void 0;
+	if (m && r.collaboration) {
 		e.dataset.collab = "connecting";
-		let t = r.collaboration.topic, n = await p.startCollaboration(f, r.collaboration, u, (t) => {
-			e.dataset.collab = t, c(`collab.${t}`, {});
+		let t = r.collaboration.topic, n = m, i = await m.startCollaboration(p, r.collaboration, d, (t) => {
+			e.dataset.collab = t, l(`collab.${t}`, {});
+		}, () => {
+			l("collab.reset_paused", {});
+			let e = document.createElement("button");
+			e.type = "button", e.className = "nowo-milkdown__reload", e.textContent = V(a, "collab.reload"), e.addEventListener("click", () => n.page.reload()), c.after(e);
 		});
-		y = n.provider;
-		let i = y, a = () => {
-			let e = g?.querySelector("input[name=\"_nowo_milkdown_collab\"]") ?? null;
-			i.status === "online" ? (e || (e = document.createElement("input"), e.type = "hidden", e.name = Vl, g?.append(e)), e.value = t) : e?.remove();
+		b = i.provider;
+		let o = b, s = () => {
+			let e = _?.querySelector("input[name=\"_nowo_milkdown_collab\"]") ?? null;
+			o.status === "online" ? (e || (e = document.createElement("input"), e.type = "hidden", e.name = Vl, _?.append(e)), e.value = t) : e?.remove();
 		};
-		g?.addEventListener("submit", a, !0), b = () => {
-			g?.removeEventListener("submit", a, !0), n.stop();
+		_?.addEventListener("submit", s, !0), x = () => {
+			_?.removeEventListener("submit", s, !0), i.stop();
 		};
 	}
 	return {
 		root: e,
 		textarea: n,
 		options: r,
-		builder: d,
-		provider: y,
-		getMarkdown: m,
-		setMarkdown: (e) => f.action(gt(Ul(e))),
-		focus: _,
+		builder: f,
+		provider: b,
+		getMarkdown: h,
+		setMarkdown: (e) => p.action(gt(Ul(e))),
+		focus: v,
 		destroy: async () => {
-			v(), b(), g?.removeEventListener("submit", h, !0), g?.removeEventListener("formdata", h, !0), l?.removeEventListener("click", _), await d.destroy(), e.querySelectorAll(".nowo-milkdown__actions, .nowo-milkdown__surface, .nowo-milkdown__status, .nowo-milkdown__alert").forEach((e) => e.remove()), n.hidden = !1;
+			y(), x(), _?.removeEventListener("submit", g, !0), _?.removeEventListener("formdata", g, !0), u?.removeEventListener("click", v), await f.destroy(), e.querySelectorAll(".nowo-milkdown__actions, .nowo-milkdown__surface, .nowo-milkdown__status, .nowo-milkdown__alert, .nowo-milkdown__reload").forEach((e) => e.remove()), n.hidden = !1;
 		}
 	};
 }

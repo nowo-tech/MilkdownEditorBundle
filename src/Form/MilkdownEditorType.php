@@ -68,7 +68,7 @@ final class MilkdownEditorType extends AbstractType
         'slash.text', 'slash.h1', 'slash.h2', 'slash.h3', 'slash.bullet_list', 'slash.ordered_list', 'slash.task_list',
         'slash.quote', 'slash.code', 'slash.table', 'slash.divider', 'slash.callout', 'slash.details', 'slash.mermaid',
         'slash.math', 'slash.page_link', 'slash.mention', 'slash.icon',
-        'collab.connecting', 'collab.online', 'collab.offline', 'collab.reset',
+        'collab.connecting', 'collab.online', 'collab.offline', 'collab.reset', 'collab.reset_paused', 'collab.reload',
     ];
 
     /**

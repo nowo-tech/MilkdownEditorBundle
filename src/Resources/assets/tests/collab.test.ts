@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 import { MercureProvider, fromBase64, stateUpdates, toBase64 } from '../src/collab/mercure-provider';
+import { RELOAD_CAP, RELOAD_WINDOW, allowReload } from '../src/collab/index';
 import { tick } from './helpers';
 
 class FakeEventSource {
@@ -240,6 +241,33 @@ describe('MercureProvider', () => {
     await tick(0);
     expect(provider.status).toBe('offline');
     provider.disconnect();
+  });
+
+  it('ignores malformed messages and broken presence', async () => {
+    const provider = new MercureProvider(new Y.Doc(), '/c', '/hub', 't');
+    await provider.connect();
+    expect(() => FakeEventSource.last.onmessage!({ data: '{not json' } as MessageEvent<string>)).not.toThrow();
+    expect(() => FakeEventSource.last.onmessage!({ data: JSON.stringify({ t: 'a', c: 5, d: '%%%' }) } as MessageEvent<string>)).not.toThrow();
+    expect(provider.status).toBe('online');
+    provider.disconnect();
+  });
+
+  it('caps automatic reloads per topic in sessionStorage', () => {
+    const storage = window.sessionStorage;
+    storage.clear();
+    for (let i = 0; i < RELOAD_CAP; i++) expect(allowReload('urn:a', storage, 1000 + i)).toBe(true);
+    expect(allowReload('urn:a', storage, 2000)).toBe(false);
+    expect(allowReload('urn:b', storage, 2000)).toBe(true);
+    expect(allowReload('urn:a', storage, 1000 + RELOAD_WINDOW + 10)).toBe(true);
+    storage.setItem('nowo-milkdown-reloads:urn:c', '{broken');
+    expect(allowReload('urn:c', storage, 1)).toBe(true);
+    storage.setItem('nowo-milkdown-reloads:urn:d', '"x"');
+    expect(allowReload('urn:d', storage, 1)).toBe(true);
+    expect(allowReload('urn:e', null, 1)).toBe(true);
+    const full = { getItem: () => null, setItem: () => { throw new Error('quota'); } } as unknown as Storage;
+    expect(allowReload('urn:f', full, 1)).toBe(true);
+    expect(allowReload('urn:g')).toBe(true);
+    storage.clear();
   });
 
   it('lists the updates of a state answer', () => {

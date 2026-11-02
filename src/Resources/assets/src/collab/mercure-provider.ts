@@ -125,7 +125,14 @@ export class MercureProvider {
       es.close();
       this.scheduleReconnect();
     };
-    es.onmessage = (ev: MessageEvent<string>) => this.onMessage(JSON.parse(ev.data) as Message);
+    es.onmessage = (ev: MessageEvent<string>) => {
+      // CX-I1: a malformed message is ignored, never thrown out of the handler.
+      try {
+        this.onMessage(JSON.parse(ev.data) as Message);
+      } catch {
+        // ignored
+      }
+    };
 
     const res = await fetch(`${this.base}/state`, { credentials: 'same-origin', headers: client });
     const answer = (await res.json()) as StateAnswer;
@@ -177,7 +184,11 @@ export class MercureProvider {
       return;
     }
     const known = this.awareness.getStates().has(m.c);
-    applyAwarenessUpdate(this.awareness, fromBase64(m.d), this);
+    try {
+      applyAwarenessUpdate(this.awareness, fromBase64(m.d), this);
+    } catch {
+      return; // CX-I1: a broken presence message is dropped
+    }
     if (!known) void this.post('awareness', encodeAwarenessUpdate(this.awareness, [this.doc.clientID]));
   }
 

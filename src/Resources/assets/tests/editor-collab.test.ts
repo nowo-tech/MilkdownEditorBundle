@@ -82,6 +82,28 @@ describe('editor integrations', () => {
     expect(form.querySelector('input[name="_nowo_milkdown_collab"]')).toBeNull();
   });
 
+  it('over the reload cap the editor stays and offers a manual reload', async () => {
+    vi.stubGlobal('EventSource', FakeEventSource);
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => (url.endsWith('/state') ? new Response(JSON.stringify({ state: toBase64(Y.encodeStateAsUpdate(new Y.Doc())), seed: true })) : new Response(''))));
+    const collab = await import('../src/collab/index');
+    const reload = vi.spyOn(collab.page, 'reload').mockImplementation(() => undefined);
+    window.sessionStorage.setItem('nowo-milkdown-reloads:urn:capped', JSON.stringify([Date.now(), Date.now(), Date.now()]));
+    handle = await editor('# Capped', { collaboration: { url: '/c', hubUrl: '/hub', topic: 'urn:capped', user: { name: 'Ada', color: '#123456' } } });
+    await tick(20);
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    FakeEventSource.last.onmessage!({ data: JSON.stringify({ t: 'r', c: 0, d: '' }) } as MessageEvent<string>);
+    vi.advanceTimersByTime(collab.RESET_RELOAD_DELAY * 2);
+    vi.useRealTimers();
+    expect(reload).not.toHaveBeenCalled();
+    expect(handle.root.querySelector('.nowo-milkdown__status')?.textContent).toContain('several times');
+    const button = handle.root.querySelector<HTMLButtonElement>('.nowo-milkdown__reload')!;
+    expect(button.textContent).toBe('Reload');
+    button.click();
+    expect(reload).toHaveBeenCalledTimes(1);
+    reload.mockRestore();
+    window.sessionStorage.clear();
+  });
+
   it('the Insert file button uploads the picked files at the cursor', async () => {
     handle = await editor('Text', { upload: { url: '/up' } });
     let picker: HTMLInputElement | null = null;

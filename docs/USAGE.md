@@ -150,7 +150,9 @@ the log and publish the reset below (it should cap such resets); the client neve
 **Reset (1.2).** When the host replaces the document outside the session (a restore, an import, a conversion) it
 drops its log and publishes `{"t": "r"}` on the topic: every editor stops its session (no more posts, no reconnect),
 announces `collab.reset` and reloads the page after 1.5 s, so it shows the replaced content. Edits typed after the
-reset are not sent. The collaboration requests are JSON POSTs with
+reset are not sent. Automatic reloads are capped at 3 per topic per 5 minutes (sessionStorage); beyond that the
+editor stays on the page, announces `collab.reset_paused` and shows a **Reload** button. Malformed hub messages and
+broken presence updates are ignored. The collaboration requests are JSON POSTs with
 the session cookie: require `Content-Type: application/json` and check the `Origin` header (or SameSite cookies) on
 those endpoints.
 

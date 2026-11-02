@@ -124,7 +124,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   root.style.setProperty('--nowo-milkdown-min-height', options.minHeight);
   textarea.hidden = true;
   textarea.value = normaliseNewlines(textarea.value);
-  const { bar, surface, announce } = chrome(root, runtime);
+  const { bar, surface, status, announce } = chrome(root, runtime);
   const label = labelFor(textarea);
   const initial = textarea.value;
 
@@ -214,10 +214,26 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   if (collabModule && options.collaboration) {
     root.dataset.collab = 'connecting';
     const topic = options.collaboration.topic;
-    const collaboration = await collabModule.startCollaboration(editor, options.collaboration, initial, (s) => {
-      root.dataset.collab = s;
-      announce(`collab.${s}`, {});
-    });
+    const reloadModule = collabModule;
+    const collaboration = await collabModule.startCollaboration(
+      editor,
+      options.collaboration,
+      initial,
+      (s) => {
+        root.dataset.collab = s;
+        announce(`collab.${s}`, {});
+      },
+      () => {
+        // CX-L1: too many resets in a row — stay on the page, offer a manual reload.
+        announce('collab.reset_paused', {});
+        const reload = document.createElement('button');
+        reload.type = 'button';
+        reload.className = 'nowo-milkdown__reload';
+        reload.textContent = t(runtime, 'collab.reload');
+        reload.addEventListener('click', () => reloadModule.page.reload());
+        status.after(reload);
+      },
+    );
     provider = collaboration.provider;
     // 1.2: a save from the live session tells the host so (it keeps the shared log instead of resetting it).
     const live = provider;
@@ -258,7 +274,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
       form?.removeEventListener('formdata', sync, true);
       label?.removeEventListener('click', focus);
       await builder.destroy();
-      root.querySelectorAll('.nowo-milkdown__actions, .nowo-milkdown__surface, .nowo-milkdown__status, .nowo-milkdown__alert').forEach((el) => el.remove());
+      root.querySelectorAll('.nowo-milkdown__actions, .nowo-milkdown__surface, .nowo-milkdown__status, .nowo-milkdown__alert, .nowo-milkdown__reload').forEach((el) => el.remove());
       textarea.hidden = false;
     },
   };
