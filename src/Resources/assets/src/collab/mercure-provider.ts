@@ -7,6 +7,10 @@
  *   its stored state and publishes it (the browser never holds a publisher JWT).
  * - (Re)connect: open the EventSource, `GET <url>/state` (`{state: base64, seed: bool}`), apply it and post our
  *   diff against the server's state vector: offline edits merge, missed events are covered by the state.
+ * - 1.2: a host that cannot merge Yjs updates (e.g. PHP) answers the state as a log —
+ *   `{state, updates: [base64…], seq: n, compact: bool}`: the client applies `state` then every update in order (Yjs
+ *   updates are idempotent and commutative). With `compact: true` it posts `POST <url>/compact`
+ *   (`{c, d: base64 full state, s: seq}`) so the host can replace log entries up to `seq` with that snapshot.
  */
 import * as Y from 'yjs';
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate, removeAwarenessStates } from 'y-protocols/awareness';
@@ -18,8 +22,16 @@ export const toBase64 = (u: Uint8Array): string => {
 };
 export const fromBase64 = (s: string): Uint8Array => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 
-export type Status = 'connecting' | 'online' | 'offline';
-type Message = { t: 'u' | 'a'; c: number; d: string };
+export type Status = 'connecting' | 'online' | 'offline' | 'reset';
+type Message = { t: 'u' | 'a' | 'r'; c: number; d: string };
+/** `GET <url>/state` answer: `state` (1.0), plus the optional update log of 1.2. */
+export type StateAnswer = { state: string; seed?: boolean; updates?: unknown; seq?: unknown; compact?: unknown };
+
+/** The base64 updates of a state answer, in order: `state`, then each string of `updates`; empty strings skipped. */
+export const stateUpdates = (answer: StateAnswer): string[] =>
+  [answer.state, ...(Array.isArray(answer.updates) ? answer.updates : [])].filter(
+    (u): u is string => typeof u === 'string' && u !== '',
+  );
 
 export class MercureProvider {
   readonly awareness: Awareness;
@@ -31,6 +43,8 @@ export class MercureProvider {
   private retry = 0;
   private closed = false;
   private connecting: Promise<void> | null = null;
+  private seq = 0;
+  private reported = false;
   private readonly listeners = new Set<(s: Status) => void>();
   private readonly onOnline = (): void => void this.connect().catch(() => undefined);
   private readonly onOffline = (): void => {
@@ -90,7 +104,8 @@ export class MercureProvider {
   private async doConnect(): Promise<void> {
     this.setStatus('connecting');
     this.es?.close();
-    const token = await fetch(`${this.base}/token`, { method: 'POST', credentials: 'same-origin' });
+    const client = { 'X-Nowo-Collab-Client': String(this.doc.clientID) };
+    const token = await fetch(`${this.base}/token`, { method: 'POST', credentials: 'same-origin', headers: client });
     if (!token.ok) throw new Error(`token ${token.status}`);
     const url = new URL(this.hubUrl, location.href);
     url.searchParams.append('topic', this.topic);
@@ -110,17 +125,36 @@ export class MercureProvider {
       es.close();
       this.scheduleReconnect();
     };
-    es.onmessage = (ev: MessageEvent<string>) => this.onMessage(JSON.parse(ev.data) as Message);
+    es.onmessage = (ev: MessageEvent<string>) => {
+      // CX-I1: a malformed message is ignored, never thrown out of the handler.
+      try {
+        this.onMessage(JSON.parse(ev.data) as Message);
+      } catch {
+        // ignored
+      }
+    };
 
-    const res = await fetch(`${this.base}/state`, { credentials: 'same-origin' });
-    const { state, seed } = (await res.json()) as { state: string; seed: boolean };
-    this.seed = seed === true;
+    const res = await fetch(`${this.base}/state`, { credentials: 'same-origin', headers: client });
+    const answer = (await res.json()) as StateAnswer;
+    this.seed = answer.seed === true;
+    this.seq = typeof answer.seq === 'number' && Number.isInteger(answer.seq) ? answer.seq : 0;
     const server = new Y.Doc();
-    Y.applyUpdate(server, fromBase64(state));
-    Y.applyUpdate(this.doc, fromBase64(state), this);
+    try {
+      for (const update of stateUpdates(answer)) {
+        Y.applyUpdate(server, fromBase64(update));
+        Y.applyUpdate(this.doc, fromBase64(update), this);
+      }
+    } catch {
+      server.destroy();
+      await this.reportCorrupt();
+      return;
+    }
     const diff = Y.encodeStateAsUpdate(this.doc, Y.encodeStateVector(server));
     server.destroy();
     if (diff.length > 2) await this.post('update', diff);
+    if (answer.compact === true && typeof answer.seq === 'number' && Number.isInteger(answer.seq)) {
+      await this.compact(answer.seq);
+    }
     this.dirty = false;
     this.retry = 0;
     this.setStatus('online');
@@ -134,12 +168,47 @@ export class MercureProvider {
   }
 
   private onMessage(m: Message): void {
+    if (m.t === 'r') {
+      this.closed = true;
+      this.es?.close();
+      this.setStatus('reset');
+      return;
+    }
     if (m.c === this.doc.clientID) return;
-    if (m.t === 'u') Y.applyUpdate(this.doc, fromBase64(m.d), this);
-    else {
-      const known = this.awareness.getStates().has(m.c);
+    if (m.t === 'u') {
+      try {
+        Y.applyUpdate(this.doc, fromBase64(m.d), this);
+      } catch {
+        void this.reportCorrupt();
+      }
+      return;
+    }
+    const known = this.awareness.getStates().has(m.c);
+    try {
       applyAwarenessUpdate(this.awareness, fromBase64(m.d), this);
-      if (!known) void this.post('awareness', encodeAwarenessUpdate(this.awareness, [this.doc.clientID]));
+    } catch {
+      return; // CX-I1: a broken presence message is dropped
+    }
+    if (!known) void this.post('awareness', encodeAwarenessUpdate(this.awareness, [this.doc.clientID]));
+  }
+
+  /**
+   * Reports, once per provider, that the host's log cannot be applied, then stays offline (no posts). The host drops
+   * the log and publishes a reset — or refuses (capped) and nothing loops.
+   */
+  private async reportCorrupt(): Promise<void> {
+    this.setStatus('offline');
+    if (this.reported) return;
+    this.reported = true;
+    try {
+      await fetch(`${this.base}/corrupt`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ c: this.doc.clientID, s: this.seq }),
+      });
+    } catch {
+      // Nothing more to do: the editor stays offline until the page reloads.
     }
   }
 
@@ -160,6 +229,20 @@ export class MercureProvider {
     const mine = [...added, ...updated, ...removed].filter((id) => id === this.doc.clientID);
     if (mine.length) void this.post('awareness', encodeAwarenessUpdate(this.awareness, mine));
   };
+
+  /** Sends the full state as a snapshot of the host's log up to `seq` (best effort: a failure changes nothing). */
+  private async compact(seq: number): Promise<void> {
+    try {
+      await fetch(`${this.base}/compact`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ c: this.doc.clientID, d: toBase64(Y.encodeStateAsUpdate(this.doc)), s: seq }),
+      });
+    } catch {
+      // The log stays as it is; the next connect may compact.
+    }
+  }
 
   private async post(kind: 'update' | 'awareness', data: Uint8Array): Promise<void> {
     try {

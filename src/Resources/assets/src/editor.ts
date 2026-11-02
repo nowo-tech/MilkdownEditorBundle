@@ -27,6 +27,9 @@ import { createUploader } from './upload';
 import type { EditorOptions } from './types';
 import type { MercureProvider } from './collab/mercure-provider';
 
+
+/** Hidden field a save from a live collaborative session carries (the topic): the host keeps the shared log (1.2). */
+export const SESSION_FIELD = '_nowo_milkdown_collab';
 export type MilkdownEditorHandle = {
   root: HTMLElement;
   textarea: HTMLTextAreaElement;
@@ -121,7 +124,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   root.style.setProperty('--nowo-milkdown-min-height', options.minHeight);
   textarea.hidden = true;
   textarea.value = normaliseNewlines(textarea.value);
-  const { bar, surface, announce } = chrome(root, runtime);
+  const { bar, surface, status, announce } = chrome(root, runtime);
   const label = labelFor(textarea);
   const initial = textarea.value;
 
@@ -210,12 +213,49 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   let stopCollaboration = (): void => undefined;
   if (collabModule && options.collaboration) {
     root.dataset.collab = 'connecting';
-    const collaboration = await collabModule.startCollaboration(editor, options.collaboration, initial, (s) => {
-      root.dataset.collab = s;
-      announce(`collab.${s}`, {});
-    });
+    const topic = options.collaboration.topic;
+    const reloadModule = collabModule;
+    const collaboration = await collabModule.startCollaboration(
+      editor,
+      options.collaboration,
+      initial,
+      (s) => {
+        root.dataset.collab = s;
+        announce(`collab.${s}`, {});
+      },
+      () => {
+        // CX-L1: too many resets in a row — stay on the page, offer a manual reload.
+        announce('collab.reset_paused', {});
+        const reload = document.createElement('button');
+        reload.type = 'button';
+        reload.className = 'nowo-milkdown__reload';
+        reload.textContent = t(runtime, 'collab.reload');
+        reload.addEventListener('click', () => reloadModule.page.reload());
+        status.after(reload);
+      },
+    );
     provider = collaboration.provider;
-    stopCollaboration = collaboration.stop;
+    // 1.2: a save from the live session tells the host so (it keeps the shared log instead of resetting it).
+    const live = provider;
+    const markSession = (): void => {
+      let input = form?.querySelector<HTMLInputElement>(`input[name="${SESSION_FIELD}"]`) ?? null;
+      if (live.status !== 'online') {
+        input?.remove();
+        return;
+      }
+      if (!input) {
+        input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = SESSION_FIELD;
+        form?.append(input);
+      }
+      input.value = topic;
+    };
+    form?.addEventListener('submit', markSession, true);
+    stopCollaboration = () => {
+      form?.removeEventListener('submit', markSession, true);
+      collaboration.stop();
+    };
   }
 
   return {
@@ -234,7 +274,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
       form?.removeEventListener('formdata', sync, true);
       label?.removeEventListener('click', focus);
       await builder.destroy();
-      root.querySelectorAll('.nowo-milkdown__actions, .nowo-milkdown__surface, .nowo-milkdown__status, .nowo-milkdown__alert').forEach((el) => el.remove());
+      root.querySelectorAll('.nowo-milkdown__actions, .nowo-milkdown__surface, .nowo-milkdown__status, .nowo-milkdown__alert, .nowo-milkdown__reload').forEach((el) => el.remove());
       textarea.hidden = false;
     },
   };

@@ -45,11 +45,63 @@ export const selectionBuilder = (user: Peer): { style: string; class: string } =
   class: 'ProseMirror-yjs-selection',
 });
 
-export async function startCollaboration(editor: Editor, options: CollaborationOptions, template: string, onStatus: (s: Status) => void): Promise<Collaboration> {
+/** Delay before an editor whose document was replaced on the server reloads the page (ms). */
+export const RESET_RELOAD_DELAY = 1500;
+
+/** How the page is reloaded after a reset (replaceable in tests). */
+export const page = { reload: (): void => window.location.reload() };
+
+/** At most this many automatic reloads per topic and window (CX-L1); then the editor waits for a manual reload. */
+export const RELOAD_CAP = 3;
+export const RELOAD_WINDOW = 5 * 60 * 1000;
+
+const sessionStore = (): Storage | null => {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Records an automatic reload of the topic in sessionStorage; false once {@link RELOAD_CAP} reloads happened within
+ * {@link RELOAD_WINDOW} (a host resetting again and again must not trap the tab in a reload loop).
+ */
+export function allowReload(topic: string, storage: Storage | null = sessionStore(), now: number = Date.now()): boolean {
+  const key = `nowo-milkdown-reloads:${topic}`;
+  let times: unknown;
+  try {
+    times = JSON.parse(storage?.getItem(key) ?? '[]');
+  } catch {
+    times = [];
+  }
+  const recent = (Array.isArray(times) ? times : []).filter((t): t is number => typeof t === 'number' && now - t < RELOAD_WINDOW);
+  if (recent.length >= RELOAD_CAP) return false;
+  try {
+    storage?.setItem(key, JSON.stringify([...recent, now]));
+  } catch {
+    // Storage full or blocked: the reload still happens.
+  }
+  return true;
+}
+
+export async function startCollaboration(
+  editor: Editor,
+  options: CollaborationOptions,
+  template: string,
+  onStatus: (s: Status) => void,
+  onReloadPaused: () => void = () => undefined,
+): Promise<Collaboration> {
   const doc = new Y.Doc();
   const provider = new MercureProvider(doc, options.url, options.hubUrl, options.topic);
   provider.awareness.setLocalStateField('user', options.user);
-  provider.onStatus(onStatus);
+  provider.onStatus((s) => {
+    onStatus(s);
+    // 1.2: the host replaced the document (restore, import, conversion): show the notice, then load the new content.
+    if (s !== 'reset') return;
+    if (allowReload(options.topic)) window.setTimeout(() => page.reload(), RESET_RELOAD_DELAY);
+    else onReloadPaused();
+  });
   await provider.connect();
   editor.action((ctx) => {
     const service = ctx.get(collabServiceCtx);

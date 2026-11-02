@@ -6,10 +6,12 @@ import { toBase64 } from '../src/collab/mercure-provider';
 import type { MilkdownEditorHandle } from '../src/editor';
 
 class FakeEventSource {
+  static last: FakeEventSource;
   onopen: (() => void) | null = null;
   onerror: (() => void) | null = null;
   onmessage: ((e: MessageEvent<string>) => void) | null = null;
   constructor() {
+    FakeEventSource.last = this;
     setTimeout(() => this.onopen?.(), 0);
   }
   close() {}
@@ -33,6 +35,73 @@ describe('editor integrations', () => {
     expect(handle.root.dataset.collab).toBe('online');
     expect(handle.getMarkdown()).toBe('# Seeded\n');
     expect(handle.root.querySelector('.nowo-milkdown__status')?.textContent).toBe('Live');
+  });
+
+  it('a reset from the host shows the notice, stops the session and reloads the page', async () => {
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const posted: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      posted.push(url);
+      return url.endsWith('/state') ? new Response(JSON.stringify({ state: toBase64(Y.encodeStateAsUpdate(new Y.Doc())), seed: true })) : new Response('');
+    }));
+    const collab = await import('../src/collab/index');
+    const reload = vi.spyOn(collab.page, 'reload').mockImplementation(() => undefined);
+    handle = await editor('# Old', { collaboration: { url: '/c', hubUrl: '/hub', topic: 't', user: { name: 'Ada', color: '#123456' } } });
+    await tick(20);
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    FakeEventSource.last.onmessage!({ data: JSON.stringify({ t: 'r', c: 0, d: '' }) } as MessageEvent<string>);
+    expect(handle.root.dataset.collab).toBe('reset');
+    expect(handle.root.querySelector('.nowo-milkdown__status')?.textContent).toContain('reloading');
+    expect(handle.provider?.status).toBe('reset');
+    const before = posted.length;
+    handle.setMarkdown('changed');
+    vi.advanceTimersByTime(collab.RESET_RELOAD_DELAY);
+    expect(reload).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+    await tick(5);
+    expect(posted.slice(before).filter((u) => u.endsWith('/update'))).toEqual([]);
+    reload.mockRestore();
+    expect(() => collab.page.reload()).not.toThrow();
+  });
+
+  it('a save from the live session carries the session field; an offline save does not', async () => {
+    vi.stubGlobal('EventSource', FakeEventSource);
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => (url.endsWith('/state') ? new Response(JSON.stringify({ state: toBase64(Y.encodeStateAsUpdate(new Y.Doc())), seed: true })) : new Response(''))));
+    handle = await editor('# Live', { collaboration: { url: '/c', hubUrl: '/hub', topic: 'urn:page:1', user: { name: 'Ada', color: '#123456' } } });
+    await tick(20);
+    const form = handle.textarea.form!;
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+    expect(form.querySelector<HTMLInputElement>('input[name="_nowo_milkdown_collab"]')?.value).toBe('urn:page:1');
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+    expect(form.querySelectorAll('input[name="_nowo_milkdown_collab"]')).toHaveLength(1);
+
+    window.dispatchEvent(new Event('offline'));
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+    expect(form.querySelector('input[name="_nowo_milkdown_collab"]')).toBeNull();
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+    expect(form.querySelector('input[name="_nowo_milkdown_collab"]')).toBeNull();
+  });
+
+  it('over the reload cap the editor stays and offers a manual reload', async () => {
+    vi.stubGlobal('EventSource', FakeEventSource);
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => (url.endsWith('/state') ? new Response(JSON.stringify({ state: toBase64(Y.encodeStateAsUpdate(new Y.Doc())), seed: true })) : new Response(''))));
+    const collab = await import('../src/collab/index');
+    const reload = vi.spyOn(collab.page, 'reload').mockImplementation(() => undefined);
+    window.sessionStorage.setItem('nowo-milkdown-reloads:urn:capped', JSON.stringify([Date.now(), Date.now(), Date.now()]));
+    handle = await editor('# Capped', { collaboration: { url: '/c', hubUrl: '/hub', topic: 'urn:capped', user: { name: 'Ada', color: '#123456' } } });
+    await tick(20);
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    FakeEventSource.last.onmessage!({ data: JSON.stringify({ t: 'r', c: 0, d: '' }) } as MessageEvent<string>);
+    vi.advanceTimersByTime(collab.RESET_RELOAD_DELAY * 2);
+    vi.useRealTimers();
+    expect(reload).not.toHaveBeenCalled();
+    expect(handle.root.querySelector('.nowo-milkdown__status')?.textContent).toContain('several times');
+    const button = handle.root.querySelector<HTMLButtonElement>('.nowo-milkdown__reload')!;
+    expect(button.textContent).toBe('Reload');
+    button.click();
+    expect(reload).toHaveBeenCalledTimes(1);
+    reload.mockRestore();
+    window.sessionStorage.clear();
   });
 
   it('the Insert file button uploads the picked files at the cursor', async () => {
