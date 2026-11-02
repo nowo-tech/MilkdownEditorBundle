@@ -73,6 +73,7 @@ export const DEFAULT_MESSAGES: Messages = {
   'collab.connecting': 'Connecting…',
   'collab.online': 'Live',
   'collab.offline': 'Offline: changes are kept and sent when the connection returns',
+  'collab.reset': 'This page was restored or replaced: reloading with the new content…',
 };
 
 /** Returns the message for `key`, with `{placeholders}` replaced. */

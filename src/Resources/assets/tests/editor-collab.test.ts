@@ -6,10 +6,12 @@ import { toBase64 } from '../src/collab/mercure-provider';
 import type { MilkdownEditorHandle } from '../src/editor';
 
 class FakeEventSource {
+  static last: FakeEventSource;
   onopen: (() => void) | null = null;
   onerror: (() => void) | null = null;
   onmessage: ((e: MessageEvent<string>) => void) | null = null;
   constructor() {
+    FakeEventSource.last = this;
     setTimeout(() => this.onopen?.(), 0);
   }
   close() {}
@@ -33,6 +35,33 @@ describe('editor integrations', () => {
     expect(handle.root.dataset.collab).toBe('online');
     expect(handle.getMarkdown()).toBe('# Seeded\n');
     expect(handle.root.querySelector('.nowo-milkdown__status')?.textContent).toBe('Live');
+  });
+
+  it('a reset from the host shows the notice, stops the session and reloads the page', async () => {
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const posted: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      posted.push(url);
+      return url.endsWith('/state') ? new Response(JSON.stringify({ state: toBase64(Y.encodeStateAsUpdate(new Y.Doc())), seed: true })) : new Response('');
+    }));
+    const collab = await import('../src/collab/index');
+    const reload = vi.spyOn(collab.page, 'reload').mockImplementation(() => undefined);
+    handle = await editor('# Old', { collaboration: { url: '/c', hubUrl: '/hub', topic: 't', user: { name: 'Ada', color: '#123456' } } });
+    await tick(20);
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    FakeEventSource.last.onmessage!({ data: JSON.stringify({ t: 'r', c: 0, d: '' }) } as MessageEvent<string>);
+    expect(handle.root.dataset.collab).toBe('reset');
+    expect(handle.root.querySelector('.nowo-milkdown__status')?.textContent).toContain('reloading');
+    expect(handle.provider?.status).toBe('reset');
+    const before = posted.length;
+    handle.setMarkdown('changed');
+    vi.advanceTimersByTime(collab.RESET_RELOAD_DELAY);
+    expect(reload).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+    await tick(5);
+    expect(posted.slice(before).filter((u) => u.endsWith('/update'))).toEqual([]);
+    reload.mockRestore();
+    expect(() => collab.page.reload()).not.toThrow();
   });
 
   it('the Insert file button uploads the picked files at the cursor', async () => {

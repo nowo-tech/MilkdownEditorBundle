@@ -4490,7 +4490,7 @@ var qc = (e) => {
 	let t = "";
 	for (let n = 0; n < e.length; n += 32768) t += String.fromCharCode(...e.subarray(n, n + 32768));
 	return btoa(t);
-}, Jc = (e) => Uint8Array.from(atob(e), (e) => e.charCodeAt(0)), Yc = class {
+}, Jc = (e) => Uint8Array.from(atob(e), (e) => e.charCodeAt(0)), Yc = (e) => [e.state, ...Array.isArray(e.updates) ? e.updates : []].filter((e) => typeof e == "string" && e !== ""), Xc = class {
 	doc;
 	base;
 	hubUrl;
@@ -4550,12 +4550,12 @@ var qc = (e) => {
 		n.onerror = () => {
 			this.setStatus("offline"), n.close(), this.scheduleReconnect();
 		}, n.onmessage = (e) => this.onMessage(JSON.parse(e.data));
-		let { state: r, seed: i } = await (await fetch(`${this.base}/state`, { credentials: "same-origin" })).json();
-		this.seed = i === !0;
-		let a = new oi();
-		Si(a, Jc(r)), Si(this.doc, Jc(r), this);
-		let o = Ti(this.doc, ji(a));
-		a.destroy(), o.length > 2 && await this.post("update", o), this.dirty = !1, this.retry = 0, this.setStatus("online"), await this.post("awareness", Ds(this.awareness, [this.doc.clientID]));
+		let r = await (await fetch(`${this.base}/state`, { credentials: "same-origin" })).json();
+		this.seed = r.seed === !0;
+		let i = new oi();
+		for (let e of Yc(r)) Si(i, Jc(e)), Si(this.doc, Jc(e), this);
+		let a = Ti(this.doc, ji(i));
+		i.destroy(), a.length > 2 && await this.post("update", a), r.compact === !0 && typeof r.seq == "number" && Number.isInteger(r.seq) && await this.compact(r.seq), this.dirty = !1, this.retry = 0, this.setStatus("online"), await this.post("awareness", Ds(this.awareness, [this.doc.clientID]));
 	}
 	scheduleReconnect() {
 		if (this.closed) return;
@@ -4563,7 +4563,8 @@ var qc = (e) => {
 		window.setTimeout(() => void this.connect().catch(() => void 0), e);
 	}
 	onMessage(e) {
-		if (e.c !== this.doc.clientID) {
+		if (e.t === "r") this.closed = !0, this.es?.close(), this.setStatus("reset");
+		else if (e.c !== this.doc.clientID) {
 			if (e.t === "u") Si(this.doc, Jc(e.d), this);
 			else {
 				let t = this.awareness.getStates().has(e.c);
@@ -4583,6 +4584,20 @@ var qc = (e) => {
 		].filter((e) => e === this.doc.clientID);
 		i.length && this.post("awareness", Ds(this.awareness, i));
 	};
+	async compact(e) {
+		try {
+			await fetch(`${this.base}/compact`, {
+				method: "POST",
+				credentials: "same-origin",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					c: this.doc.clientID,
+					d: qc(Ti(this.doc)),
+					s: e
+				})
+			});
+		} catch {}
+	}
 	async post(e, t) {
 		try {
 			let n = await fetch(`${this.base}/${e}`, {
@@ -4599,24 +4614,26 @@ var qc = (e) => {
 			e === "update" && (this.dirty = !0), this.setStatus("offline");
 		}
 	}
-}, Xc = (e) => typeof e == "string" && /^#[0-9a-f]{6}$/i.test(e) ? e : "#6b7280";
-function Zc(e) {
+}, Zc = (e) => typeof e == "string" && /^#[0-9a-f]{6}$/i.test(e) ? e : "#6b7280";
+function Qc(e) {
 	let t = document.createElement("span");
-	t.className = "ProseMirror-yjs-cursor", t.style.borderColor = Xc(e.color);
+	t.className = "ProseMirror-yjs-cursor", t.style.borderColor = Zc(e.color);
 	let n = document.createElement("div");
-	return n.style.backgroundColor = Xc(e.color), n.textContent = typeof e.name == "string" ? e.name.slice(0, 40) : "", t.append(document.createTextNode("⁠"), n, document.createTextNode("⁠")), t;
+	return n.style.backgroundColor = Zc(e.color), n.textContent = typeof e.name == "string" ? e.name.slice(0, 40) : "", t.append(document.createTextNode("⁠"), n, document.createTextNode("⁠")), t;
 }
-var Qc = (e) => ({
-	style: `background-color: ${Xc(e.color)}70`,
+var $c = (e) => ({
+	style: `background-color: ${Zc(e.color)}70`,
 	class: "ProseMirror-yjs-selection"
-});
-async function $c(e, t, n, r) {
-	let i = new oi(), a = new Yc(i, t.url, t.hubUrl, t.topic);
-	return a.awareness.setLocalStateField("user", t.user), a.onStatus(r), await a.connect(), e.action((e) => {
+}), el = 1500, tl = { reload: () => window.location.reload() };
+async function nl(e, t, n, r) {
+	let i = new oi(), a = new Xc(i, t.url, t.hubUrl, t.topic);
+	return a.awareness.setLocalStateField("user", t.user), a.onStatus((e) => {
+		r(e), e === "reset" && window.setTimeout(() => tl.reload(), el);
+	}), await a.connect(), e.action((e) => {
 		let t = e.get(Wc);
 		t.setOptions({ yCursorOpts: {
-			cursorBuilder: Zc,
-			selectionBuilder: Qc
+			cursorBuilder: Qc,
+			selectionBuilder: $c
 		} }), t.bindDoc(i).setAwareness(a.awareness), a.seed && t.applyTemplate(n), t.connect();
 	}), {
 		provider: a,
@@ -4625,4 +4642,4 @@ async function $c(e, t, n, r) {
 		}
 	};
 }
-export { Kc as collab, Zc as cursorBuilder, Xc as safeColor, Qc as selectionBuilder, $c as startCollaboration };
+export { el as RESET_RELOAD_DELAY, Kc as collab, Qc as cursorBuilder, tl as page, Zc as safeColor, $c as selectionBuilder, nl as startCollaboration };

@@ -45,11 +45,26 @@ export const selectionBuilder = (user: Peer): { style: string; class: string } =
   class: 'ProseMirror-yjs-selection',
 });
 
-export async function startCollaboration(editor: Editor, options: CollaborationOptions, template: string, onStatus: (s: Status) => void): Promise<Collaboration> {
+/** Delay before an editor whose document was replaced on the server reloads the page (ms). */
+export const RESET_RELOAD_DELAY = 1500;
+
+/** How the page is reloaded after a reset (replaceable in tests). */
+export const page = { reload: (): void => window.location.reload() };
+
+export async function startCollaboration(
+  editor: Editor,
+  options: CollaborationOptions,
+  template: string,
+  onStatus: (s: Status) => void,
+): Promise<Collaboration> {
   const doc = new Y.Doc();
   const provider = new MercureProvider(doc, options.url, options.hubUrl, options.topic);
   provider.awareness.setLocalStateField('user', options.user);
-  provider.onStatus(onStatus);
+  provider.onStatus((s) => {
+    onStatus(s);
+    // 1.2: the host replaced the document (restore, import, conversion): show the notice, then load the new content.
+    if (s === 'reset') window.setTimeout(() => page.reload(), RESET_RELOAD_DELAY);
+  });
   await provider.connect();
   editor.action((ctx) => {
     const service = ctx.get(collabServiceCtx);

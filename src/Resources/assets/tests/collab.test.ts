@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
-import { MercureProvider, fromBase64, toBase64 } from '../src/collab/mercure-provider';
+import { MercureProvider, fromBase64, stateUpdates, toBase64 } from '../src/collab/mercure-provider';
 import { tick } from './helpers';
 
 class FakeEventSource {
@@ -23,11 +23,15 @@ let posts: { url: string; body: { c: number; d: string } }[] = [];
 let serverState = Y.encodeStateAsUpdate(new Y.Doc());
 let tokenStatus = 200;
 let postStatus = 200;
+let stateExtra: Record<string, unknown> = {};
+let compactFails = false;
 
 beforeEach(() => {
   posts = [];
   tokenStatus = 200;
   postStatus = 200;
+  stateExtra = {};
+  compactFails = false;
   FakeEventSource.fail = false;
   const seed = new Y.Doc();
   seed.getText('t').insert(0, 'server');
@@ -35,7 +39,8 @@ beforeEach(() => {
   vi.stubGlobal('EventSource', FakeEventSource);
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
     if (url.endsWith('/token')) return new Response('', { status: tokenStatus });
-    if (url.endsWith('/state')) return new Response(JSON.stringify({ state: toBase64(serverState), seed: true }));
+    if (url.endsWith('/state')) return new Response(JSON.stringify({ state: toBase64(serverState), seed: true, ...stateExtra }));
+    if (url.endsWith('/compact') && compactFails) throw new TypeError('network');
     posts.push({ url, body: JSON.parse(String(init?.body)) });
     return new Response('', { status: postStatus });
   }));
@@ -143,5 +148,60 @@ describe('MercureProvider', () => {
     const provider = new MercureProvider(new Y.Doc(), '/c', '/hub', 't');
     await expect(provider.connect()).rejects.toThrow('token 403');
     provider.disconnect();
+  });
+
+  it('applies a state log (1.2) and compacts it when asked', async () => {
+    const a = new Y.Doc();
+    a.getText('t').insert(0, 'log1 ');
+    const b = new Y.Doc();
+    Y.applyUpdate(b, Y.encodeStateAsUpdate(a));
+    b.getText('t').insert(5, 'log2');
+    stateExtra = { updates: [toBase64(Y.encodeStateAsUpdate(a)), '', 7, toBase64(Y.encodeStateAsUpdate(b))], seq: 42, compact: true };
+
+    const doc = new Y.Doc();
+    const provider = new MercureProvider(doc, '/c', '/hub', 't');
+    await provider.connect();
+    expect(doc.getText('t').toString()).toContain('log1 log2');
+    const compact = posts.find((p) => p.url === '/c/compact') as { body: { c: number; d: string; s: number } } | undefined;
+    expect(compact?.body.s).toBe(42);
+    const snapshot = new Y.Doc();
+    Y.applyUpdate(snapshot, fromBase64(compact!.body.d));
+    expect(snapshot.getText('t').toString()).toBe(doc.getText('t').toString());
+    provider.disconnect();
+  });
+
+  it('does not compact without an integer seq and survives a failed compaction', async () => {
+    stateExtra = { updates: 'nope', seq: 1.5, compact: true };
+    const first = new MercureProvider(new Y.Doc(), '/c', '/hub', 't');
+    await first.connect();
+    expect(posts.some((p) => p.url === '/c/compact')).toBe(false);
+    first.disconnect();
+
+    stateExtra = { seq: 3, compact: true };
+    compactFails = true;
+    const second = new MercureProvider(new Y.Doc(), '/c', '/hub', 't');
+    await second.connect();
+    expect(second.status).toBe('online');
+    second.disconnect();
+  });
+
+  it('a reset message stops the provider for good', async () => {
+    const provider = new MercureProvider(new Y.Doc(), '/c', '/hub', 't');
+    const statuses: string[] = [];
+    provider.onStatus((s) => statuses.push(s));
+    await provider.connect();
+    const es = FakeEventSource.last;
+    es.onmessage!({ data: JSON.stringify({ t: 'r', c: 0, d: '' }) } as MessageEvent<string>);
+    expect(provider.status).toBe('reset');
+    expect(es.closed).toBe(true);
+    expect(statuses.at(-1)).toBe('reset');
+    await provider.connect();
+    expect(FakeEventSource.last).toBe(es);
+    provider.disconnect();
+  });
+
+  it('lists the updates of a state answer', () => {
+    expect(stateUpdates({ state: 'AA==', updates: ['AQ==', '', null] })).toEqual(['AA==', 'AQ==']);
+    expect(stateUpdates({ state: '' })).toEqual([]);
   });
 });

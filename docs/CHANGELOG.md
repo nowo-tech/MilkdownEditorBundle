@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Added
+
+- **Collaboration state log (FR-076):** `GET <url>/state` may answer `updates` (a list of base64 Yjs updates applied after `state`, in order), `seq` and `compact`; with `compact: true` and an integer `seq` the client posts its full state to `POST <url>/compact` (`{c, d, s}`) so a host that cannot merge Yjs updates (PHP) can compact its log. Answers with `state` only behave as before. `stateUpdates()` is exported from the collaboration module.
+- **Collaboration reset:** a `{t: "r"}` message on the topic (the host replaced the document: restore, import, conversion) stops the session, sets the status `reset` (`data-collab="reset"`, announced with the new `collab.reset` message in 7 locales) and reloads the page after 1.5 s.
+
 ## [1.1.1] - 2026-11-01
 
 Code-block buttons visible on keyboard focus (focus-within / focus-visible, reduced motion) See [UPGRADING](https://github.com/nowo-tech/MilkdownEditorBundle/blob/v1.1.1/docs/UPGRADING.md#to-111).

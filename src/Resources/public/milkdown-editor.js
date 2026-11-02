@@ -4,7 +4,7 @@ import { $ as Re, A as ze, B as I, D as Be, E as Ve, F as He, H as Ue, I as We, 
 import { n as xt, r as St, t as Ct } from "./chunks/dist-l-LsHPFA.js";
 import { a as wt, i as Tt, n as Et, r as Dt, t as Ot } from "./chunks/lib-Dnrxd25z.js";
 import { t as kt } from "./chunks/purify.es-CZ6K1J3y.js";
-import { a as At, i as V, n as jt, r as Mt, t as Nt } from "./chunks/runtime-ayV60g4C.js";
+import { a as At, i as V, n as jt, r as Mt, t as Nt } from "./chunks/runtime-DQm0O8E9.js";
 // node_modules/.pnpm/@milkdown+plugin-clipboard@7.23.0/node_modules/@milkdown/plugin-clipboard/lib/index.js
 function Pt(e) {
 	if (!e) return !1;
@@ -3269,7 +3269,7 @@ async function Ro(e, t = {}) {
 }
 // src/Resources/assets/src/features.ts
 var zo = {
-	code: () => import("./chunks/code-DLDQEDEl.js").then((e) => e.t),
+	code: () => import("./chunks/code-D1I1cBpF.js").then((e) => e.t),
 	math: () => import("./chunks/latex-QGqP_is5.js"),
 	katex: () => import("./chunks/katex-DNCsLolD.js"),
 	topBar: () => import("./chunks/top-bar-DYiK01Rv.js")
@@ -5162,7 +5162,7 @@ async function ql(e, t = {}) {
 	let { bar: o, surface: s, announce: c } = Gl(e, a), l = Wl(n), u = n.value, d = new _n({
 		root: s,
 		defaultValue: r.collaboration ? "" : u
-	}), f = d.editor, p = r.collaboration ? await import("./chunks/collab-4TeKNx8l.js") : null;
+	}), f = d.editor, p = r.collaboration ? await import("./chunks/collab-Bif59OXL.js") : null;
 	f.config((e) => {
 		if (e.set(Mt.key, a), e.update(Ce, (e) => ({
 			...e,

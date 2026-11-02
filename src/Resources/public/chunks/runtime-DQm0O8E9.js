@@ -216,7 +216,8 @@ var w = {
 	"slash.icon": "Icon or emoji",
 	"collab.connecting": "Connecting…",
 	"collab.online": "Live",
-	"collab.offline": "Offline: changes are kept and sent when the connection returns"
+	"collab.offline": "Offline: changes are kept and sent when the connection returns",
+	"collab.reset": "This page was restored or replaced: reloading with the new content…"
 };
 function T(e, t, n = {}) {
 	return (e[t] ?? w[t] ?? t).replace(/\{(\w+)\}/g, (e, t) => t in n ? String(n[t]) : e);

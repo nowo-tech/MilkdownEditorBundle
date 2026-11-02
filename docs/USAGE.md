@@ -126,7 +126,20 @@ The browser subscribes to the private topic with the `mercureAuthorization` cook
 after checking edit rights; updates are sent to your endpoints, which apply them to the stored Yjs state and publish
 them. `GET <url>/state` answers `{"state": "<base64 Yjs update>", "seed": true|false}`; the client told to seed fills
 an empty document from the field's Markdown. The client that saves still submits Markdown (the server never reads Y
-state). Readers without edit rights must not get the options at all. The collaboration requests are JSON POSTs with
+state). Readers without edit rights must not get the options at all.
+
+**State as a log (1.2).** A host that cannot merge Yjs updates on the server (PHP) may answer `GET <url>/state` with
+the stored log instead of one merged update: `{"state": "<base64 snapshot or empty>", "updates": ["<base64>", …],
+"seq": 128, "compact": true, "seed": false}`. The client applies `state` then every update in order (Yjs updates are
+idempotent). With `compact: true` and an integer `seq` it then posts `POST <url>/compact` with
+`{"c": clientId, "d": "<base64 full state>", "s": seq}`: the host may replace the log entries up to `seq` with that
+snapshot (the client has applied all of them). The endpoint follows the same rules as `/update` (edit rights, JSON,
+`Origin`, size and rate limits); a failed compaction changes nothing. Hosts that answer only `state` are unaffected.
+
+**Reset (1.2).** When the host replaces the document outside the session (a restore, an import, a conversion) it
+drops its log and publishes `{"t": "r"}` on the topic: every editor stops its session (no more posts, no reconnect),
+announces `collab.reset` and reloads the page after 1.5 s, so it shows the replaced content. Edits typed after the
+reset are not sent. The collaboration requests are JSON POSTs with
 the session cookie: require `Content-Type: application/json` and check the `Origin` header (or SameSite cookies) on
 those endpoints.
 
