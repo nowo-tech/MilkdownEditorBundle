@@ -4503,6 +4503,8 @@ var qc = (e) => {
 	retry = 0;
 	closed = !1;
 	connecting = null;
+	seq = 0;
+	reported = !1;
 	listeners = /* @__PURE__ */ new Set();
 	onOnline = () => void this.connect().catch(() => void 0);
 	onOffline = () => {
@@ -4531,31 +4533,40 @@ var qc = (e) => {
 	}
 	async doConnect() {
 		this.setStatus("connecting"), this.es?.close();
-		let e = await fetch(`${this.base}/token`, {
+		let e = { "X-Nowo-Collab-Client": String(this.doc.clientID) }, t = await fetch(`${this.base}/token`, {
 			method: "POST",
-			credentials: "same-origin"
+			credentials: "same-origin",
+			headers: e
 		});
-		if (!e.ok) throw Error(`token ${e.status}`);
-		let t = new URL(this.hubUrl, location.href);
-		t.searchParams.append("topic", this.topic);
-		let n = new EventSource(t, { withCredentials: !0 });
-		this.es = n;
+		if (!t.ok) throw Error(`token ${t.status}`);
+		let n = new URL(this.hubUrl, location.href);
+		n.searchParams.append("topic", this.topic);
+		let r = new EventSource(n, { withCredentials: !0 });
+		this.es = r;
 		try {
 			await new Promise((e, t) => {
-				n.onopen = () => e(), n.onerror = () => t(/* @__PURE__ */ Error("eventsource"));
+				r.onopen = () => e(), r.onerror = () => t(/* @__PURE__ */ Error("eventsource"));
 			});
 		} catch (e) {
 			throw this.scheduleReconnect(), e;
 		}
-		n.onerror = () => {
-			this.setStatus("offline"), n.close(), this.scheduleReconnect();
-		}, n.onmessage = (e) => this.onMessage(JSON.parse(e.data));
-		let r = await (await fetch(`${this.base}/state`, { credentials: "same-origin" })).json();
-		this.seed = r.seed === !0;
-		let i = new oi();
-		for (let e of Yc(r)) Si(i, Jc(e)), Si(this.doc, Jc(e), this);
-		let a = Ti(this.doc, ji(i));
-		i.destroy(), a.length > 2 && await this.post("update", a), r.compact === !0 && typeof r.seq == "number" && Number.isInteger(r.seq) && await this.compact(r.seq), this.dirty = !1, this.retry = 0, this.setStatus("online"), await this.post("awareness", Ds(this.awareness, [this.doc.clientID]));
+		r.onerror = () => {
+			this.setStatus("offline"), r.close(), this.scheduleReconnect();
+		}, r.onmessage = (e) => this.onMessage(JSON.parse(e.data));
+		let i = await (await fetch(`${this.base}/state`, {
+			credentials: "same-origin",
+			headers: e
+		})).json();
+		this.seed = i.seed === !0, this.seq = typeof i.seq == "number" && Number.isInteger(i.seq) ? i.seq : 0;
+		let a = new oi();
+		try {
+			for (let e of Yc(i)) Si(a, Jc(e)), Si(this.doc, Jc(e), this);
+		} catch {
+			a.destroy(), await this.reportCorrupt();
+			return;
+		}
+		let o = Ti(this.doc, ji(a));
+		a.destroy(), o.length > 2 && await this.post("update", o), i.compact === !0 && typeof i.seq == "number" && Number.isInteger(i.seq) && await this.compact(i.seq), this.dirty = !1, this.retry = 0, this.setStatus("online"), await this.post("awareness", Ds(this.awareness, [this.doc.clientID]));
 	}
 	scheduleReconnect() {
 		if (this.closed) return;
@@ -4563,13 +4574,36 @@ var qc = (e) => {
 		window.setTimeout(() => void this.connect().catch(() => void 0), e);
 	}
 	onMessage(e) {
-		if (e.t === "r") this.closed = !0, this.es?.close(), this.setStatus("reset");
-		else if (e.c !== this.doc.clientID) {
-			if (e.t === "u") Si(this.doc, Jc(e.d), this);
-			else {
-				let t = this.awareness.getStates().has(e.c);
-				Os(this.awareness, Jc(e.d), this), t || this.post("awareness", Ds(this.awareness, [this.doc.clientID]));
+		if (e.t === "r") {
+			this.closed = !0, this.es?.close(), this.setStatus("reset");
+			return;
+		}
+		if (e.c === this.doc.clientID) return;
+		if (e.t === "u") {
+			try {
+				Si(this.doc, Jc(e.d), this);
+			} catch {
+				this.reportCorrupt();
 			}
+			return;
+		}
+		let t = this.awareness.getStates().has(e.c);
+		Os(this.awareness, Jc(e.d), this), t || this.post("awareness", Ds(this.awareness, [this.doc.clientID]));
+	}
+	async reportCorrupt() {
+		if (this.setStatus("offline"), !this.reported) {
+			this.reported = !0;
+			try {
+				await fetch(`${this.base}/corrupt`, {
+					method: "POST",
+					credentials: "same-origin",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						c: this.doc.clientID,
+						s: this.seq
+					})
+				});
+			} catch {}
 		}
 	}
 	onDocUpdate = (e, t) => {

@@ -133,7 +133,7 @@ Run `composer audit` and `pnpm audit --prod` before a release; Dependabot watche
 
 The bundle performs no authorisation: the host's candidate endpoints must return only pages the author may read and
 people who may read the document; the title endpoint and the `PageResolverInterface` implementation decide per
-viewer; collaboration endpoints check edit rights before issuing the Mercure cookie (and on every `update`, `awareness`, `state` and — 1.2 — `compact` request; a `compact` snapshot replaces the host's log, so it gets the same edit check, size limit and rate limit as `update`); upload endpoints validate the
+viewer; collaboration endpoints check edit rights before issuing the Mercure cookie (and on every `update`, `awareness`, `state` and — 1.2 — `compact` request; a `compact` snapshot replaces the host's log, so it gets the same edit check, size limit and rate limit as `update`; `corrupt` lets any editor's client trigger a log reset, so the host must cap those resets per page); upload endpoints validate the
 token, size and type. Readers without edit rights must not receive `collaboration` options.
 
 **Uploads.** The client checks (`upload_accept`, `upload_max_size`) are advisory: a direct POST skips them. The

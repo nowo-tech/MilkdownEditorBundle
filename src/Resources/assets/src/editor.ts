@@ -27,6 +27,9 @@ import { createUploader } from './upload';
 import type { EditorOptions } from './types';
 import type { MercureProvider } from './collab/mercure-provider';
 
+
+/** Hidden field a save from a live collaborative session carries (the topic): the host keeps the shared log (1.2). */
+export const SESSION_FIELD = '_nowo_milkdown_collab';
 export type MilkdownEditorHandle = {
   root: HTMLElement;
   textarea: HTMLTextAreaElement;
@@ -210,12 +213,33 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   let stopCollaboration = (): void => undefined;
   if (collabModule && options.collaboration) {
     root.dataset.collab = 'connecting';
+    const topic = options.collaboration.topic;
     const collaboration = await collabModule.startCollaboration(editor, options.collaboration, initial, (s) => {
       root.dataset.collab = s;
       announce(`collab.${s}`, {});
     });
     provider = collaboration.provider;
-    stopCollaboration = collaboration.stop;
+    // 1.2: a save from the live session tells the host so (it keeps the shared log instead of resetting it).
+    const live = provider;
+    const markSession = (): void => {
+      let input = form?.querySelector<HTMLInputElement>(`input[name="${SESSION_FIELD}"]`) ?? null;
+      if (live.status !== 'online') {
+        input?.remove();
+        return;
+      }
+      if (!input) {
+        input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = SESSION_FIELD;
+        form?.append(input);
+      }
+      input.value = topic;
+    };
+    form?.addEventListener('submit', markSession, true);
+    stopCollaboration = () => {
+      form?.removeEventListener('submit', markSession, true);
+      collaboration.stop();
+    };
   }
 
   return {

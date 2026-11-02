@@ -64,6 +64,24 @@ describe('editor integrations', () => {
     expect(() => collab.page.reload()).not.toThrow();
   });
 
+  it('a save from the live session carries the session field; an offline save does not', async () => {
+    vi.stubGlobal('EventSource', FakeEventSource);
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => (url.endsWith('/state') ? new Response(JSON.stringify({ state: toBase64(Y.encodeStateAsUpdate(new Y.Doc())), seed: true })) : new Response(''))));
+    handle = await editor('# Live', { collaboration: { url: '/c', hubUrl: '/hub', topic: 'urn:page:1', user: { name: 'Ada', color: '#123456' } } });
+    await tick(20);
+    const form = handle.textarea.form!;
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+    expect(form.querySelector<HTMLInputElement>('input[name="_nowo_milkdown_collab"]')?.value).toBe('urn:page:1');
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+    expect(form.querySelectorAll('input[name="_nowo_milkdown_collab"]')).toHaveLength(1);
+
+    window.dispatchEvent(new Event('offline'));
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+    expect(form.querySelector('input[name="_nowo_milkdown_collab"]')).toBeNull();
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+    expect(form.querySelector('input[name="_nowo_milkdown_collab"]')).toBeNull();
+  });
+
   it('the Insert file button uploads the picked files at the cursor', async () => {
     handle = await editor('Text', { upload: { url: '/up' } });
     let picker: HTMLInputElement | null = null;

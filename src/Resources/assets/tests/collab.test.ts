@@ -20,6 +20,7 @@ class FakeEventSource {
 }
 
 let posts: { url: string; body: { c: number; d: string } }[] = [];
+let headers: Record<string, string>[] = [];
 let serverState = Y.encodeStateAsUpdate(new Y.Doc());
 let tokenStatus = 200;
 let postStatus = 200;
@@ -28,6 +29,7 @@ let compactFails = false;
 
 beforeEach(() => {
   posts = [];
+  headers = [];
   tokenStatus = 200;
   postStatus = 200;
   stateExtra = {};
@@ -38,6 +40,7 @@ beforeEach(() => {
   serverState = Y.encodeStateAsUpdate(seed);
   vi.stubGlobal('EventSource', FakeEventSource);
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.endsWith('/token') || url.endsWith('/state')) headers.push((init?.headers ?? {}) as Record<string, string>);
     if (url.endsWith('/token')) return new Response('', { status: tokenStatus });
     if (url.endsWith('/state')) return new Response(JSON.stringify({ state: toBase64(serverState), seed: true, ...stateExtra }));
     if (url.endsWith('/compact') && compactFails) throw new TypeError('network');
@@ -197,6 +200,45 @@ describe('MercureProvider', () => {
     expect(statuses.at(-1)).toBe('reset');
     await provider.connect();
     expect(FakeEventSource.last).toBe(es);
+    provider.disconnect();
+  });
+
+  it('sends the tab client id with the token and state requests', async () => {
+    const doc = new Y.Doc();
+    const provider = new MercureProvider(doc, '/c', '/hub', 't');
+    await provider.connect();
+    expect(headers).toEqual([{ 'X-Nowo-Collab-Client': String(doc.clientID) }, { 'X-Nowo-Collab-Client': String(doc.clientID) }]);
+    provider.disconnect();
+  });
+
+  it('reports a state it cannot apply once and stays offline', async () => {
+    stateExtra = { updates: ['%%%'], seq: 9 };
+    const provider = new MercureProvider(new Y.Doc(), '/c', '/hub', 't');
+    await provider.connect();
+    expect(provider.status).toBe('offline');
+    expect(posts.filter((p) => p.url === '/c/corrupt').map((p) => p.body)).toEqual([{ c: provider.doc.clientID, s: 9 }]);
+    expect(posts.some((p) => p.url === '/c/update')).toBe(false);
+
+    FakeEventSource.last.onmessage!({ data: JSON.stringify({ t: 'u', c: 1, d: '%%%' }) } as MessageEvent<string>);
+    await tick(0);
+    expect(posts.filter((p) => p.url === '/c/corrupt')).toHaveLength(1);
+
+    FakeEventSource.last.onmessage!({ data: JSON.stringify({ t: 'r', c: 0, d: '' }) } as MessageEvent<string>);
+    expect(provider.status).toBe('reset');
+    provider.disconnect();
+  });
+
+  it('reports an update it cannot apply and survives a failed report', async () => {
+    stateExtra = { seq: 'x' };
+    const provider = new MercureProvider(new Y.Doc(), '/c', '/hub', 't');
+    await provider.connect();
+    expect(provider.status).toBe('online');
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      throw new TypeError('network');
+    }));
+    FakeEventSource.last.onmessage!({ data: JSON.stringify({ t: 'u', c: 1, d: '%%%' }) } as MessageEvent<string>);
+    await tick(0);
+    expect(provider.status).toBe('offline');
     provider.disconnect();
   });
 

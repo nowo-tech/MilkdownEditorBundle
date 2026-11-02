@@ -43,6 +43,8 @@ export class MercureProvider {
   private retry = 0;
   private closed = false;
   private connecting: Promise<void> | null = null;
+  private seq = 0;
+  private reported = false;
   private readonly listeners = new Set<(s: Status) => void>();
   private readonly onOnline = (): void => void this.connect().catch(() => undefined);
   private readonly onOffline = (): void => {
@@ -102,7 +104,8 @@ export class MercureProvider {
   private async doConnect(): Promise<void> {
     this.setStatus('connecting');
     this.es?.close();
-    const token = await fetch(`${this.base}/token`, { method: 'POST', credentials: 'same-origin' });
+    const client = { 'X-Nowo-Collab-Client': String(this.doc.clientID) };
+    const token = await fetch(`${this.base}/token`, { method: 'POST', credentials: 'same-origin', headers: client });
     if (!token.ok) throw new Error(`token ${token.status}`);
     const url = new URL(this.hubUrl, location.href);
     url.searchParams.append('topic', this.topic);
@@ -124,13 +127,20 @@ export class MercureProvider {
     };
     es.onmessage = (ev: MessageEvent<string>) => this.onMessage(JSON.parse(ev.data) as Message);
 
-    const res = await fetch(`${this.base}/state`, { credentials: 'same-origin' });
+    const res = await fetch(`${this.base}/state`, { credentials: 'same-origin', headers: client });
     const answer = (await res.json()) as StateAnswer;
     this.seed = answer.seed === true;
+    this.seq = typeof answer.seq === 'number' && Number.isInteger(answer.seq) ? answer.seq : 0;
     const server = new Y.Doc();
-    for (const update of stateUpdates(answer)) {
-      Y.applyUpdate(server, fromBase64(update));
-      Y.applyUpdate(this.doc, fromBase64(update), this);
+    try {
+      for (const update of stateUpdates(answer)) {
+        Y.applyUpdate(server, fromBase64(update));
+        Y.applyUpdate(this.doc, fromBase64(update), this);
+      }
+    } catch {
+      server.destroy();
+      await this.reportCorrupt();
+      return;
     }
     const diff = Y.encodeStateAsUpdate(this.doc, Y.encodeStateVector(server));
     server.destroy();
@@ -158,11 +168,36 @@ export class MercureProvider {
       return;
     }
     if (m.c === this.doc.clientID) return;
-    if (m.t === 'u') Y.applyUpdate(this.doc, fromBase64(m.d), this);
-    else {
-      const known = this.awareness.getStates().has(m.c);
-      applyAwarenessUpdate(this.awareness, fromBase64(m.d), this);
-      if (!known) void this.post('awareness', encodeAwarenessUpdate(this.awareness, [this.doc.clientID]));
+    if (m.t === 'u') {
+      try {
+        Y.applyUpdate(this.doc, fromBase64(m.d), this);
+      } catch {
+        void this.reportCorrupt();
+      }
+      return;
+    }
+    const known = this.awareness.getStates().has(m.c);
+    applyAwarenessUpdate(this.awareness, fromBase64(m.d), this);
+    if (!known) void this.post('awareness', encodeAwarenessUpdate(this.awareness, [this.doc.clientID]));
+  }
+
+  /**
+   * Reports, once per provider, that the host's log cannot be applied, then stays offline (no posts). The host drops
+   * the log and publishes a reset — or refuses (capped) and nothing loops.
+   */
+  private async reportCorrupt(): Promise<void> {
+    this.setStatus('offline');
+    if (this.reported) return;
+    this.reported = true;
+    try {
+      await fetch(`${this.base}/corrupt`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ c: this.doc.clientID, s: this.seq }),
+      });
+    } catch {
+      // Nothing more to do: the editor stays offline until the page reloads.
     }
   }
 

@@ -136,6 +136,17 @@ idempotent). With `compact: true` and an integer `seq` it then posts `POST <url>
 snapshot (the client has applied all of them). The endpoint follows the same rules as `/update` (edit rights, JSON,
 `Origin`, size and rate limits); a failed compaction changes nothing. Hosts that answer only `state` are unaffected.
 
+**Saves from the live session (1.2).** When the session is online, the client adds a hidden
+`_nowo_milkdown_collab` field (the topic) to the form on submit; an offline editor does not. A host can keep its log for
+such saves and reset it for any other save.
+
+**One seeding tab (1.2).** Token and state requests carry `X-Nowo-Collab-Client` (the tab's Yjs client id) so the
+host can tell two tabs of the same user apart when it decides who seeds.
+
+**Corrupt state (1.2).** When the state or an update cannot be applied, the client posts once
+`POST <url>/corrupt` (`{"c": clientId, "s": seq}`, the `seq` of the state answer) and stays offline. The host may drop
+the log and publish the reset below (it should cap such resets); the client never retries, so nothing loops.
+
 **Reset (1.2).** When the host replaces the document outside the session (a restore, an import, a conversion) it
 drops its log and publishes `{"t": "r"}` on the topic: every editor stops its session (no more posts, no reconnect),
 announces `collab.reset` and reloads the page after 1.5 s, so it shows the replaced content. Edits typed after the

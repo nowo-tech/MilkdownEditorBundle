@@ -5109,20 +5109,20 @@ function Bl(e, t, n = Rl) {
 	};
 }
 // src/Resources/assets/src/editor.ts
-var Vl = 0, Hl = (e) => e.replace(/\r\n?/g, "\n");
-function Ul(e) {
+var Vl = "_nowo_milkdown_collab", Hl = 0, Ul = (e) => e.replace(/\r\n?/g, "\n");
+function Wl(e) {
 	let t = e.dataset.theme;
 	if (t === "dark") return !0;
 	if (t === "light") return !1;
 	let n = e.parentElement?.closest("[data-theme]");
 	return n ? n.dataset.theme === "dark" : typeof matchMedia == "function" && matchMedia("(prefers-color-scheme: dark)").matches;
 }
-function Wl(e) {
+function Gl(e) {
 	if (!e.id) return null;
 	let t = document.querySelector(`label[for="${CSS.escape(e.id)}"]`);
 	return t && !t.id && (t.id = `${e.id}_label`), t;
 }
-function Gl(e, t) {
+function Kl(e, t) {
 	let n = document.createElement("div");
 	n.className = "nowo-milkdown__actions";
 	let r = document.createElement("div");
@@ -5139,11 +5139,11 @@ function Gl(e, t) {
 		}
 	};
 }
-function Kl(e, t, n) {
+function ql(e, t, n) {
 	let r = document.createElement("button");
 	return r.type = "button", r.className = "nowo-milkdown__action", r.textContent = t, r.addEventListener("click", n), e.append(r), r;
 }
-async function ql(e, t = {}) {
+async function Jl(e, t = {}) {
 	let n = e.querySelector("textarea");
 	if (!n) throw Error("nowo-milkdown: the widget has no textarea");
 	let r = {
@@ -5156,19 +5156,19 @@ async function ql(e, t = {}) {
 		icons: new Set(r.icons),
 		resolvePage: i.resolve,
 		nonce: r.nonce,
-		dark: () => Ul(e)
+		dark: () => Wl(e)
 	};
-	e.classList.add("nowo-milkdown"), e.dataset.theme = r.theme, e.style.setProperty("--nowo-milkdown-min-height", r.minHeight), n.hidden = !0, n.value = Hl(n.value);
-	let { bar: o, surface: s, announce: c } = Gl(e, a), l = Wl(n), u = n.value, d = new _n({
+	e.classList.add("nowo-milkdown"), e.dataset.theme = r.theme, e.style.setProperty("--nowo-milkdown-min-height", r.minHeight), n.hidden = !0, n.value = Ul(n.value);
+	let { bar: o, surface: s, announce: c } = Kl(e, a), l = Gl(n), u = n.value, d = new _n({
 		root: s,
 		defaultValue: r.collaboration ? "" : u
-	}), f = d.editor, p = r.collaboration ? await import("./chunks/collab-Bif59OXL.js") : null;
+	}), f = d.editor, p = r.collaboration ? await import("./chunks/collab-CveG3HSm.js") : null;
 	f.config((e) => {
 		if (e.set(Mt.key, a), e.update(Ce, (e) => ({
 			...e,
 			attributes: {
 				...gl(r.label || V(a, "editor.label"), l?.id ?? null, r.readonly),
-				id: `nowo-milkdown-${++Vl}`
+				id: `nowo-milkdown-${++Hl}`
 			}
 		})), r.upload) {
 			let t = Bl(r.upload, c);
@@ -5193,7 +5193,7 @@ async function ql(e, t = {}) {
 	let v = hl(s, a);
 	if (r.upload && !r.readonly) {
 		let e = r.upload;
-		Kl(o, V(a, "upload.button"), () => {
+		ql(o, V(a, "upload.button"), () => {
 			let t = document.createElement("input");
 			t.type = "file", t.multiple = !0, e.accept.length && (t.accept = e.accept.join(",")), t.addEventListener("change", () => {
 				if (!t.files?.length) return;
@@ -5206,17 +5206,24 @@ async function ql(e, t = {}) {
 			}), t.click();
 		});
 	}
-	(r.suggestions[":"] || r.icons.length > 0) && !r.readonly && Kl(o, V(a, "icon.button"), () => f.action((e) => {
+	(r.suggestions[":"] || r.icons.length > 0) && !r.readonly && ql(o, V(a, "icon.button"), () => f.action((e) => {
 		let t = e.get(M), { $from: n } = t.state.selection, r = n.parent.textBetween(0, n.parentOffset, void 0, "￼");
 		t.dispatch(t.state.tr.insertText(r === "" || /\s$/.test(r) ? ":" : " :")), t.focus();
 	})), o.childElementCount || o.remove();
 	let y = null, b = () => void 0;
 	if (p && r.collaboration) {
 		e.dataset.collab = "connecting";
-		let t = await p.startCollaboration(f, r.collaboration, u, (t) => {
+		let t = r.collaboration.topic, n = await p.startCollaboration(f, r.collaboration, u, (t) => {
 			e.dataset.collab = t, c(`collab.${t}`, {});
 		});
-		y = t.provider, b = t.stop;
+		y = n.provider;
+		let i = y, a = () => {
+			let e = g?.querySelector("input[name=\"_nowo_milkdown_collab\"]") ?? null;
+			i.status === "online" ? (e || (e = document.createElement("input"), e.type = "hidden", e.name = Vl, g?.append(e)), e.value = t) : e?.remove();
+		};
+		g?.addEventListener("submit", a, !0), b = () => {
+			g?.removeEventListener("submit", a, !0), n.stop();
+		};
 	}
 	return {
 		root: e,
@@ -5225,7 +5232,7 @@ async function ql(e, t = {}) {
 		builder: d,
 		provider: y,
 		getMarkdown: m,
-		setMarkdown: (e) => f.action(gt(Hl(e))),
+		setMarkdown: (e) => f.action(gt(Ul(e))),
 		focus: _,
 		destroy: async () => {
 			v(), b(), g?.removeEventListener("submit", h, !0), g?.removeEventListener("formdata", h, !0), l?.removeEventListener("click", _), await d.destroy(), e.querySelectorAll(".nowo-milkdown__actions, .nowo-milkdown__surface, .nowo-milkdown__status, .nowo-milkdown__alert").forEach((e) => e.remove()), n.hidden = !1;
@@ -5234,51 +5241,51 @@ async function ql(e, t = {}) {
 }
 // src/Resources/assets/src/index.ts
 Do(import.meta.url.replace(/[^/]*$/, ""));
-var Jl = "[data-nowo-milkdown-options]", Yl = /* @__PURE__ */ new WeakMap();
-function Xl(e) {
-	let t = Yl.get(e);
-	return t || (t = ql(e), Yl.set(e, t), t.then(() => e.dispatchEvent(new CustomEvent("nowo-milkdown:ready", { bubbles: !0 })), (t) => {
-		Yl.delete(e), console.error("nowo-milkdown", t instanceof Error ? t.stack ?? t.message : t);
+var Yl = "[data-nowo-milkdown-options]", Xl = /* @__PURE__ */ new WeakMap();
+function Zl(e) {
+	let t = Xl.get(e);
+	return t || (t = Jl(e), Xl.set(e, t), t.then(() => e.dispatchEvent(new CustomEvent("nowo-milkdown:ready", { bubbles: !0 })), (t) => {
+		Xl.delete(e), console.error("nowo-milkdown", t instanceof Error ? t.stack ?? t.message : t);
 	})), t;
 }
-async function Zl(e) {
-	let t = Yl.get(e);
-	t && (Yl.delete(e), await (await t).destroy());
+async function Ql(e) {
+	let t = Xl.get(e);
+	t && (Xl.delete(e), await (await t).destroy());
 }
-var Ql = (e) => Yl.get(e);
-function $l(e = document) {
-	return [...e.querySelectorAll(Jl)].map(Xl);
+var $l = (e) => Xl.get(e);
+function eu(e = document) {
+	return [...e.querySelectorAll(Yl)].map(Zl);
 }
-function eu(e) {
+function tu(e) {
 	return class extends e {
 		connect() {
-			Xl(this.element);
+			Zl(this.element);
 		}
 		disconnect() {
-			Zl(this.element);
+			Ql(this.element);
 		}
 	};
 }
-var tu = null;
-function nu(e = document) {
-	let t = () => void $l(e);
-	e.readyState === "loading" ? e.addEventListener("DOMContentLoaded", t, { once: !0 }) : t(), e.addEventListener("turbo:load", t), tu?.disconnect(), tu = new MutationObserver((e) => {
+var nu = null;
+function ru(e = document) {
+	let t = () => void eu(e);
+	e.readyState === "loading" ? e.addEventListener("DOMContentLoaded", t, { once: !0 }) : t(), e.addEventListener("turbo:load", t), nu?.disconnect(), nu = new MutationObserver((e) => {
 		for (let t of e) t.addedNodes.forEach((e) => {
-			e instanceof HTMLElement && (e.matches(Jl) && Xl(e), $l(e));
+			e instanceof HTMLElement && (e.matches(Yl) && Zl(e), eu(e));
 		});
-	}), tu.observe(e.documentElement, {
+	}), nu.observe(e.documentElement, {
 		childList: !0,
 		subtree: !0
 	});
 }
-var ru = {
-	mount: Xl,
-	unmount: Zl,
-	mountAll: $l,
-	instance: Ql,
+var iu = {
+	mount: Zl,
+	unmount: Ql,
+	mountAll: eu,
+	instance: $l,
 	renderRichContent: Ro,
-	createStimulusController: eu,
-	start: nu
+	createStimulusController: tu,
+	start: ru
 };
-typeof window < "u" && !window.NowoMilkdownEditor && (window.NowoMilkdownEditor = ru, document.documentElement.hasAttribute("data-nowo-milkdown-manual") || nu());
-export { ql as createEditor, eu as createStimulusController, Ql as instance, Xl as mount, $l as mountAll, Ro as renderRichContent, nu as start, Zl as unmount };
+typeof window < "u" && !window.NowoMilkdownEditor && (window.NowoMilkdownEditor = iu, document.documentElement.hasAttribute("data-nowo-milkdown-manual") || ru());
+export { Jl as createEditor, tu as createStimulusController, $l as instance, Zl as mount, eu as mountAll, Ro as renderRichContent, ru as start, Ql as unmount };
