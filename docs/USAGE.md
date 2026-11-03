@@ -11,6 +11,7 @@
 - [Rendering Markdown in PHP](#rendering-markdown-in-php)
 - [Rendering Mermaid and math on read pages](#rendering-mermaid-and-math-on-read-pages)
 - [JavaScript API and Stimulus](#javascript-api-and-stimulus)
+- [Context menu](#context-menu)
 - [Keyboard and accessibility](#keyboard-and-accessibility)
 - [Forms in Twig](#forms-in-twig)
 - [Overriding templates](#overriding-templates)
@@ -242,12 +243,47 @@ application.register('nowo--milkdown-editor', window.NowoMilkdownEditor.createSt
 The widget root already carries `data-controller="nowo--milkdown-editor"`; mounting is idempotent. A
 `nowo-milkdown:ready` event bubbles from the root once the editor is ready.
 
+## Context menu
+
+Add `context_menu` to a profile's (or field's) `features` (1.3). Right click, **Shift+F10** or the **ContextMenu** key
+inside the editable open a menu with the actions that apply where the caret is:
+
+| Group | Items |
+|-------|-------|
+| Clipboard | Cut, Copy, Paste, Paste as plain text (the paste items need the browser's clipboard permission; otherwise they are disabled with a "Use Ctrl+V" hint) |
+| Link (caret in a link) | Open link (new tab, `noopener`), Copy link address, Remove link |
+| Table (caret in a cell) | Insert row above / below, Insert column left / right, Delete row / column / table |
+| Block | Turn into (text, headings 1–3, bulleted / numbered / task list, quote, code), Duplicate, Move up, Move down, Delete |
+| Host | Items registered by the page (below) |
+
+Read-only editors show *Copy* and host items only. **Shift** + right click, right clicks inside code blocks or form
+fields and touch long-presses keep the browser's menu (spellcheck suggestions live there).
+
+Add host items once per page (they appear in every editor's menu):
+
+```js
+const remove = window.NowoMilkdownEditor.contextMenu.register({
+  id: 'ask-ai',
+  label: 'Ask the team',
+  shortcut: 'Alt+A',                                   // shown, and exposed as aria-keyshortcuts
+  when: (context) => !context.selection.empty,          // optional
+  run: (context) => openDialog(context.text),           // {root, selection, text, blockType, readonly, insertText}
+});
+```
+
+Or change the menu per editor with the cancellable `nowo-milkdown:contextmenu` event (bubbles from the widget root):
+`event.detail.groups` is the list of item groups (`{id, label, shortcut?, disabled?, items?, run?}`) and
+`event.detail.context` the same context as above; `event.preventDefault()` cancels the menu.
+
 ## Keyboard and accessibility
 
 - The editable is a named multi-line textbox; the suggestion list follows the listbox pattern with
   `aria-activedescendant`, and a polite live region announces the number of results.
 - **Tab** / **Shift+Tab** nest and un-nest list items, move between table cells and indent in code blocks
   (**Escape** then **Tab** leaves a code block); anywhere else Tab moves focus out of the editor.
+- The context menu (`context_menu`) follows the WAI-ARIA menu pattern: Up / Down (wrap), Home / End, type-ahead,
+  Right / Enter opens a submenu, Left / Escape closes it, Escape or Tab closes the menu and focus returns to the
+  caret.
 - Every control is named (table handles, code-block buttons); task items are real checkboxes; focus rings are
   visible; token colours meet WCAG AA in light and dark.
 

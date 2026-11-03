@@ -19,7 +19,8 @@ nowo_milkdown_editor:
     default_profile: default
     profiles:
         default:
-            # toolbar, top_bar, link_tooltip, table, code_mirror, math, mermaid, placeholder, cursor, slash_menu
+            # toolbar, top_bar, link_tooltip, table, code_mirror, math, mermaid, placeholder, cursor, slash_menu,
+            # context_menu (1.3)
             features: [toolbar, link_tooltip, table, code_mirror, placeholder, cursor, slash_menu]
             theme: auto                 # light | dark | auto
             min_height: 12rem           # CSS length: px, rem, em or vh
@@ -90,6 +91,7 @@ the `Nowo\MilkdownEditorBundle\ProfileRegistry` service.
 | `placeholder` | Placeholder text of an empty document | entry |
 | `cursor` | Drop cursor and gap cursor | entry |
 | `slash_menu` | Accessible `/` block menu | entry |
+| `context_menu` | Right-click / Shift+F10 / ContextMenu-key menu: clipboard, *Turn into*, table, link and block actions, host items (1.3, see [USAGE](USAGE.md#context-menu)) | lazy |
 
 Lists, task lists, blockquotes, headings, links, images and the dialect nodes are always available.
 

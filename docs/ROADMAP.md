@@ -200,6 +200,8 @@ are marked *default pending user confirmation*.
 
 - [x] Footnote rendering fix (`markdown.footnotes`) — 1.2.1, PR #11
 - [x] Mention names for apps without user names (`mention_display: name`, Beacon request) — 1.2.1, PR #11
+- [x] Context menu (`context_menu`: right click, Shift+F10, ContextMenu key, host items) — 1.3, PR #10. D11 (*Paste*
+  kept, disabled with a hint) and D12 (native menu on touch): *default pending user confirmation*.
 
 ## Feature assessments
 

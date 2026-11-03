@@ -38,6 +38,9 @@ This bundle is **FrankenPHP worker mode friendly**. See [docs/FRANKENPHP-WORKER-
 - **Markdown dialect** (TypeScript and PHP): `[[wiki:<uuid>#anchor]]`, `@handle`, `:tabler-<name>:`,
   `:::callout{type=…}`, `:::details{summary=…}`, `::: {align=center}`, `:mark[text]{color=…}`, leaf directives such
   as `::beacon{type=issue id=…}` for host blocks, `$math$` / `$$…$$`, fenced `mermaid`.
+- **Context menu** (opt-in `context_menu`, 1.3) — right click, Shift+F10 or the ContextMenu key: cut / copy /
+  paste / paste as plain text, *Turn into*, table rows and columns, link open / copy / remove, duplicate / move /
+  delete block and host items; WAI-ARIA menu pattern, browser menu kept with Shift + right click and on touch.
 - **Suggestions** — `[[` pages, `@` people, `:` icons and emoji, `/` blocks: remote candidate URLs, debounced, at most
   10 results, combobox keys (Up / Down, Enter / Tab, Escape) on the multi-line editable.
 - **Per-viewer page titles** — chips resolve titles in one batched request; pages the viewer may not read show

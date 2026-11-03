@@ -2,7 +2,7 @@
 
 **Package**: `nowo-tech/milkdown-editor-bundle`  
 **Last audited**: 2026-11-01  
-**Production units**: **82/82**  
+**Production units**: **86/86**  
 **Audit command**: `find src -type f \( -name '*.php' -o -name '*.twig' -o -name '*.yaml' -o -name '*.ts' -o -name '*.css' \) -not -path 'src/Resources/assets/tests/*' -not -path 'src/Resources/public/*' | wc -l`
 
 ## Scope notes
@@ -21,10 +21,10 @@
 | Twig & form theme | 2 |
 | Translations | 7 |
 | Browser: dialect | 3 |
-| Browser: nodes & plugins | 6 |
+| Browser: nodes & plugins | 9 |
 | Browser: previews, collaboration & features | 6 |
-| Browser: editor core | 14 |
-| **Total** | **82** |
+| Browser: editor core | 15 |
+| **Total** | **86** |
 
 ## Bundle, configuration & DI
 
@@ -122,6 +122,9 @@
 | `src/Resources/assets/src/plugins/a11y.ts` | Browser: nodes & plugins — a11y.ts | FR-EDIT-003 |
 | `src/Resources/assets/src/plugins/keyboard.ts` | Browser: nodes & plugins — keyboard.ts | FR-EDIT-003 |
 | `src/Resources/assets/src/plugins/suggest.ts` | Browser: nodes & plugins — suggest.ts | FR-EDIT-002 |
+| `src/Resources/assets/src/plugins/context-menu.ts` | Browser: nodes & plugins — context-menu.ts (lazy chunk) | FR-MENU-001 (spec 002) |
+| `src/Resources/assets/src/ui/menu.ts` | Browser: nodes & plugins — menu.ts (APG menu) | FR-MENU-002 (spec 002) |
+| `src/Resources/assets/src/commands/blocks.ts` | Browser: nodes & plugins — blocks.ts (block commands) | FR-MENU-001 (spec 002) |
 
 ## Browser: previews, collaboration & features
 
@@ -139,6 +142,7 @@
 | Path | Spec section | Req IDs |
 | --- | --- | --- |
 | `src/Resources/assets/src/editor.ts` | Browser: editor core — editor.ts | FR-TS-001 |
+| `src/Resources/assets/src/context-menu-registry.ts` | Browser: editor core — context-menu-registry.ts (host items) | FR-MENU-003 (spec 002) |
 | `src/Resources/assets/src/assets.ts` | Browser: editor core — assets.ts (module base URL; KaTeX stylesheet linked once per page with the nonce) | FR-TS-001, FR-LAZY-001 |
 | `src/Resources/assets/src/emoji.ts` | Browser: editor core — emoji.ts | FR-EDIT-002 |
 | `src/Resources/assets/src/features.ts` | Browser: editor core — features.ts | FR-TS-001 |

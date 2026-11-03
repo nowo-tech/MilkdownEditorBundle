@@ -56,6 +56,38 @@ test.describe('Milkdown editor demo', () => {
     expect(await seriousViolations(page)).toEqual([]);
   });
 
+  test('context menu: right click, axe with the menu and a submenu open, keyboard turn into, Escape', async ({ page }) => {
+    const log = await watch(page);
+    await openDemo(page, '?devtools=0');
+    const paragraph = page.locator('.nowo-milkdown .ProseMirror p', { hasText: 'Euler:' });
+    await paragraph.click({ button: 'right', position: { x: 5, y: 5 } });
+    const menu = page.getByRole('menu', { name: 'Editor actions' });
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole('menuitem', { name: 'Copy' })).toBeVisible();
+    expect(await seriousViolations(page)).toEqual([]);
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+    await expect(editable(page)).toBeFocused();
+    // Keyboard only: Shift+F10, type-ahead to "Turn into", Right opens the submenu, pick Heading 2.
+    await page.keyboard.press('Shift+F10');
+    await expect(menu).toBeVisible();
+    await page.keyboard.press('t');
+    await expect(menu.getByRole('menuitem', { name: 'Turn into' })).toBeFocused();
+    await page.keyboard.press('ArrowRight');
+    const sub = page.getByRole('menu', { name: 'Turn into' });
+    await expect(sub).toBeVisible();
+    expect(await seriousViolations(page)).toEqual([]);
+    await sub.getByRole('menuitem', { name: 'Heading 2' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.nowo-milkdown .ProseMirror h2', { hasText: 'Euler:' })).toBeVisible();
+    await expect(editable(page)).toBeFocused();
+    // Shift + right click keeps the browser menu (no custom menu).
+    await paragraph.or(page.locator('.nowo-milkdown .ProseMirror h2', { hasText: 'Euler:' })).first().click({ button: 'right', modifiers: ['Shift'] });
+    await expect(menu).toBeHidden();
+    expect(await violations(page)).toEqual([]);
+    expect(log.errors).toEqual([]);
+  });
+
   test('0 CSP violations under the strict nonce policy (CodeMirror, KaTeX, Mermaid, toolbar)', async ({ page }) => {
     const log = await watch(page);
     await openDemo(page, '?devtools=0');

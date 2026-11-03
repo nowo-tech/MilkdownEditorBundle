@@ -14,6 +14,23 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Added
+
+- **Context menu** (`context_menu` feature, opt-in): right click, **Shift+F10** or the **ContextMenu** key inside the
+  editable open an accessible menu (WAI-ARIA menu pattern: arrow keys, Home / End, type-ahead, submenus with Right /
+  Left, Escape and Tab close and return focus to the caret) with *Cut*, *Copy*, *Paste*, *Paste as plain text*,
+  *Turn into* (text, headings 1–3, lists, task list, quote, code), table actions (insert row above / below, column
+  left / right, delete row / column / table), link actions (open in a new tab with `noopener`, copy address, remove)
+  and block actions (duplicate, move up / down, delete). Shift + right click, right clicks in code blocks and form
+  fields and touch long-presses keep the browser menu. Loaded as a lazy chunk only for fields that enable it.
+  Actions apply to the selection the menu was opened for, even if something on the page moved the editor selection
+  while the menu had focus.
+- **Host items:** `window.NowoMilkdownEditor.contextMenu.register({ id, label, shortcut?, when?, run })` (also the
+  `registerContextMenuItem` export) and the cancellable `nowo-milkdown:contextmenu` event on the widget root, whose
+  `detail.groups` the host may edit.
+- 21 `menu.*` UI strings in the 7 locales, sent in the widget JSON only when `context_menu` is enabled (fields
+  without it keep the same JSON).
+
 ## [1.2.1] - 2026-11-03
 
 footnotes in the PHP renderer (bounded, deterministic ids), mention_display: name
