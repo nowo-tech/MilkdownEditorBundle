@@ -14,7 +14,9 @@ import {
   decodeAttributes,
   encodeAttributes,
   isDirectiveName,
+  blockBackground,
   markColor,
+  textColor,
 } from '../dialect/directives';
 import type { MdNode } from '../dialect/remark-dialect';
 import { runtimeCtx, t, type Runtime } from '../runtime';
@@ -115,12 +117,13 @@ export const textDirectiveSchema = $markSchema('textDirective', () => ({
   toDOM: (mark: Mark) => {
     const attributes = decodeAttributes(mark.attrs.attributes);
     const color = mark.attrs.name === 'mark' ? markColor(attributes) : 'none';
+    const text = mark.attrs.name === 'mark' ? textColor(attributes) : null;
     return [
       'mark',
       {
         'data-directive': mark.attrs.name,
         'data-attributes': mark.attrs.attributes,
-        class: `nowo-milkdown-mark nowo-milkdown-mark--${color}`,
+        class: `nowo-milkdown-mark nowo-milkdown-mark--${color}${text ? ` nowo-milkdown-color--${text}` : ''}`,
       },
     ];
   },
@@ -209,7 +212,9 @@ export const containerDirectiveView = $view(containerDirectiveSchema.node, (ctx)
   const paint = (node: PmNode): void => {
     const attributes = decodeAttributes(node.attrs.attributes);
     const name = node.attrs.name as string;
-    dom.className = `nowo-milkdown-directive nowo-milkdown-directive--${name}`;
+    const text = name === 'align' ? textColor(attributes) : null;
+    const bg = name === 'align' ? blockBackground(attributes) : null;
+    dom.className = `nowo-milkdown-directive nowo-milkdown-directive--${name}${text ? ` nowo-milkdown-color--${text}` : ''}${bg ? ` nowo-milkdown-bg--${bg}` : ''}`;
     dom.dataset.directive = name;
     if (name === 'callout') {
       dom.dataset.type = calloutType(attributes);

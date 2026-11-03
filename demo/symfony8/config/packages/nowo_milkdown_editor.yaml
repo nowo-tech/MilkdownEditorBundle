@@ -4,7 +4,7 @@ nowo_milkdown_editor:
     default_profile: wiki
     profiles:
         wiki:
-            features: [toolbar, link_tooltip, table, code_mirror, math, mermaid, placeholder, cursor, slash_menu, context_menu]
+            features: [toolbar, link_tooltip, table, code_mirror, math, mermaid, placeholder, cursor, slash_menu, context_menu, block_actions, block_drag, colors]
             theme: auto
             min_height: 18rem
             icon_sprite_url: /tabler-sprite.svg

@@ -17,7 +17,10 @@ export type Feature =
   | 'placeholder'
   | 'cursor'
   | 'slash_menu'
-  | 'context_menu';
+  | 'context_menu'
+  | 'block_actions'
+  | 'block_drag'
+  | 'colors';
 
 export const FEATURES: readonly Feature[] = [
   'toolbar',
@@ -31,6 +34,9 @@ export const FEATURES: readonly Feature[] = [
   'cursor',
   'slash_menu',
   'context_menu',
+  'block_actions',
+  'block_drag',
+  'colors',
 ];
 
 /** Suggestion triggers of the FR-075 dialect: `@` mentions, `[[` page links, `:` icons and emoji. */
@@ -79,6 +85,8 @@ export type EditorOptions = {
   icons: string[];
   upload: { url: string; csrfToken: string | null; maxSize: number; accept: string[] } | null;
   collaboration: CollaborationOptions | null;
+  /** Colours the editor offers (`markdown.mark_colors`, 1.4); empty: the whole palette. */
+  colors: string[];
   /** Mention chips show `@handle` (default) or the person's name (1.2.1). */
   mentionDisplay: 'handle' | 'name';
   /** `GET url?handles=a,b` → `[{handle, name}]` for `mentionDisplay: 'name'` (1.2.1). */

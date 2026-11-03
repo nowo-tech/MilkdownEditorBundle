@@ -1,5 +1,5 @@
 import { C as e, N as t, P as n, U as r, j as i, m as a, o, r as s, y as c } from "./dist-CRDOm7Ao.js";
-import { html as l } from "./dist-DyPzD-gh.js";
+import { html as l } from "./dist-DtGdjxlH.js";
 import { n as u, r as d } from "./dist-B6YbKGER.js";
 import { F as f, a as p } from "./code-block-ETxSceH2.js";
 // node_modules/.pnpm/@codemirror+lang-liquid@6.3.3/node_modules/@codemirror/lang-liquid/dist/index.js

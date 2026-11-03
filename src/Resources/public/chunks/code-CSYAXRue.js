@@ -3,7 +3,7 @@ import { B as t, C as n, D as r, E as i, F as a, G as o, H as s, I as c, J as l,
 import { A as Ee, E as De, L as Oe, O as w, P as T, S as ke, T as Ae, a as E, c as je, f as Me, g as Ne, j as D, l as Pe, n as Fe, o as Ie, t as Le, v as Re, w as ze, x as Be } from "./dist-CRDOm7Ao.js";
 import { $t as Ve } from "./lib-9QpRoHAM.js";
 import { t as He } from "./mermaid-DJO1IgvH.js";
-import { i as O } from "./runtime-CCVWQqPf.js";
+import { i as O } from "./runtime-CM-Nal4Z.js";
 // node_modules/.pnpm/@codemirror+autocomplete@6.20.4/node_modules/@codemirror/autocomplete/dist/index.js
 var Ue = class {
 	constructor(e, t, n, r) {
@@ -3616,7 +3616,7 @@ function Z(e) {
 	return new Ie(je.define(e));
 }
 function Q(e) {
-	return import("./dist-CL5_5Tep.js").then((t) => t.sql({ dialect: t[e] }));
+	return import("./dist-BLW2uatI.js").then((t) => t.sql({ dialect: t[e] }));
 }
 var jo = [
 	/*@__PURE__*/ E.of({
@@ -3666,7 +3666,7 @@ var jo = [
 		name: "Go",
 		extensions: ["go"],
 		load() {
-			return import("./dist-bP57I8ON.js").then((e) => e.go());
+			return import("./dist-DXJcjQ5d.js").then((e) => e.go());
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -3679,7 +3679,7 @@ var jo = [
 			"hbs"
 		],
 		load() {
-			return import("./dist-DyPzD-gh.js").then((e) => e.html());
+			return import("./dist-DtGdjxlH.js").then((e) => e.html());
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -3702,7 +3702,7 @@ var jo = [
 			"cjs"
 		],
 		load() {
-			return import("./dist-DQqqgpQz.js").then((e) => e.t).then((e) => e.javascript());
+			return import("./dist-CU94_TEg.js").then((e) => e.t).then((e) => e.javascript());
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -3713,7 +3713,7 @@ var jo = [
 			"jinja2"
 		],
 		load() {
-			return import("./dist-D2ASj58R.js").then((e) => e.jinja());
+			return import("./dist-CEG55vtd.js").then((e) => e.jinja());
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -3728,7 +3728,7 @@ var jo = [
 		name: "JSX",
 		extensions: ["jsx"],
 		load() {
-			return import("./dist-DQqqgpQz.js").then((e) => e.t).then((e) => e.javascript({ jsx: !0 }));
+			return import("./dist-CU94_TEg.js").then((e) => e.t).then((e) => e.javascript({ jsx: !0 }));
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -3742,7 +3742,7 @@ var jo = [
 		name: "Liquid",
 		extensions: ["liquid"],
 		load() {
-			return import("./dist-U7iac4KN.js").then((e) => e.liquid());
+			return import("./dist-cSkChDEL.js").then((e) => e.liquid());
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -3759,7 +3759,7 @@ var jo = [
 			"mkd"
 		],
 		load() {
-			return import("./dist-V4BeJqw_.js").then((e) => e.markdown());
+			return import("./dist-BkbapVdi.js").then((e) => e.markdown());
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -3785,7 +3785,7 @@ var jo = [
 			"phtml"
 		],
 		load() {
-			return import("./dist-B2xachzi.js").then((e) => e.php());
+			return import("./dist-CCuD97DQ.js").then((e) => e.php());
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -3811,7 +3811,7 @@ var jo = [
 		],
 		filename: /^(BUCK|BUILD)$/,
 		load() {
-			return import("./dist-BZLTpnpS.js").then((e) => e.python());
+			return import("./dist-CDtum-ZT.js").then((e) => e.python());
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -3852,7 +3852,7 @@ var jo = [
 		name: "TSX",
 		extensions: ["tsx"],
 		load() {
-			return import("./dist-DQqqgpQz.js").then((e) => e.t).then((e) => e.javascript({
+			return import("./dist-CU94_TEg.js").then((e) => e.t).then((e) => e.javascript({
 				jsx: !0,
 				typescript: !0
 			}));
@@ -3867,7 +3867,7 @@ var jo = [
 			"cts"
 		],
 		load() {
-			return import("./dist-DQqqgpQz.js").then((e) => e.t).then((e) => e.javascript({ typescript: !0 }));
+			return import("./dist-CU94_TEg.js").then((e) => e.t).then((e) => e.javascript({ typescript: !0 }));
 		}
 	}),
 	/*@__PURE__*/ E.of({
@@ -4786,13 +4786,13 @@ var jo = [
 		name: "Vue",
 		extensions: ["vue"],
 		load() {
-			return import("./dist-DB4z73O1.js").then((e) => e.vue());
+			return import("./dist-CnbNhsFF.js").then((e) => e.vue());
 		}
 	}),
 	/*@__PURE__*/ E.of({
 		name: "Angular Template",
 		load() {
-			return import("./dist-yQJR-ueI.js").then((e) => e.angular());
+			return import("./dist-C89dhHxH.js").then((e) => e.angular());
 		}
 	})
 ], $ = (e) => `var(--nowo-milkdown-code-${e})`, Mo = Le.define([

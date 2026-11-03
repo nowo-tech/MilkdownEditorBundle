@@ -32,7 +32,11 @@ final class DemoController extends AbstractController
         [[wiki:c0ffee00-1234-4abc-8def-001122334455]] stays hidden for you.
 
         :::callout{type="warning"}
-        Freeze **merges** on Friday. :mark[Highlight]{color="green"} the risky ones.
+        Freeze **merges** on Friday. :mark[Highlight]{color="green"} the :mark[risky]{text="red"} ones.
+        :::
+
+        ::: {bg="blue"}
+        Coloured block: release owners only.
         :::
 
         * [x] Changelog

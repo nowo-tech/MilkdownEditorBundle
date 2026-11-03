@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
+- [Unreleased (1.4.0)](#unreleased-140)
 - [1.3.1](#131)
 - [1.3.0](#130)
 - [1.2.1](#121)
@@ -22,6 +23,13 @@
 Public API covered by Semantic Versioning: the configuration tree, profile keys, form options, Twig filter / function
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
+
+## Unreleased (1.4.0)
+
+- **Block actions and colours (opt-in).** `block_actions`, `block_drag` (needs `block_actions`) and `colors`. With
+  `block_actions` the editable gets a wider left gutter for the handle. `markdown.mark_colors` now defaults to nine
+  names (adds brown, orange, pink); if you set it, add the names you want. Documents without the new attributes
+  render exactly as before. New strings: `block.*`, `color.*`, `menu.color`.
 
 ## 1.3.1
 

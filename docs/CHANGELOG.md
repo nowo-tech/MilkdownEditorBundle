@@ -16,6 +16,33 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+block handle, block menu and text / background colours, opt-in
+
+### Added
+
+- **Block actions** (`block_actions`, opt-in): a named "⋮⋮" button beside the block under the pointer or the caret
+  opens the block menu (*Turn into*, *Color*, *Duplicate*, *Move up* / *Down*, *Delete*); **Ctrl / ⌘ + /** opens it at
+  the caret and **Alt+Shift+↑ / ↓** move the block, announced in the live region. The button stays out of the tab
+  order. `block_drag` (needs `block_actions`) adds pointer drag of the button.
+- **Colours** (`colors`, opt-in): Notion's nine text and background colours on a selection (`:mark[…]{text=… bg=…}`)
+  or a block (`::: {text=… bg=…}`, the container that also carries `align=`), from the block menu, the context menu
+  and a toolbar button. `:mark{color=…}` keeps meaning the background. The PHP renderer emits classes only, for names
+  in `markdown.mark_colors` (default extended with brown, orange and pink); tokens `--nowo-milkdown-color-*` and
+  `--nowo-milkdown-mark-*` meet WCAG AA in both themes; a text colour on a background uses the background's paired
+  text colour, so all 81 combinations stay AA (tested). The menus offer the colours of `markdown.mark_colors`
+  (widget JSON `colors`, only with the feature). A drag of the handle is cancelled when the document changes
+  meanwhile.
+
+### Fixed
+
+- **Crepe icons visible** (Beacon): `--crepe-color-outline`, the tone of Crepe's toolbar, table and link icons, maps
+  to `--nowo-milkdown-muted` (≥ 3:1 on the page and the toolbar in both themes) instead of the border colour.
+- **Text-only marks on the read side** (audit DB-L1): `:mark[…]{text=…}` has no background in the PHP render either
+  (it showed the default yellow, failing AA for some text colours); text coloured inside a block with a background
+  colour uses the paired text colour too (DB-I3).
+- **Colour changes per mark** (DB-I8): changing one colour of a selection across several marks keeps each mark's
+  other colour. **Dragging the handle** resolves the block again when the drag starts (DB-I5).
+
 ## [1.3.1] - 2026-11-03
 
 footnote ids keyed with kernel.secret, accessible task-list checkboxes, underlined footnote links

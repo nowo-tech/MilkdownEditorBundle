@@ -18,6 +18,12 @@ export type MenuItem = {
   disabled?: boolean;
   /** Submenu items. */
   items?: MenuItem[];
+  /** A separator before this item (groups inside a submenu, e.g. text and background colours). */
+  separatorBefore?: boolean;
+  /** Class of a decorative swatch shown before the label (e.g. `nowo-milkdown-color--red`). */
+  swatch?: string;
+  /** `aria-checked` for a radio-like item (the current colour); renders `menuitemradio`. */
+  checked?: boolean;
   run?: () => void;
 };
 
@@ -66,11 +72,11 @@ export class Menu {
     this.element.hidden = true;
     this.element.addEventListener('keydown', (event) => this.onKey(event));
     this.element.addEventListener('click', (event) => {
-      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[role="menuitem"]');
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('.nowo-milkdown-menu__item');
       if (button && this.element.contains(button)) this.activate(this.buttons.indexOf(button));
     });
     this.element.addEventListener('mousemove', (event) => {
-      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[role="menuitem"]');
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('.nowo-milkdown-menu__item');
       const index = button ? this.buttons.indexOf(button) : -1;
       if (index >= 0 && document.activeElement !== button) this.focus(index);
     });
@@ -109,12 +115,26 @@ export class Menu {
   }
 
   private addItem(item: MenuItem): void {
+    if (item.separatorBefore && this.items.length) {
+      const sep = document.createElement('div');
+      sep.setAttribute('role', 'separator');
+      sep.className = 'nowo-milkdown-menu__separator';
+      this.element.append(sep);
+    }
     const button = document.createElement('button');
     button.type = 'button';
     button.tabIndex = -1;
     button.className = 'nowo-milkdown-menu__item';
-    button.setAttribute('role', 'menuitem');
+    button.setAttribute('role', item.checked === undefined ? 'menuitem' : 'menuitemradio');
+    if (item.checked !== undefined) button.setAttribute('aria-checked', String(item.checked));
     button.dataset.id = item.id;
+    if (item.swatch) {
+      const swatch = document.createElement('span');
+      swatch.className = `nowo-milkdown-menu__swatch ${item.swatch}`;
+      swatch.setAttribute('aria-hidden', 'true');
+      swatch.textContent = 'A';
+      button.append(swatch);
+    }
     const label = document.createElement('span');
     label.className = 'nowo-milkdown-menu__label';
     label.textContent = item.label;

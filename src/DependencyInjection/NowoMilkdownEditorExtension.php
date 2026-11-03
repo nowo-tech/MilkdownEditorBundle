@@ -54,7 +54,7 @@ final class NowoMilkdownEditorExtension extends Extension implements PrependExte
      */
     public function load(array $configs, ContainerBuilder $container): void
     {
-        /** @var array{default_profile: string, profiles: array<string, array<string, mixed>>, markdown: array<string, mixed>&array{icon_sprite_url: ?string, icons: list<string>, max_input_length: int}} $config */
+        /** @var array{default_profile: string, profiles: array<string, array<string, mixed>>, markdown: array<string, mixed>&array{icon_sprite_url: ?string, icons: list<string>, max_input_length: int, mark_colors: list<string>}} $config */
         $config = $this->processConfiguration(new Configuration(), $configs);
 
         $container->setParameter(Configuration::ALIAS . '.default_profile', $config['default_profile']);
@@ -69,7 +69,8 @@ final class NowoMilkdownEditorExtension extends Extension implements PrependExte
         $container->getDefinition(MilkdownMarkdownRenderer::class)
             ->setArgument('$options', $config['markdown']);
         $container->getDefinition(MilkdownEditorType::class)
-            ->setArgument('$maxInputLength', $config['markdown']['max_input_length']);
+            ->setArgument('$maxInputLength', $config['markdown']['max_input_length'])
+            ->setArgument('$markColors', $config['markdown']['mark_colors']);
     }
 
     /**

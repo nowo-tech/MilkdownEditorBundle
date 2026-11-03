@@ -85,6 +85,15 @@ final class MilkdownEditorType extends AbstractType
             'menu.delete_column', 'menu.delete_table',
             'menu.turn_into', 'menu.duplicate', 'menu.move_up', 'menu.move_down', 'menu.delete',
         ],
+        'block_actions' => [
+            'block.actions', 'block.moved_up', 'block.moved_down', 'block.first', 'block.last',
+            'menu.turn_into', 'menu.duplicate', 'menu.move_up', 'menu.move_down', 'menu.delete',
+        ],
+        'colors' => [
+            'menu.color', 'color.default_text', 'color.default_background', 'color.text', 'color.background',
+            'color.gray', 'color.brown', 'color.orange', 'color.yellow', 'color.green', 'color.blue', 'color.purple',
+            'color.pink', 'color.red',
+        ],
     ];
 
     /**
@@ -92,12 +101,14 @@ final class MilkdownEditorType extends AbstractType
      * @param CspNonceProviderInterface|null $nonceProvider Nonce of the current response (when `csp_nonce` is null)
      * @param TranslatorInterface|null $translator Translates the editor UI strings
      * @param int $maxInputLength Default `max_length` (the renderer's `max_input_length`)
+     * @param list<string> $markColors The renderer's `mark_colors`: the colours the editor offers (1.4, audit DB-I7)
      */
     public function __construct(
         private readonly ProfileRegistry $profiles,
         private readonly ?CspNonceProviderInterface $nonceProvider = null,
         private readonly ?TranslatorInterface $translator = null,
         private readonly int $maxInputLength = MilkdownMarkdownRenderer::DEFAULT_MAX_INPUT_LENGTH,
+        private readonly array $markColors = [],
     ) {
     }
 
@@ -151,6 +162,10 @@ final class MilkdownEditorType extends AbstractType
             'messages'      => (object) $this->messages($features),
         ];
         // 1.2.1: only when set, so fields with the defaults keep the same widget JSON.
+        // 1.4: the editor offers the colours the renderer accepts (only with the colors feature: same JSON otherwise).
+        if (in_array('colors', $features, true) && $this->markColors !== []) {
+            $view->vars['milkdown_options']['colors'] = $this->markColors;
+        }
         if ($options['mention_display'] === 'name') {
             $view->vars['milkdown_options']['mentionDisplay'] = 'name';
         }
@@ -291,6 +306,9 @@ final class MilkdownEditorType extends AbstractType
             if ($feature->needsCodeMirror() && !isset($features[Feature::CodeMirror->value])) {
                 throw new InvalidOptionsException(sprintf('The "%s" feature renders in code blocks and needs "code_mirror".', $feature->value));
             }
+        }
+        if (isset($features[Feature::BlockDrag->value]) && !isset($features[Feature::BlockActions->value])) {
+            throw new InvalidOptionsException('The "block_drag" feature drags the block handle and needs "block_actions".');
         }
 
         return array_keys($features);

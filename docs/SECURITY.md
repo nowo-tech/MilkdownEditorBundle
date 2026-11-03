@@ -104,6 +104,9 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
   inserted raw); *Paste as plain text* never parses Markdown; host items receive a narrow context (selection, text,
   block type, `insertText`), not the ProseMirror view. The Clipboard API asks the browser for permission; without it
   the paste items are disabled.
+- **Colours (1.4):** only names from `markdown.mark_colors` become classes (`nowo-md-text--NAME`, `nowo-md-bg--NAME`);
+  no inline style and no raw CSS value is ever taken from Markdown, so colours add nothing to the CSP or XSS surface.
+  The block handle and menus use CSSOM positioning only. Dragging hands ProseMirror a slice of the document itself.
 - Crepe's image-block feature (rewrites alt text, loads remote images) and the emoji plugin (CDN images) are not used.
 
 ## Content Security Policy

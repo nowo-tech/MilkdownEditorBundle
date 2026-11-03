@@ -16,6 +16,10 @@ export type Runtime = {
   icons: ReadonlySet<string>;
   resolvePage: PageResolver;
   resolveUser: UserResolver;
+  /** Enabled features of the field (1.4: plugins read it, e.g. the *Color* items). */
+  features: ReadonlySet<string>;
+  /** Colours offered by the colour menus (1.4: `markdown.mark_colors`); empty: the whole palette. */
+  colors: readonly string[];
   nonce: string;
   /** Dark rendering of previews (Mermaid theme). */
   dark: () => boolean;
@@ -27,6 +31,8 @@ export const defaultRuntime = (): Runtime => ({
   icons: new Set<string>(),
   resolvePage: async (id) => ({ id, title: '', url: '', visible: false }),
   resolveUser: async () => null,
+  features: new Set<string>(),
+  colors: [],
   nonce: '',
   dark: () => false,
 });

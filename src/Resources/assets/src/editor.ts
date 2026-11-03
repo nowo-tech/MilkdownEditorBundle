@@ -119,6 +119,8 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     icons: new Set(options.icons),
     resolvePage: pages.resolve,
     resolveUser: users.resolve,
+    features: new Set(options.features),
+    colors: options.colors,
     nonce: options.nonce,
     dark: () => isDark(root),
   };
@@ -136,6 +138,8 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   const collabModule = options.collaboration ? await import('./collab/index') : null;
   // 1.3: the context menu is a lazy chunk, loaded only when the field enables it.
   const contextMenuModule = options.features.includes('context_menu') ? await import('./plugins/context-menu') : null;
+  const blockActionsModule = options.features.includes('block_actions') ? await import('./plugins/block-actions') : null;
+  const colorsModule = options.features.includes('colors') ? await import('./commands/colors') : null;
   editor
     .config((ctx) => {
       ctx.set(runtimeCtx.key, runtime);
@@ -157,6 +161,8 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   if (options.mentionDisplay === 'name') editor.use(mentionNameView);
   if (collabModule) editor.use(collabModule.collab);
   if (contextMenuModule) editor.use(contextMenuModule.contextMenuPlugin);
+  if (blockActionsModule) editor.use(blockActionsModule.blockActionsPlugin(options.features.includes('block_drag')));
+  if (colorsModule) editor.use(colorsModule.colorMenuPlugin);
   await addFeatures(builder, options, runtime);
 
   builder.on((api) =>

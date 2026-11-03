@@ -42,7 +42,7 @@ final class RendererTest extends TestCase
     private array $pageCalls = [];
 
     /**
-     * @param array{html_input?: string, allow_remote_images?: bool, math?: bool, footnotes?: bool, max_footnote_refs?: int, mention_display?: string, max_input_length?: int, max_inline_markers?: int, max_references?: int} $options
+     * @param array{mark_colors?: list<string>, html_input?: string, allow_remote_images?: bool, math?: bool, footnotes?: bool, max_footnote_refs?: int, mention_display?: string, max_input_length?: int, max_inline_markers?: int, max_references?: int} $options
      * @param list<DirectiveRendererInterface> $directives
      */
     private function renderer(array $options = [], array $directives = [], ?PageResolverInterface $pages = null, ?UserResolverInterface $users = null, ?AbstractLogger $logger = null, ?TranslatorInterface $translator = null): MilkdownMarkdownRenderer
@@ -289,6 +289,20 @@ final class RendererTest extends TestCase
         // 1.2.0 output: the definition is read as a link reference, so the footnote becomes a link to its text.
         $html = trim($this->renderer(['footnotes' => false])->render("Text[^1].\n\n[^1]: Note."));
         self::assertSame('<p>Text<a href="Note.">^1</a>.</p>', $html);
+    }
+
+    #[Test]
+    public function colorsUseNamedClassesFromTheAllowList(): void
+    {
+        $r = $this->renderer(['mark_colors' => ['yellow', 'green', 'red', 'blue']]);
+        self::assertSame(
+            '<p><mark class="nowo-md-mark nowo-md-mark--green nowo-md-text--red">a</mark> <mark class="nowo-md-mark nowo-md-mark--none nowo-md-text--blue">b</mark> <mark class="nowo-md-mark nowo-md-mark--green">c</mark> <mark class="nowo-md-mark nowo-md-mark--yellow">d</mark></p>',
+            trim($r->render(':mark[a]{bg=green text=red} :mark[b]{text=blue} :mark[c]{bg=bogus color=green} :mark[d]{text=teal}')),
+        );
+        self::assertSame(
+            '<div class="nowo-md-align nowo-md-align--center nowo-md-text--red nowo-md-bg--green"><p>X</p></div>' . "\n" . '<div class="nowo-md-align nowo-md-align--left"><p>Y</p></div>',
+            trim($r->render("::: {bg=green text=red align=center}\nX\n:::\n\n::: {bg=\"x\\\" onclick\"}\nY\n:::")),
+        );
     }
 
     #[Test]
