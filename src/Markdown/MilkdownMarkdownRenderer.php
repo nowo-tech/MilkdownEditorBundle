@@ -9,6 +9,7 @@ use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\Extension\Footnote\FootnoteExtension;
 use League\CommonMark\Extension\GithubFlavoredMarkdownExtension;
+use League\CommonMark\Extension\TaskList\TaskListItemMarker;
 use League\CommonMark\MarkdownConverter;
 use Nowo\MilkdownEditorBundle\Markdown\Directive\DirectiveRendererInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\IconResolverInterface;
@@ -137,6 +138,7 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
         ]);
         $environment->addExtension(new CommonMarkCoreExtension());
         $environment->addExtension(new GithubFlavoredMarkdownExtension());
+        $environment->addRenderer(TaskListItemMarker::class, new TaskMarkerRenderer($this->translator), 10);
         if ($this->options['footnotes'] ?? true) {
             $environment->addExtension(new FootnoteExtension());
             // Before the footnote listeners (40 … 10): case-insensitive labels and the reference cap (CZ-L1).

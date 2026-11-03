@@ -125,7 +125,7 @@ final class RendererTest extends TestCase
         yield 'local image kept' => ['![a](/files/a.png)', '<p><img src="/files/a.png" alt="a" /></p>'];
         yield 'code keeps tokens' => ['`@ada [[wiki:' . self::ID . ']]`', '<p><code>@ada [[wiki:' . self::ID . ']]</code></p>'];
         yield 'mermaid fence' => ["```mermaid\ngraph TD\n```", "<pre><code class=\"language-mermaid\">graph TD\n</code></pre>"];
-        yield 'gfm' => ["| a |\n|---|\n| b |\n\n- [x] done", "<table>\n<thead>\n<tr>\n<th>a</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>b</td>\n</tr>\n</tbody>\n</table>\n<ul>\n<li><input checked=\"\" disabled=\"\" type=\"checkbox\"> done</li>\n</ul>"];
+        yield 'gfm' => ["| a |\n|---|\n| b |\n\n- [x] done", "<table>\n<thead>\n<tr>\n<th>a</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>b</td>\n</tr>\n</tbody>\n</table>\n<ul>\n<li><input checked=\"\" disabled=\"\" type=\"checkbox\" aria-label=\"Done\"> done</li>\n</ul>"];
     }
 
     #[Test]
@@ -213,6 +213,26 @@ final class RendererTest extends TestCase
         self::assertStringContainsString('[^x]', $renderer->render('orphan [^x]'), 'orphans keep their unsalted text');
         self::assertSame('<p>plain</p>', trim($this->renderer()->render('plain')));
         $this->renderer(['footnotes' => false])->reset();
+    }
+
+    #[Test]
+    public function taskCheckboxesHaveATranslatedName(): void
+    {
+        $translator = new class implements TranslatorInterface {
+            /**
+             * @param array<string, mixed> $parameters
+             */
+            public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
+            {
+                return $id === 'task.toggle' ? 'Hecho' : $id;
+            }
+
+            public function getLocale(): string
+            {
+                return 'es';
+            }
+        };
+        self::assertStringContainsString('<input disabled="" type="checkbox" aria-label="Hecho">', $this->renderer(translator: $translator)->render('- [ ] tarea'));
     }
 
     #[Test]

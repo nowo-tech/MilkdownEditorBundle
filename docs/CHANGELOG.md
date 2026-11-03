@@ -15,6 +15,12 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Fixed
+
+- **Accessible read side** (axe): GFM task-list checkboxes in the PHP render get a name (`aria-label`, the editor's
+  `task.toggle` string, *Done*; their checked state tells whether the task is done), and footnote links keep their
+  underline (1.2.1 removed it, so they could only be told apart from text by colour).
+
 ### Security
 
 - **Footnote id salt keyed with `kernel.secret`** (audit CZ-I10 / CZ-I11): 12 hex characters of an HMAC, under a
