@@ -192,11 +192,23 @@ final class RendererTest extends TestCase
         self::assertMatchesRegularExpression('#class="nowo-md-footnote-backref" rev="footnote" href="\#nowo-md-fnref-[0-9a-f]{6}-1"#', $html);
         self::assertStringNotContainsString('[^1]', $html);
 
-        // Two renders (a page and a comment) never share ids; documents without footnotes are untouched.
-        preg_match('/id="(nowo-md-fn-[^"]+)"/', $html, $a);
-        preg_match('/id="(nowo-md-fn-[^"]+)"/', $this->renderer()->render("A[^1]\n\n[^1]: B"), $b);
-        self::assertNotSame($a[1] ?? '', $b[1] ?? '');
+        // Deterministic per document (stored HTML, ETags); another document, or the same one rendered again in the
+        // request, gets other ids; kernel.reset starts over. User text and links are never rewritten.
+        $renderer = $this->renderer();
+        $md       = "A[^1] see [jump](#nowo-md-fn-1) and nowo-md-fn-1\n\n[^1]: B";
+        $first    = $renderer->render($md);
+        $salt     = substr(hash('sha256', $md), 0, 6);
+        self::assertStringContainsString('id="nowo-md-fn-' . $salt . '-1"', $first);
+        self::assertStringContainsString('href="#nowo-md-fn-1"', $first, 'user link untouched');
+        self::assertStringContainsString('and nowo-md-fn-1', $first, 'user text untouched');
+        self::assertStringContainsString('id="nowo-md-fn-' . $salt . '-1-1"', $renderer->render($md), 'rendered twice on one page');
+        preg_match('/id="(nowo-md-fn-[^"]+)"/', $renderer->render("A[^1]\n\n[^1]: C"), $other);
+        self::assertStringNotContainsString($salt, $other[1] ?? '');
+        $renderer->reset();
+        self::assertSame($first, $renderer->render($md), 'stable across requests');
+        self::assertStringContainsString('[^x]', $renderer->render('orphan [^x]'), 'orphans keep their unsalted text');
         self::assertSame('<p>plain</p>', trim($this->renderer()->render('plain')));
+        $this->renderer(['footnotes' => false])->reset();
     }
 
     #[Test]

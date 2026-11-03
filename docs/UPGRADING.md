@@ -25,7 +25,7 @@ interfaces and `window.NowoMilkdownEditor`.
 
 - **Footnotes are rendered.** Documents containing GFM footnotes (`text[^1]` plus `[^1]: note`) now render a
   footnote reference and a footnote list (`div.nowo-md-footnotes`, ids `nowo-md-fn-<salt>-<label>` /
-  `nowo-md-fnref-<salt>-<label>`, the salt changing on every render — select them by prefix / suffix)
+  `nowo-md-fnref-<salt>-<label>`, the salt derived from the document — select them by prefix / suffix)
   instead of a broken link (1.2.0 read the definition as a link reference). Style `.nowo-md-footnotes` if your read pages need it. To keep the 1.2.0 output set
   `nowo_milkdown_editor.markdown.footnotes: false`. Documents with more than `markdown.max_footnote_refs` (200)
   references render them as literal `[^label]` text.

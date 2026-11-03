@@ -21,7 +21,8 @@ All notable changes to this project are documented in this file. The format foll
   renderer now enables league/commonmark's `FootnoteExtension` with prefixed ids (`nowo-md-fn-*`, `nowo-md-fnref-*`) and classes
   (`nowo-md-footnotes`, `nowo-md-footnote-ref`, `nowo-md-footnote-backref`). New option
   `nowo_milkdown_editor.markdown.footnotes` (default `true`; `false` keeps the 1.2.0 output). Ids are salted per
-  render (`nowo-md-fn-<salt>-<label>`), labels are case-insensitive as in GFM, and more than
+  document (`nowo-md-fn-<salt>-<label>`: a hash of the Markdown, stable across requests, plus a counter when one
+  document is rendered twice on a page), labels are case-insensitive as in GFM, and more than
   `markdown.max_footnote_refs` (200) references render as literal text (audit CZ-L1, output amplification). See
   [UPGRADING](UPGRADING.md#121).
 

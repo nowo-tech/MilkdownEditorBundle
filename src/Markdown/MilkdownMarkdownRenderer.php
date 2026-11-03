@@ -15,14 +15,11 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\IconResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\PageResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\UserResolverInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Contracts\Service\ResetInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
-use function bin2hex;
 use function count_chars;
 use function ord;
-use function preg_replace;
-use function random_bytes;
-use function str_contains;
 use function str_split;
 use function strlen;
 
@@ -33,7 +30,7 @@ use function strlen;
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  */
-final class MilkdownMarkdownRenderer implements MarkdownRendererInterface
+final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, ResetInterface
 {
     /**
      * Default `max_input_length` in bytes. With the default marker budget the worst input measured peaks at about
@@ -51,6 +48,8 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface
     public const INLINE_MARKERS = "[]*_`!<&@:\$~|\\\n";
 
     private ?MarkdownConverter $converter = null;
+
+    private ?FootnoteSalt $footnoteSalt = null;
 
     /**
      * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, footnotes?: bool, max_footnote_refs?: int, mention_display?: string, max_nesting_level?: int, max_input_length?: int, max_inline_markers?: int, max_references?: int, mark_colors?: list<string>} $options The `nowo_milkdown_editor.markdown` configuration
@@ -85,13 +84,18 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface
             return '<p>' . nl2br(DialectRenderer::e($markdown), false) . '</p>';
         }
 
-        $html = $this->converter()->convert($markdown)->getContent();
+        $converter = $this->converter();
+        $this->footnoteSalt?->prepare($markdown);
 
-        // Footnote ids get a per-render salt (1.2.1): a page and its comments, or two documents on one page, never share
-        // `nowo-md-fn-1`. Raw HTML is escaped, so only the renderer's own id / href attributes match.
-        return str_contains($html, 'nowo-md-fn')
-            ? (string) preg_replace('/(id="|href="#)nowo-md-fn(ref)?-/', '$1nowo-md-fn$2-' . bin2hex(random_bytes(3)) . '-', $html)
-            : $html;
+        return $converter->convert($markdown)->getContent();
+    }
+
+    /**
+     * Forgets the per-request footnote render counters (`kernel.reset`).
+     */
+    public function reset(): void
+    {
+        $this->footnoteSalt?->reset();
     }
 
     /**
@@ -135,6 +139,9 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface
             $environment->addExtension(new FootnoteExtension());
             // Before the footnote listeners (40 … 10): case-insensitive labels and the reference cap (CZ-L1).
             $environment->addEventListener(DocumentParsedEvent::class, [new FootnoteGuard($this->options['max_footnote_refs'] ?? FootnoteGuard::DEFAULT_MAX_FOOTNOTE_REFS), 'onDocumentParsed'], 50);
+            // After orphans become text (30), before numbering (20): per-document salt of the footnote ids (CZ-I7).
+            $this->footnoteSalt = new FootnoteSalt();
+            $environment->addEventListener(DocumentParsedEvent::class, [$this->footnoteSalt, 'onDocumentParsed'], 25);
         }
         $environment->addExtension(new MilkdownDialectExtension(
             new DialectRenderer($this->icons, $this->directiveRenderers, $this->options['mark_colors'] ?? ['yellow'], $this->translator, $this->options['mention_display'] ?? 'handle'),

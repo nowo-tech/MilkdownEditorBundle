@@ -58,7 +58,9 @@ return static function (ContainerConfigurator $container): void {
             '$translator'         => service('translator')->nullOnInvalid(),
             '$logger'             => service('logger')->nullOnInvalid(),
         ])
-        ->tag('monolog.logger', ['channel' => 'nowo_milkdown_editor']);
+        ->tag('monolog.logger', ['channel' => 'nowo_milkdown_editor'])
+        // 1.2.1: per-request footnote render counters (FootnoteSalt) are cleared between requests (worker mode).
+        ->tag('kernel.reset', ['method' => 'reset']);
     $services->alias(MarkdownRendererInterface::class, MilkdownMarkdownRenderer::class)->public();
 
     $services->set(MilkdownEditorType::class)
