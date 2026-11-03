@@ -6,12 +6,17 @@ All notable changes to this project are documented in this file. The format foll
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.2.1] - 2026-11-03](#121---2026-11-03)
 - [[1.2.0] - 2026-11-02](#120---2026-11-02)
 - [[1.1.1] - 2026-11-01](#111---2026-11-01)
 - [[1.1.0] - 2026-11-01](#110---2026-11-01)
 - [[1.0.0] - 2026-10-31](#100---2026-10-31)
 
 ## [Unreleased]
+
+## [1.2.1] - 2026-11-03
+
+footnotes in the PHP renderer (bounded, deterministic ids), mention_display: name
 
 ### Fixed
 
