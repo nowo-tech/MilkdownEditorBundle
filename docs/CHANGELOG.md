@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format foll
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.4.0] - 2026-11-03](#140---2026-11-03)
 - [[1.3.1] - 2026-11-03](#131---2026-11-03)
 - [[1.3.0] - 2026-11-03](#130---2026-11-03)
 - [[1.2.1] - 2026-11-03](#121---2026-11-03)
@@ -16,7 +17,9 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
-block handle, block menu and text / background colours, opt-in
+## [1.4.0] - 2026-11-03
+
+Block menu with text and background colour (opt-in), visible Crepe icons.
 
 ### Added
 
