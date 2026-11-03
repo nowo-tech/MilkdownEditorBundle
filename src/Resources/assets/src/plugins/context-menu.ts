@@ -16,6 +16,7 @@ import { runtimeCtx, t, type Runtime } from '../runtime';
 import { Menu, type MenuGroups, type MenuItem } from '../ui/menu';
 import { TURN_INTO, currentBlock, deleteBlock, duplicateBlock, insertPlainText, moveBlock, selectionRunner, turnInto } from '../commands/blocks';
 import { tabContext } from './keyboard';
+import { colorItems } from '../commands/colors';
 import { safeUrl } from '../link-titles';
 import { hostItems, type ContextMenuContext } from '../context-menu-registry';
 
@@ -168,6 +169,10 @@ export class ContextMenuView {
       }));
       const block: MenuItem[] = [];
       if (turn.length) block.push({ id: 'turn_into', label: t(runtime, 'menu.turn_into'), items: turn });
+      // 1.3 `colors`: the selected text when there is a selection, otherwise the block.
+      if (runtime.features.has('colors')) {
+        block.push({ id: 'color', label: t(runtime, 'menu.color'), items: colorItems(state, runtime, !empty, (cmd) => command(cmd)()) });
+      }
       block.push(
         item('duplicate', command(duplicateBlock)),
         item('move_up', command(moveBlock(-1)), { disabled: !moveBlock(-1)(state) }),

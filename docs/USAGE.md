@@ -12,6 +12,7 @@
 - [Rendering Mermaid and math on read pages](#rendering-mermaid-and-math-on-read-pages)
 - [JavaScript API and Stimulus](#javascript-api-and-stimulus)
 - [Context menu](#context-menu)
+- [Block actions and colours](#block-actions-and-colours)
 - [Keyboard and accessibility](#keyboard-and-accessibility)
 - [Forms in Twig](#forms-in-twig)
 - [Overriding templates](#overriding-templates)
@@ -274,6 +275,32 @@ const remove = window.NowoMilkdownEditor.contextMenu.register({
 Or change the menu per editor with the cancellable `nowo-milkdown:contextmenu` event (bubbles from the widget root):
 `event.detail.groups` is the list of item groups (`{id, label, shortcut?, disabled?, items?, run?}`) and
 `event.detail.context` the same context as above; `event.preventDefault()` cancels the menu.
+
+## Block actions and colours
+
+`block_actions` (1.3) adds a "⋮⋮" button beside the block under the pointer or the caret. It opens the block menu:
+*Turn into*, *Color* (with `colors`), *Duplicate*, *Move up*, *Move down*, *Delete*. From the keyboard: **Ctrl / ⌘ + /**
+opens the same menu at the caret and **Alt+Shift+↑ / ↓** move the block (announced in the widget's live region). The
+button is not in the tab order, so Tab still leaves the editor. `block_drag` also lets pointer users drag the button to
+move the block (ProseMirror's drop cursor shows where it lands).
+
+`colors` (1.3) adds *Color* to the block menu, to the context menu (the selected text, or the block without a
+selection) and a colour button to the selection toolbar. The palette is Notion's: gray, brown, orange, yellow, green,
+blue, purple, pink, red, each as a text colour and a background, plus *Default*. The Markdown stays portable:
+
+```markdown
+:mark[selected words]{text="red"}          text colour
+:mark[selected words]{bg="yellow"}         background (1.0–1.2 wrote color="yellow": still read as the background)
+::: {bg="blue" text="red"}                 a whole block (the container that also carries align=)
+Paragraphs, lists or headings.
+:::
+```
+
+Only names from `markdown.mark_colors` are rendered (as classes `nowo-md-text--NAME`, `nowo-md-bg--NAME`,
+`nowo-md-mark--NAME`); anything else keeps the text without colour. Plain Markdown viewers show the directives as
+text. Each colour is a token (`--nowo-milkdown-color-NAME`, `--nowo-milkdown-mark-NAME`) with WCAG AA contrast in light
+and dark; a text colour on a background colour is the author's choice and is not checked. **Colour is never the only
+carrier of meaning**: use a callout, an icon or words for status.
 
 ## Keyboard and accessibility
 

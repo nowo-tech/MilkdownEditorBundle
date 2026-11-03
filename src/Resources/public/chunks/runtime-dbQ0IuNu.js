@@ -92,7 +92,26 @@ var t = {
 	"menu.duplicate": "Duplicate",
 	"menu.move_up": "Move up",
 	"menu.move_down": "Move down",
-	"menu.delete": "Delete"
+	"menu.delete": "Delete",
+	"block.actions": "Block actions",
+	"block.moved_up": "Block moved up",
+	"block.moved_down": "Block moved down",
+	"block.first": "Already the first block",
+	"block.last": "Already the last block",
+	"menu.color": "Color",
+	"color.default_text": "Default text",
+	"color.default_background": "Default background",
+	"color.text": "{color} text",
+	"color.background": "{color} background",
+	"color.gray": "Gray",
+	"color.brown": "Brown",
+	"color.orange": "Orange",
+	"color.yellow": "Yellow",
+	"color.green": "Green",
+	"color.blue": "Blue",
+	"color.purple": "Purple",
+	"color.pink": "Pink",
+	"color.red": "Red"
 };
 function n(e, n, r = {}) {
 	return (e[n] ?? t[n] ?? n).replace(/\{(\w+)\}/g, (e, t) => t in r ? String(r[t]) : e);
@@ -109,6 +128,7 @@ var r = () => ({
 		visible: !1
 	}),
 	resolveUser: async () => null,
+	features: /* @__PURE__ */ new Set(),
 	nonce: "",
 	dark: () => !1
 }), i = e(r(), "nowoMilkdownRuntime"), a = (e, t, r = {}) => n(e.messages, t, r);

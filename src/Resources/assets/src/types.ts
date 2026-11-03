@@ -17,7 +17,10 @@ export type Feature =
   | 'placeholder'
   | 'cursor'
   | 'slash_menu'
-  | 'context_menu';
+  | 'context_menu'
+  | 'block_actions'
+  | 'block_drag'
+  | 'colors';
 
 export const FEATURES: readonly Feature[] = [
   'toolbar',
@@ -31,6 +34,9 @@ export const FEATURES: readonly Feature[] = [
   'cursor',
   'slash_menu',
   'context_menu',
+  'block_actions',
+  'block_drag',
+  'colors',
 ];
 
 /** Suggestion triggers of the FR-075 dialect: `@` mentions, `[[` page links, `:` icons and emoji. */

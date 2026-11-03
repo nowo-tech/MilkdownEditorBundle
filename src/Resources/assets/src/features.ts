@@ -11,6 +11,7 @@ import { table } from '@milkdown/crepe/feature/table';
 import { toolbar } from '@milkdown/crepe/feature/toolbar';
 import { KATEX_STYLESHEET, ensureStylesheet } from './assets';
 import { MAX_TEX_EXPAND, guardKatex, type Katex } from './preview/render';
+import { editorViewCtx } from '@milkdown/kit/core';
 import { t, type Runtime } from './runtime';
 import type { EditorOptions } from './types';
 
@@ -20,7 +21,12 @@ export const lazyFeatures = {
   math: () => import('@milkdown/crepe/feature/latex'),
   katex: () => import('katex'),
   topBar: () => import('@milkdown/crepe/feature/top-bar'),
+  colors: () => import('./commands/colors'),
 };
+
+/** Static icon of the toolbar's colour button ("A" over a bar); markup from the bundle, never from user data. */
+export const COLOR_ICON =
+  '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16l5-12 5 12"/><path d="M9 11h6"/><path d="M4 20h16"/></svg>';
 
 export async function addFeatures(builder: CrepeBuilder, options: EditorOptions, runtime: Runtime): Promise<void> {
   const on = new Set(options.features);
@@ -32,7 +38,27 @@ export async function addFeatures(builder: CrepeBuilder, options: EditorOptions,
   if (on.has('cursor')) builder.addFeature(cursor);
   if (on.has('placeholder')) builder.addFeature(placeholder, { text: options.placeholder || t(runtime, 'editor.placeholder'), mode: 'doc' });
   if (on.has('link_tooltip')) builder.addFeature(linkTooltip);
-  if (on.has('toolbar')) builder.addFeature(toolbar);
+  if (on.has('toolbar')) {
+    // 1.3 `colors`: one more toolbar button opening the text / background colour menu (a lazy chunk).
+    builder.addFeature(
+      toolbar,
+      on.has('colors')
+        ? {
+            buildToolbar: (group) => {
+              group.addGroup('nowo-color', t(runtime, 'menu.color')).addItem('color', {
+                icon: COLOR_ICON,
+                label: t(runtime, 'menu.color'),
+                active: () => false,
+                onRun: (ctx) => {
+                  const view = ctx.get(editorViewCtx);
+                  void lazyFeatures.colors().then((m) => m.openColorMenu(view, runtime));
+                },
+              });
+            },
+          }
+        : undefined,
+    );
+  }
   if (on.has('table')) builder.addFeature(table);
   if (topBar) builder.addFeature(topBar.topBar);
   // CodeMirror before LaTeX: the LaTeX preview wraps the code block's renderPreview.

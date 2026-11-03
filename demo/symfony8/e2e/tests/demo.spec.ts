@@ -88,6 +88,40 @@ test.describe('Milkdown editor demo', () => {
     expect(log.errors).toEqual([]);
   });
 
+  test('block actions: handle, Ctrl+/ block menu with colours (axe), Alt+Shift+arrows, colours rendered server-side', async ({ page }) => {
+    const log = await watch(page);
+    await openDemo(page, '?devtools=0');
+    const paragraph = page.locator('.nowo-milkdown .ProseMirror p', { hasText: 'Euler:' });
+    // The caret first (the demo's first click is the one that settles the lazy previews), then the pointer.
+    await caretAtEnd(page);
+    await paragraph.hover();
+    const handle = page.getByRole('button', { name: 'Block actions' }).first();
+    await expect(handle).toBeVisible();
+    await page.keyboard.press('Control+/');
+    const menu = page.getByRole('menu', { name: 'Block actions' });
+    await expect(menu).toBeVisible();
+    await menu.getByRole('menuitem', { name: 'Color' }).focus();
+    await page.keyboard.press('ArrowRight');
+    const colors = page.getByRole('menu', { name: 'Color' });
+    await expect(colors).toBeVisible();
+    expect(await seriousViolations(page)).toEqual([]);
+    await colors.getByRole('menuitemradio', { name: 'Yellow background' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.nowo-milkdown .nowo-milkdown-bg--yellow', { hasText: 'Euler:' })).toBeVisible();
+    await expect(editable(page)).toBeFocused();
+    // Move the coloured block up with the keyboard; the live region says so.
+    await page.keyboard.press('Alt+Shift+ArrowUp');
+    await expect(page.locator('.nowo-milkdown__status').first()).toHaveText('Block moved up');
+    await page.getByRole('button', { name: 'Save' }).click();
+    await expect(page.locator('[data-preview] .nowo-md-bg--yellow')).toContainText('Euler:');
+    await expect(page.locator('[data-preview] .nowo-md-bg--blue')).toContainText('Coloured block');
+    await expect(page.locator('[data-preview] mark.nowo-md-text--red')).toHaveText('risky');
+    // The coloured blocks and marks of the PHP render (contrast in this theme).
+    expect(await seriousViolations(page, '[data-preview] .nowo-md-bg--yellow, [data-preview] .nowo-md-bg--blue, [data-preview] mark')).toEqual([]);
+    expect(await violations(page)).toEqual([]);
+    expect(log.errors).toEqual([]);
+  });
+
   test('0 CSP violations under the strict nonce policy (CodeMirror, KaTeX, Mermaid, toolbar)', async ({ page }) => {
     const log = await watch(page);
     await openDemo(page, '?devtools=0');

@@ -16,6 +16,8 @@ export type Runtime = {
   icons: ReadonlySet<string>;
   resolvePage: PageResolver;
   resolveUser: UserResolver;
+  /** Enabled features of the field (1.3: plugins read it, e.g. the *Color* items). */
+  features: ReadonlySet<string>;
   nonce: string;
   /** Dark rendering of previews (Mermaid theme). */
   dark: () => boolean;
@@ -27,6 +29,7 @@ export const defaultRuntime = (): Runtime => ({
   icons: new Set<string>(),
   resolvePage: async (id) => ({ id, title: '', url: '', visible: false }),
   resolveUser: async () => null,
+  features: new Set<string>(),
   nonce: '',
   dark: () => false,
 });

@@ -42,6 +42,19 @@
   --nowo-milkdown-mark-purple: #e9d5ff;
   --nowo-milkdown-mark-gray: #e5e7eb;
   --nowo-milkdown-mark-text: #0f1c18;
+  /* 1.3: named text colours (AA on background and surface) and the extra background colours. */
+  --nowo-milkdown-mark-brown: #efe0d2;
+  --nowo-milkdown-mark-orange: #fed7aa;
+  --nowo-milkdown-mark-pink: #fbcfe8;
+  --nowo-milkdown-color-gray: #4b5563;
+  --nowo-milkdown-color-brown: #7c4a21;
+  --nowo-milkdown-color-orange: #b4450a;
+  --nowo-milkdown-color-yellow: #8a5a00;
+  --nowo-milkdown-color-green: #15803d;
+  --nowo-milkdown-color-blue: #1d4ed8;
+  --nowo-milkdown-color-purple: #7e22ce;
+  --nowo-milkdown-color-pink: #be185d;
+  --nowo-milkdown-color-red: #b91c1c;
   --nowo-milkdown-code-background: #f5f8f6;
   --nowo-milkdown-code-text: #0f1c18;
   --nowo-milkdown-code-keyword: #7c1d6f;
@@ -83,6 +96,18 @@
   --nowo-milkdown-mark-purple: #6b21a8;
   --nowo-milkdown-mark-gray: #374151;
   --nowo-milkdown-mark-text: #ffffff;
+  --nowo-milkdown-mark-brown: #6b4423;
+  --nowo-milkdown-mark-orange: #9a3412;
+  --nowo-milkdown-mark-pink: #9d174d;
+  --nowo-milkdown-color-gray: #a3acb9;
+  --nowo-milkdown-color-brown: #d6a77a;
+  --nowo-milkdown-color-orange: #fb923c;
+  --nowo-milkdown-color-yellow: #facc15;
+  --nowo-milkdown-color-green: #4ade80;
+  --nowo-milkdown-color-blue: #7aa7fb;
+  --nowo-milkdown-color-purple: #c79bfb;
+  --nowo-milkdown-color-pink: #f472b6;
+  --nowo-milkdown-color-red: #f98b8b;
   --nowo-milkdown-code-background: #1c2622;
   --nowo-milkdown-code-text: #e6eee9;
   --nowo-milkdown-code-keyword: #f0abfc;
@@ -120,6 +145,18 @@
     --nowo-milkdown-mark-purple: #6b21a8;
     --nowo-milkdown-mark-gray: #374151;
     --nowo-milkdown-mark-text: #ffffff;
+    --nowo-milkdown-mark-brown: #6b4423;
+    --nowo-milkdown-mark-orange: #9a3412;
+    --nowo-milkdown-mark-pink: #9d174d;
+    --nowo-milkdown-color-gray: #a3acb9;
+    --nowo-milkdown-color-brown: #d6a77a;
+    --nowo-milkdown-color-orange: #fb923c;
+    --nowo-milkdown-color-yellow: #facc15;
+    --nowo-milkdown-color-green: #4ade80;
+    --nowo-milkdown-color-blue: #7aa7fb;
+    --nowo-milkdown-color-purple: #c79bfb;
+    --nowo-milkdown-color-pink: #f472b6;
+    --nowo-milkdown-color-red: #f98b8b;
     --nowo-milkdown-code-background: #1c2622;
     --nowo-milkdown-code-text: #e6eee9;
     --nowo-milkdown-code-keyword: #f0abfc;
@@ -422,6 +459,101 @@
 .nowo-milkdown-mark--gray,
 .nowo-md-mark--gray { background: var(--nowo-milkdown-mark-gray); }
 .nowo-milkdown-mark--none { background: transparent; color: inherit; }
+
+/* Block handle (1.3, block_actions): a 24px target in the gutter of the editable */
+.nowo-milkdown--blocks .milkdown .ProseMirror {
+  padding-left: 2.5rem;
+}
+.nowo-milkdown-block-handle {
+  position: absolute;
+  z-index: 5;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--nowo-milkdown-muted);
+  font: 700 0.75rem / 1.5rem var(--nowo-milkdown-font);
+  letter-spacing: -0.15em;
+  cursor: grab;
+}
+.nowo-milkdown-block-handle[hidden] {
+  display: none;
+}
+.nowo-milkdown-block-handle:hover,
+.nowo-milkdown-block-handle[aria-expanded='true'] {
+  background: var(--nowo-milkdown-accent-soft);
+  color: var(--nowo-milkdown-text);
+}
+.nowo-milkdown-block-handle:focus-visible {
+  outline: 2px solid var(--nowo-milkdown-focus);
+  outline-offset: 1px;
+}
+.nowo-milkdown-menu__swatch {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1px solid var(--nowo-milkdown-border);
+  border-radius: 0.25rem;
+  font-weight: 700;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  text-align: center;
+}
+.nowo-milkdown-menu__item[aria-checked='true']::after {
+  content: '✓';
+  margin-inline-start: auto;
+}
+
+/* Colours (1.3): named text and background colours of :mark and coloured blocks, tokens only */
+.nowo-milkdown-mark--brown,
+.nowo-md-mark--brown { background: var(--nowo-milkdown-mark-brown); }
+.nowo-milkdown-mark--orange,
+.nowo-md-mark--orange { background: var(--nowo-milkdown-mark-orange); }
+.nowo-milkdown-mark--pink,
+.nowo-md-mark--pink { background: var(--nowo-milkdown-mark-pink); }
+.nowo-milkdown-bg--gray,
+.nowo-md-bg--gray { background: var(--nowo-milkdown-mark-gray); color: var(--nowo-milkdown-mark-text); }
+.nowo-milkdown-bg--brown,
+.nowo-md-bg--brown { background: var(--nowo-milkdown-mark-brown); color: var(--nowo-milkdown-mark-text); }
+.nowo-milkdown-bg--orange,
+.nowo-md-bg--orange { background: var(--nowo-milkdown-mark-orange); color: var(--nowo-milkdown-mark-text); }
+.nowo-milkdown-bg--yellow,
+.nowo-md-bg--yellow { background: var(--nowo-milkdown-mark-yellow); color: var(--nowo-milkdown-mark-text); }
+.nowo-milkdown-bg--green,
+.nowo-md-bg--green { background: var(--nowo-milkdown-mark-green); color: var(--nowo-milkdown-mark-text); }
+.nowo-milkdown-bg--blue,
+.nowo-md-bg--blue { background: var(--nowo-milkdown-mark-blue); color: var(--nowo-milkdown-mark-text); }
+.nowo-milkdown-bg--purple,
+.nowo-md-bg--purple { background: var(--nowo-milkdown-mark-purple); color: var(--nowo-milkdown-mark-text); }
+.nowo-milkdown-bg--pink,
+.nowo-md-bg--pink { background: var(--nowo-milkdown-mark-pink); color: var(--nowo-milkdown-mark-text); }
+.nowo-milkdown-bg--red,
+.nowo-md-bg--red { background: var(--nowo-milkdown-mark-red); color: var(--nowo-milkdown-mark-text); }
+.nowo-milkdown-color--gray,
+.nowo-md-text--gray { color: var(--nowo-milkdown-color-gray); }
+.nowo-milkdown-color--brown,
+.nowo-md-text--brown { color: var(--nowo-milkdown-color-brown); }
+.nowo-milkdown-color--orange,
+.nowo-md-text--orange { color: var(--nowo-milkdown-color-orange); }
+.nowo-milkdown-color--yellow,
+.nowo-md-text--yellow { color: var(--nowo-milkdown-color-yellow); }
+.nowo-milkdown-color--green,
+.nowo-md-text--green { color: var(--nowo-milkdown-color-green); }
+.nowo-milkdown-color--blue,
+.nowo-md-text--blue { color: var(--nowo-milkdown-color-blue); }
+.nowo-milkdown-color--purple,
+.nowo-md-text--purple { color: var(--nowo-milkdown-color-purple); }
+.nowo-milkdown-color--pink,
+.nowo-md-text--pink { color: var(--nowo-milkdown-color-pink); }
+.nowo-milkdown-color--red,
+.nowo-md-text--red { color: var(--nowo-milkdown-color-red); }
+.nowo-milkdown-directive--align[class*='nowo-milkdown-bg--'],
+.nowo-md-align[class*='nowo-md-bg--'] {
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--nowo-milkdown-radius-control);
+}
 
 /* Directives */
 .nowo-milkdown-directive,

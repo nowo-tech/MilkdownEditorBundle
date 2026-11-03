@@ -27,6 +27,10 @@ interfaces and `window.NowoMilkdownEditor`.
 - **Context menu (opt-in).** Nothing changes until a profile or field lists `context_menu` in `features`. With it,
   right clicks inside the editor open the bundle's menu (Shift + right click still opens the browser menu). Hosts
   with a CSP need nothing new (CSSOM positioning only). If you override translations, add the `menu.*` keys.
+- **Block actions and colours (opt-in).** `block_actions`, `block_drag` (needs `block_actions`) and `colors`. With
+  `block_actions` the editable gets a wider left gutter for the handle. `markdown.mark_colors` now defaults to nine
+  names (adds brown, orange, pink); if you set it, add the names you want. Documents without the new attributes
+  render exactly as before. New strings: `block.*`, `color.*`, `menu.color`.
 
 ## 1.2.1
 

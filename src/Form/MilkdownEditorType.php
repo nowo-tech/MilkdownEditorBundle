@@ -85,6 +85,15 @@ final class MilkdownEditorType extends AbstractType
             'menu.delete_column', 'menu.delete_table',
             'menu.turn_into', 'menu.duplicate', 'menu.move_up', 'menu.move_down', 'menu.delete',
         ],
+        'block_actions' => [
+            'block.actions', 'block.moved_up', 'block.moved_down', 'block.first', 'block.last',
+            'menu.turn_into', 'menu.duplicate', 'menu.move_up', 'menu.move_down', 'menu.delete',
+        ],
+        'colors' => [
+            'menu.color', 'color.default_text', 'color.default_background', 'color.text', 'color.background',
+            'color.gray', 'color.brown', 'color.orange', 'color.yellow', 'color.green', 'color.blue', 'color.purple',
+            'color.pink', 'color.red',
+        ],
     ];
 
     /**
@@ -291,6 +300,9 @@ final class MilkdownEditorType extends AbstractType
             if ($feature->needsCodeMirror() && !isset($features[Feature::CodeMirror->value])) {
                 throw new InvalidOptionsException(sprintf('The "%s" feature renders in code blocks and needs "code_mirror".', $feature->value));
             }
+        }
+        if (isset($features[Feature::BlockDrag->value]) && !isset($features[Feature::BlockActions->value])) {
+            throw new InvalidOptionsException('The "block_drag" feature drags the block handle and needs "block_actions".');
         }
 
         return array_keys($features);

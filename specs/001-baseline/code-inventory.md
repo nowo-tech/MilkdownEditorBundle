@@ -2,7 +2,7 @@
 
 **Package**: `nowo-tech/milkdown-editor-bundle`  
 **Last audited**: 2026-11-01  
-**Production units**: **86/86**  
+**Production units**: **88/88**  
 **Audit command**: `find src -type f \( -name '*.php' -o -name '*.twig' -o -name '*.yaml' -o -name '*.ts' -o -name '*.css' \) -not -path 'src/Resources/assets/tests/*' -not -path 'src/Resources/public/*' | wc -l`
 
 ## Scope notes
@@ -21,10 +21,10 @@
 | Twig & form theme | 2 |
 | Translations | 7 |
 | Browser: dialect | 3 |
-| Browser: nodes & plugins | 9 |
+| Browser: nodes & plugins | 11 |
 | Browser: previews, collaboration & features | 6 |
 | Browser: editor core | 15 |
-| **Total** | **86** |
+| **Total** | **88** |
 
 ## Bundle, configuration & DI
 
@@ -124,6 +124,8 @@
 | `src/Resources/assets/src/plugins/suggest.ts` | Browser: nodes & plugins — suggest.ts | FR-EDIT-002 |
 | `src/Resources/assets/src/plugins/context-menu.ts` | Browser: nodes & plugins — context-menu.ts (lazy chunk) | FR-MENU-001 (spec 002) |
 | `src/Resources/assets/src/ui/menu.ts` | Browser: nodes & plugins — menu.ts (APG menu) | FR-MENU-002 (spec 002) |
+| `src/Resources/assets/src/plugins/block-actions.ts` | Browser: nodes & plugins — block-actions.ts (handle, block menu, keys, drag) | FR-BLOCK-001 (spec 003) |
+| `src/Resources/assets/src/commands/colors.ts` | Browser: nodes & plugins — colors.ts (inline and block colours) | FR-COLOR-001 (spec 003) |
 | `src/Resources/assets/src/commands/blocks.ts` | Browser: nodes & plugins — blocks.ts (block commands) | FR-MENU-001 (spec 002) |
 
 ## Browser: previews, collaboration & features

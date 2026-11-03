@@ -30,6 +30,15 @@ context menu (right-click / Shift+F10), opt-in
   fields and touch long-presses keep the browser menu. Loaded as a lazy chunk only for fields that enable it.
   Actions apply to the selection the menu was opened for, even if something on the page moved the editor selection
   while the menu had focus.
+- **Block actions** (`block_actions`, opt-in): a named "⋮⋮" button beside the block under the pointer or the caret
+  opens the block menu (*Turn into*, *Color*, *Duplicate*, *Move up* / *Down*, *Delete*); **Ctrl / ⌘ + /** opens it at
+  the caret and **Alt+Shift+↑ / ↓** move the block, announced in the live region. The button stays out of the tab
+  order. `block_drag` (needs `block_actions`) adds pointer drag of the button.
+- **Colours** (`colors`, opt-in): Notion's nine text and background colours on a selection (`:mark[…]{text=… bg=…}`)
+  or a block (`::: {text=… bg=…}`, the container that also carries `align=`), from the block menu, the context menu
+  and a toolbar button. `:mark{color=…}` keeps meaning the background. The PHP renderer emits classes only, for names
+  in `markdown.mark_colors` (default extended with brown, orange and pink); tokens `--nowo-milkdown-color-*` and
+  `--nowo-milkdown-mark-*` meet WCAG AA in both themes.
 - **Host items:** `window.NowoMilkdownEditor.contextMenu.register({ id, label, shortcut?, when?, run })` (also the
   `registerContextMenuItem` export) and the cancellable `nowo-milkdown:contextmenu` event on the widget root, whose
   `detail.groups` the host may edit.

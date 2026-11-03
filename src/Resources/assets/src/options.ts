@@ -24,6 +24,8 @@ export function normaliseFeatures(value: unknown): Feature[] {
     set.delete('math');
     set.delete('mermaid');
   }
+  // Dragging uses the block handle (1.3).
+  if (!set.has('block_actions')) set.delete('block_drag');
   return FEATURES.filter((f) => set.has(f));
 }
 

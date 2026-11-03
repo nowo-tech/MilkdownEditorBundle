@@ -4,13 +4,17 @@
  *   :::callout{type=info|success|warning|danger}   container (rendered as a note)
  *   :::details{summary="…"}                        container (collapsible section)
  *   ::: {align=center}                             container without a name (alignment)
- *   :mark[text]{color=<token>}                     text directive (highlight)
+ *   :mark[text]{bg=<colour> text=<colour>}         text directive (background / text colour; legacy color= is bg)
+ *   ::: {bg=<colour> text=<colour>}                container without a name (block colour, 1.3; with align=)
  *   ::name{…}                                      leaf directive kept as an embedded block (e.g. live host blocks)
  */
 export const CALLOUT_TYPES = ['info', 'success', 'warning', 'danger'] as const;
 export type CalloutType = (typeof CALLOUT_TYPES)[number];
 export const ALIGNMENTS = ['left', 'center', 'right'] as const;
-export const MARK_COLORS = ['yellow', 'green', 'blue', 'red', 'purple', 'gray'] as const;
+/** Named colours of the dialect (1.3: Notion's set), each a text and a background token; never raw CSS. */
+export const COLORS = ['gray', 'brown', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'red'] as const;
+export type Color = (typeof COLORS)[number];
+
 
 const NAME = /^[a-z][a-z0-9-]{0,40}$/;
 const KEY = /^[a-z][a-z0-9_-]{0,40}$/;
@@ -33,8 +37,21 @@ export function cleanAttributes(input: unknown): Record<string, string> {
 export const calloutType = (attributes: Record<string, string>): CalloutType =>
   (CALLOUT_TYPES as readonly string[]).includes(attributes.type ?? '') ? (attributes.type as CalloutType) : 'info';
 
+/** A palette colour, or null for anything else. */
+export const colorOf = (value: string | undefined): Color | null => ((COLORS as readonly string[]).includes(value ?? '') ? (value as Color) : null);
+
+/**
+ * Background of a `:mark`: `bg=`, else the legacy `color=`, else yellow for a plain highlight; `none` when only a text
+ * colour is set.
+ */
 export const markColor = (attributes: Record<string, string>): string =>
-  (MARK_COLORS as readonly string[]).includes(attributes.color ?? '') ? attributes.color! : 'yellow';
+  colorOf(attributes.bg) ?? colorOf(attributes.color) ?? (colorOf(attributes.text) ? 'none' : 'yellow');
+
+/** Text colour of a `:mark` or a coloured block, or null. */
+export const textColor = (attributes: Record<string, string>): Color | null => colorOf(attributes.text);
+
+/** Background of a coloured block (`::: {bg=…}`), or null. */
+export const blockBackground = (attributes: Record<string, string>): Color | null => colorOf(attributes.bg);
 
 export const alignment = (attributes: Record<string, string>): string =>
   (ALIGNMENTS as readonly string[]).includes(attributes.align ?? '') ? attributes.align! : 'left';

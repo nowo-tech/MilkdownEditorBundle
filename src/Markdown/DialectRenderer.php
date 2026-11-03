@@ -158,9 +158,12 @@ final readonly class DialectRenderer implements NodeRendererInterface
     private function textDirective(TextDirective $node, string $content): string
     {
         if ($node->name === 'mark') {
-            $color = in_array($node->attributes['color'] ?? '', $this->markColors, true) ? $node->attributes['color'] : ($this->markColors[0] ?? 'yellow');
+            // 1.3: `bg=` (legacy `color=`) is the background, `text=` the text colour; names only, from the allow-list.
+            $a    = $node->attributes;
+            $text = $this->color($a['text'] ?? null);
+            $bg   = $this->color($a['bg'] ?? null) ?? $this->color($a['color'] ?? null) ?? ($text === null ? ($this->markColors[0] ?? 'yellow') : 'none');
 
-            return '<mark class="nowo-md-mark nowo-md-mark--' . self::e($color) . '">' . $content . '</mark>';
+            return '<mark class="nowo-md-mark nowo-md-mark--' . self::e($bg) . ($text !== null ? ' nowo-md-text--' . self::e($text) : '') . '">' . $content . '</mark>';
         }
 
         return '<span class="nowo-md-directive" data-directive="' . self::e($node->name) . '">' . $content . '</span>';
@@ -173,9 +176,28 @@ final readonly class DialectRenderer implements NodeRendererInterface
         return match ($node->name) {
             'callout' => '<div class="nowo-md-callout nowo-md-callout--' . (in_array($a['type'] ?? '', self::CALLOUT_TYPES, true) ? $a['type'] : 'info') . '" role="note">' . $content . '</div>',
             'details' => '<details class="nowo-md-details"><summary>' . self::e($a['summary'] ?? ($node->label !== '' ? $node->label : '…')) . '</summary>' . $content . '</details>',
-            'align'   => '<div class="nowo-md-align nowo-md-align--' . (in_array($a['align'] ?? '', self::ALIGNMENTS, true) ? $a['align'] : 'left') . '">' . $content . '</div>',
+            'align'   => '<div class="nowo-md-align nowo-md-align--' . (in_array($a['align'] ?? '', self::ALIGNMENTS, true) ? $a['align'] : 'left') . $this->blockColors($a) . '">' . $content . '</div>',
             default   => '<div class="nowo-md-directive" data-directive="' . self::e($node->name) . '">' . $content . '</div>',
         };
+    }
+
+    /** A colour name from the allow-list (`markdown.mark_colors`), or null. */
+    private function color(?string $name): ?string
+    {
+        return $name !== null && in_array($name, $this->markColors, true) ? $name : null;
+    }
+
+    /**
+     * Classes of a coloured block (`::: {text=… bg=…}`, 1.3), with a leading space; '' without colours.
+     *
+     * @param array<string, string> $attributes
+     */
+    private function blockColors(array $attributes): string
+    {
+        $text = $this->color($attributes['text'] ?? null);
+        $bg   = $this->color($attributes['bg'] ?? null);
+
+        return ($text !== null ? ' nowo-md-text--' . $text : '') . ($bg !== null ? ' nowo-md-bg--' . $bg : '');
     }
 
     private function leaf(LeafDirective $node): string

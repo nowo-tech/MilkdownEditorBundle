@@ -11,17 +11,20 @@ namespace Nowo\MilkdownEditorBundle;
  */
 enum Feature: string
 {
-    case Toolbar     = 'toolbar';
-    case TopBar      = 'top_bar';
-    case LinkTooltip = 'link_tooltip';
-    case Table       = 'table';
-    case CodeMirror  = 'code_mirror';
-    case Math        = 'math';
-    case Mermaid     = 'mermaid';
-    case Placeholder = 'placeholder';
-    case Cursor      = 'cursor';
-    case SlashMenu   = 'slash_menu';
-    case ContextMenu = 'context_menu';
+    case Toolbar      = 'toolbar';
+    case TopBar       = 'top_bar';
+    case LinkTooltip  = 'link_tooltip';
+    case Table        = 'table';
+    case CodeMirror   = 'code_mirror';
+    case Math         = 'math';
+    case Mermaid      = 'mermaid';
+    case Placeholder  = 'placeholder';
+    case Cursor       = 'cursor';
+    case SlashMenu    = 'slash_menu';
+    case ContextMenu  = 'context_menu';
+    case BlockActions = 'block_actions';
+    case BlockDrag    = 'block_drag';
+    case Colors       = 'colors';
 
     /**
      * Features enabled when a profile does not list its own.
