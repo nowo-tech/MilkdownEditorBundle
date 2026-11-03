@@ -25,6 +25,9 @@ Markdown clipboard and the Insert group (opt-in), "Copy as Markdown" for read pa
   - **Smart paste:** text copied from a code editor, a terminal or a plain text field (HTML that only wraps text) is
     parsed as Markdown when it looks like Markdown (headings, lists, emphasis, links, fences, tables, quotes). Rich HTML
     keeps the sanitising HTML path, and nothing is parsed inside a code block.
+    Pasted links and images never keep an unsafe target (`javascript:`, `data:`…): with the feature, every paste
+    path (smart, plain text, Paste as Markdown, ProseMirror's own) empties them the same way, so the stored Markdown
+    is identical whichever path pasted it (audit DN-L1).
   - **Paste as Markdown** (**Ctrl / ⌘ + Alt + V**) and **Copy as Markdown** (**Ctrl / ⌘ + Alt + Shift + C**, as
     Ctrl / ⌘ + Alt + C is Milkdown's code block). Both are also in the context menu, with their shortcuts. The copy
     is announced in the live region. Readers get *Copy as Markdown* only.

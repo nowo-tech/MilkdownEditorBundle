@@ -161,6 +161,8 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
         ctx.update(editorViewOptionsCtx, (prev) => ({
           ...prev,
           handlePaste: (view, event, slice) => smart(view, event) || (prev.handlePaste?.(view, event, slice) ?? false),
+          // DN-L1: every other paste path drops unsafe link and image targets the same way.
+          transformPasted: (slice, view, plain) => clipboardModule.cleanPasted(prev.transformPasted ? prev.transformPasted(slice, view, plain) : slice),
         }));
       }
     })

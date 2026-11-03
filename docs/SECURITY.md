@@ -109,9 +109,16 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
   The block handle and menus use CSSOM positioning only. Dragging hands ProseMirror a slice of the document itself.
 - Crepe's image-block feature (rewrites alt text, loads remote images) and the emoji plugin (CDN images) are not used.
 - **Markdown clipboard (1.5):** smart paste inspects the clipboard HTML with `DOMParser` (inert: no script runs, no
-  node of it is inserted) and parses only the plain text, through the dialect parser; the render sanitises it like
-  typed text. *Copy as Markdown* writes plain text only. `nowo_milkdown_copy_markdown()` escapes the source into a
-  `<template>` (inert); the host must print it only for viewers who may read the page, with Markdown they may read.
+  node of it is inserted) and parses only the plain text, through the dialect parser and then the schema's DOM round
+  trip, like the plain-text and HTML paths: unsafe link and image targets (`javascript:`, `data:`) are dropped, and
+  the same hostile Markdown is stored identically whichever path pasted it (audit DN-L1, regression test). *Copy as
+  Markdown* writes plain text only.
+- **`nowo_milkdown_copy_markdown()` publishes the raw source** (audit DN-I2). The `<template>` is inert and escaped, but
+  everything in it reaches whoever sees the page HTML: the ids of linked pages (`[[page:<id>]]`, even those the viewer
+  sees as *Content not visible*), mention handles, and the attributes of host leaf directives and live blocks (their
+  parameters), all things the per-viewer render hides or resolves. Print it only for readers who may see that raw
+  source (typically: people who may edit the page), never on public or shared views, and never with Markdown that
+  holds values the viewer may not read. When in doubt, offer the button to editors only.
 
 ## Content Security Policy
 

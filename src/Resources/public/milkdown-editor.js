@@ -4968,7 +4968,7 @@ async function Bl(e, t = {}) {
 	let { bar: s, surface: c, status: l, announce: u } = Rl(e, o), d = Ll(n), f = n.value, p = new An({
 		root: c,
 		defaultValue: r.collaboration ? "" : f
-	}), m = p.editor, h = r.collaboration ? await import("./chunks/collab-Elq1tKQg.js") : null, g = r.features.includes("context_menu") ? await import("./chunks/context-menu-CLPpCn9b.js") : null, _ = r.features.includes("block_actions") ? await import("./chunks/block-actions-GONzXZal.js") : null, v = r.features.includes("colors") ? await import("./chunks/colors-D__tvSCF.js") : null, y = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-Cltq2ZWm.js") : null;
+	}), m = p.editor, h = r.collaboration ? await import("./chunks/collab-Elq1tKQg.js") : null, g = r.features.includes("context_menu") ? await import("./chunks/context-menu-QmtZGn7x.js") : null, _ = r.features.includes("block_actions") ? await import("./chunks/block-actions-GONzXZal.js") : null, v = r.features.includes("colors") ? await import("./chunks/colors-D__tvSCF.js") : null, y = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-J7KbfwfQ.js") : null;
 	m.config((e) => {
 		if (e.set(Ot.key, o), e.update(be, (e) => ({
 			...e,
@@ -4987,7 +4987,8 @@ async function Bl(e, t = {}) {
 			let t = y.smartPaste(y.markdownIo(e));
 			e.update(be, (e) => ({
 				...e,
-				handlePaste: (n, r, i) => t(n, r) || (e.handlePaste?.(n, r, i) ?? !1)
+				handlePaste: (n, r, i) => t(n, r) || (e.handlePaste?.(n, r, i) ?? !1),
+				transformPasted: (t, n, r) => y.cleanPasted(e.transformPasted ? e.transformPasted(t, n, r) : t)
 			}));
 		}
 	}).use(Ot).use(pl).use(Fs).use(ml).use(Ft((e) => El(e, {

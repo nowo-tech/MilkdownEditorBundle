@@ -14,8 +14,11 @@ import {
   pasteMarkdown,
   selectionMarkdown,
   smartPaste,
+  isSafePastedUrl,
+  cleanPasted,
   type MarkdownIo,
 } from '../src/commands/markdown-clipboard';
+import { Slice } from '@milkdown/kit/prose/model';
 import { INSERT_BLOCKS, insertItems, prepareInsertPoint } from '../src/commands/insert';
 import { normaliseFeatures } from '../src/options';
 import { bindCopyButtons, copySource } from '../src/index';
@@ -92,7 +95,7 @@ describe('smart paste', () => {
     const md = { 'text/html': '<pre># T</pre>', 'text/plain': '# T' };
     expect(smart(v, pasteEvent({ 'text/html': '<h1>T</h1>', 'text/plain': '# T' }))).toBe(false);
     expect(smart(v, pasteEvent({ 'text/html': '<pre>Hello</pre>', 'text/plain': 'Hello' }))).toBe(false);
-    expect(smart(v, pasteEvent({ 'text/plain': '# T' }))).toBe(false); // no HTML: Milkdown already parses the text
+    expect(smart(v, pasteEvent({ 'text/plain': '' }))).toBe(false);
     expect(smart(v, pasteEvent(null))).toBe(false);
     select(handle, 9); // inside the code block
     expect(smart(v, pasteEvent(md))).toBe(false);
@@ -106,6 +109,47 @@ describe('smart paste', () => {
     const event = pasteEvent({ 'text/html': '<pre># Title</pre>', 'text/plain': '# Title' });
     view(handle).dom.dispatchEvent(event);
     expect(handle.getMarkdown()).not.toMatch(/^# Title$/m);
+  });
+});
+
+describe('smart paste safety (audit DN-L1)', () => {
+  const HOSTILE = [
+    '# Title',
+    '',
+    '<img src=x onerror="pwned=1"> <script>pwned=2</script>',
+    '',
+    '[click](javascript:pwned=4) ![i](javascript:pwned=5) [d](data:text/html,<script>pwned=6</script>) [ok](https://e.test/a)',
+    '',
+    ':mark[m]{bg="red\\" onmouseover=\\"pwned=7" text=--x}',
+  ].join('\n');
+
+  it('judges pasted targets like the URL parser', () => {
+    expect([undefined, '/a', '#x', 'page.md', 'https://e.test', 'MAILTO:a@b.c', 'tel:+1'].map(isSafePastedUrl)).toEqual([true, true, true, true, true, true, true]);
+    expect(['javascript:x', ' java\tscript:x', 'data:text/html,x', 'vbscript:x'].map(isSafePastedUrl)).toEqual([false, false, false, false]);
+  });
+
+  it('cleans every pasted slice when the feature is on', () => {
+    expect(cleanPasted(Slice.empty)).toEqual(Slice.empty);
+  });
+
+  it('stores the same safe Markdown as the plain-text paste', async () => {
+    const stored: string[] = [];
+    const paths: Record<string, string>[] = [
+      { 'text/html': '<pre><code>' + HOSTILE.replace(/</g, '&lt;') + '</code></pre>', 'text/plain': HOSTILE },
+      { 'text/plain': HOSTILE },
+    ];
+    for (const data of paths) {
+      handle = await editor('', { features: ['markdown_clipboard', 'colors'] });
+      view(handle).dom.dispatchEvent(pasteEvent(data));
+      stored.push(handle.getMarkdown());
+      await handle.destroy();
+      handle = null;
+    }
+    expect(stored[0]).toBe(stored[1]);
+    // No link or image keeps an unsafe target (raw HTML stays text, as when typed).
+    expect(stored[0]).not.toMatch(/\]\(\s*(?:javascript|data):/i);
+    expect(stored[0]).toContain('[click]()');
+    expect(stored[0]).toContain('https://e.test/a');
   });
 });
 
