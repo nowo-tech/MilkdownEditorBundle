@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
+- [1.3.1](#131)
 - [1.3.0](#130)
 - [1.2.1](#121)
 - [1.1.0](#110)
@@ -21,6 +22,13 @@
 Public API covered by Semantic Versioning: the configuration tree, profile keys, form options, Twig filter / function
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
+
+## 1.3.1
+
+- **Footnote ids change once.** The salt in `nowo-md-fn-<salt>-<label>` is now 12 hex characters keyed with
+  `kernel.secret` (it was 6, from a plain hash of the Markdown). Cached HTML with footnotes renders with new ids after
+  the update; select footnotes by prefix / suffix as before. `MilkdownMarkdownRenderer` gains an optional `$secret`
+  argument (the bundle wires `%kernel.secret%`).
 
 ## 1.3.0
 

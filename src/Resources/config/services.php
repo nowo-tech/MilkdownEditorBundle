@@ -57,6 +57,7 @@ return static function (ContainerConfigurator $container): void {
             '$directiveRenderers' => tagged_iterator('nowo_milkdown_editor.directive_renderer'),
             '$translator'         => service('translator')->nullOnInvalid(),
             '$logger'             => service('logger')->nullOnInvalid(),
+            '$secret'             => '%kernel.secret%',
         ])
         ->tag('monolog.logger', ['channel' => 'nowo_milkdown_editor'])
         // 1.2.1: per-request footnote render counters (FootnoteSalt) are cleared between requests (worker mode).

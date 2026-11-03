@@ -59,6 +59,7 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
      * @param iterable<DirectiveRendererInterface> $directiveRenderers Host renderers of leaf directives
      * @param TranslatorInterface|null $translator Translates *Content not visible*
      * @param LoggerInterface|null $logger Logs resolver failures
+     * @param string $secret `kernel.secret`: keys the footnote id salt (1.3.1)
      */
     public function __construct(
         private readonly array $options,
@@ -68,6 +69,7 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
         private readonly iterable $directiveRenderers = [],
         private readonly ?TranslatorInterface $translator = null,
         private readonly ?LoggerInterface $logger = null,
+        private readonly string $secret = '',
     ) {
     }
 
@@ -140,7 +142,7 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
             // Before the footnote listeners (40 … 10): case-insensitive labels and the reference cap (CZ-L1).
             $environment->addEventListener(DocumentParsedEvent::class, [new FootnoteGuard($this->options['max_footnote_refs'] ?? FootnoteGuard::DEFAULT_MAX_FOOTNOTE_REFS), 'onDocumentParsed'], 50);
             // After orphans become text (30), before numbering (20): per-document salt of the footnote ids (CZ-I7).
-            $this->footnoteSalt = new FootnoteSalt();
+            $this->footnoteSalt = new FootnoteSalt($this->secret);
             $environment->addEventListener(DocumentParsedEvent::class, [$this->footnoteSalt, 'onDocumentParsed'], 25);
         }
         $environment->addExtension(new MilkdownDialectExtension(

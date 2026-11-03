@@ -74,6 +74,7 @@ final class RendererTest extends TestCase
             $directives,
             $translator,
             $logger,
+            'kernel-secret',
         );
     }
 
@@ -183,13 +184,13 @@ final class RendererTest extends TestCase
     public function footnotesRenderWithPrefixedSaltedIds(): void
     {
         $html = $this->renderer()->render("Text[^1] and @alice[^n].\n\n[^1]: A *note* with [[wiki:" . self::ID . "]].\n[^n]: <b>raw</b>\n");
-        self::assertMatchesRegularExpression('#<sup id="nowo-md-fnref-([0-9a-f]{6})-1"><a class="nowo-md-footnote-ref" href="\#nowo-md-fn-\1-1" role="doc-noteref">1</a></sup>#', $html);
+        self::assertMatchesRegularExpression('#<sup id="nowo-md-fnref-([0-9a-f]{12})-1"><a class="nowo-md-footnote-ref" href="\#nowo-md-fn-\1-1" role="doc-noteref">1</a></sup>#', $html);
         self::assertStringContainsString('<div class="nowo-md-footnotes" role="doc-endnotes"><hr />', $html);
-        self::assertMatchesRegularExpression('#<li class="nowo-md-footnote" id="nowo-md-fn-[0-9a-f]{6}-1" role="doc-endnote">#', $html);
+        self::assertMatchesRegularExpression('#<li class="nowo-md-footnote" id="nowo-md-fn-[0-9a-f]{12}-1" role="doc-endnote">#', $html);
         self::assertStringContainsString('<em>note</em>', $html);
         self::assertStringContainsString('href="/wiki/install"', $html);
         self::assertStringContainsString('&lt;b&gt;raw&lt;/b&gt;', $html);
-        self::assertMatchesRegularExpression('#class="nowo-md-footnote-backref" rev="footnote" href="\#nowo-md-fnref-[0-9a-f]{6}-1"#', $html);
+        self::assertMatchesRegularExpression('#class="nowo-md-footnote-backref" rev="footnote" href="\#nowo-md-fnref-[0-9a-f]{12}-1"#', $html);
         self::assertStringNotContainsString('[^1]', $html);
 
         // Deterministic per document (stored HTML, ETags); another document, or the same one rendered again in the
@@ -197,11 +198,14 @@ final class RendererTest extends TestCase
         $renderer = $this->renderer();
         $md       = "A[^1] see [jump](#nowo-md-fn-1) and nowo-md-fn-1\n\n[^1]: B";
         $first    = $renderer->render($md);
-        $salt     = substr(hash('sha256', $md), 0, 6);
+        // 1.3.1 (CZ-I10 / CZ-I11): 12 hex characters of an HMAC under a kernel.secret subkey, the counter inside.
+        $key  = hash_hmac('sha256', 'nowo_milkdown_footnote_salt', 'kernel-secret');
+        $salt = substr(hash_hmac('sha256', "0\0" . $md, $key), 0, 12);
         self::assertStringContainsString('id="nowo-md-fn-' . $salt . '-1"', $first);
+        self::assertStringNotContainsString(substr(hash('sha256', $md), 0, 6), $first, 'no digest of the source');
         self::assertStringContainsString('href="#nowo-md-fn-1"', $first, 'user link untouched');
         self::assertStringContainsString('and nowo-md-fn-1', $first, 'user text untouched');
-        self::assertStringContainsString('id="nowo-md-fn-' . $salt . '-1-1"', $renderer->render($md), 'rendered twice on one page');
+        self::assertStringContainsString('id="nowo-md-fn-' . substr(hash_hmac('sha256', "1\0" . $md, $key), 0, 12) . '-1"', $renderer->render($md), 'rendered twice on one page');
         preg_match('/id="(nowo-md-fn-[^"]+)"/', $renderer->render("A[^1]\n\n[^1]: C"), $other);
         self::assertStringNotContainsString($salt, $other[1] ?? '');
         $renderer->reset();

@@ -15,6 +15,13 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Security
+
+- **Footnote id salt keyed with `kernel.secret`** (audit CZ-I10 / CZ-I11): 12 hex characters of an HMAC, under a
+  purpose-bound subkey of `kernel.secret`, of the render count and the Markdown. 1.2.1 used 6 characters of a plain
+  SHA-256 of the Markdown (24 bits, a digest of the source) and appended the counter with `-`, which could be read as
+  part of the label. Ids stay stable per document; their salt part changes once with this release.
+
 ## [1.3.0] - 2026-11-03
 
 context menu (right-click / Shift+F10), opt-in

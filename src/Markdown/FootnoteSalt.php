@@ -10,23 +10,38 @@ use League\CommonMark\Extension\Footnote\Node\FootnoteRef;
 use League\CommonMark\Reference\Reference;
 use Symfony\Contracts\Service\ResetInterface;
 
-use function hash;
+use function hash_hmac;
 use function strlen;
 use function substr;
 
 /**
- * Salts the labels league/commonmark builds footnote ids from (1.2.1, audit CZ-I7), so `nowo-md-fn-<salt>-<label>` is
- * unique on a page (a page and its comments) yet stable for one document: the salt is the first 6 hex characters of a
- * hash of the Markdown, plus a counter when the same document is rendered again in the same request. Only the
- * footnote nodes are renamed (after orphans were restored as text, before numbering): user text and links are never
- * touched. The counter is cleared on `kernel.reset` (worker-safe).
+ * Salts the labels league/commonmark builds footnote ids from, so `nowo-md-fn-<salt>-<label>` is unique on a page (a
+ * page and its comments) yet stable for one document (stored HTML, ETags).
+ *
+ * 1.3.1 (audit CZ-I10 / CZ-I11): the salt is 12 hex characters of an HMAC, under a subkey of `kernel.secret`, of the
+ * render count and the Markdown (`count . "\0" . markdown`). It reveals nothing about the source, two documents
+ * collide only with probability 2^-48, and the counter is inside the HMAC, so the boundary between salt and label is
+ * always the 13th character. Only footnote nodes are renamed (after orphans were restored as text, before numbering):
+ * user text and links are never touched. The counter is cleared on `kernel.reset` (worker-safe).
  */
 final class FootnoteSalt implements ResetInterface
 {
-    /** @var array<string, int> document hash => renders in this request */
+    public const SALT_LENGTH = 12;
+
+    /** @var array<string, int> document digest => renders in this request */
     private array $renders = [];
 
     private string $salt = '';
+
+    private readonly string $key;
+
+    /**
+     * @param string $secret `kernel.secret` (a purpose-bound subkey is derived from it; '' only outside a kernel)
+     */
+    public function __construct(string $secret = '')
+    {
+        $this->key = hash_hmac('sha256', 'nowo_milkdown_footnote_salt', $secret);
+    }
 
     /**
      * Sets the salt for the next document.
@@ -35,10 +50,10 @@ final class FootnoteSalt implements ResetInterface
      */
     public function prepare(string $markdown): void
     {
-        $hash                 = substr(hash('sha256', $markdown), 0, 6);
-        $count                = $this->renders[$hash] ?? 0;
-        $this->renders[$hash] = $count + 1;
-        $this->salt           = $count === 0 ? $hash : $hash . '-' . $count;
+        $digest                 = hash_hmac('sha256', "0\0" . $markdown, $this->key);
+        $count                  = $this->renders[$digest] ?? 0;
+        $this->renders[$digest] = $count + 1;
+        $this->salt             = substr($count === 0 ? $digest : hash_hmac('sha256', $count . "\0" . $markdown, $this->key), 0, self::SALT_LENGTH);
     }
 
     /**
