@@ -18,6 +18,34 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+Collaboration request rate (patch).
+
+### Fixed
+
+- **Co-editing no longer floods the host (Beacon audit, High).** The collaboration client posted one request per Yjs
+  update and one per presence change: about 30 requests/s for a 15 keys/s typist, so a `600/min` limiter answered 429
+  and the editor went offline. Now:
+  - local updates are merged with `Y.mergeUpdates` and posted once per **200 ms** window, one request in flight (order
+    kept), and flushed at once on editor blur, form submit, hidden / closed tab (`keepalive`) and destroy;
+  - presence is posted at most once per **750 ms** (trailing edge); leaving is still announced at once;
+  - a **429** keeps the merged edits and retries after `Retry-After` (seconds or date; otherwise 1 s doubling up to
+    30 s) without going offline; other failures behave as before (offline, the reconnect diff carries the edits).
+  - Measured with a deterministic test (15 keys/s for 10 s, caret moving with each key): **300 → 63 requests**
+    (50 updates + 13 presence), i.e. 30 → 6.3 requests/s.
+
+- **Insert submenu at the right edge** (Beacon): a submenu with no room on the right now opens to the left of its
+  menu instead of being pushed over the menu's shortcut column (keyboard behaviour unchanged).
+- **"Copied as Markdown" never cleared** (Beacon): editor confirmations are now transient (cleared after 4 s and on the
+  next key or pointer action in the editor); the read-view copy status clears after 4 s and on the next click.
+
+### Added
+
+- **`nowo_milkdown_copy_markdown(markdown, {icon})`** (Beacon): `icon: true` adds a static copy icon before the label,
+  `icon: 'only'` renders an icon-only button whose label stays in a visually hidden span and the `title` (no inline
+  styles). The markup is now **public API** (see USAGE: *Markdown clipboard*), checked by the demo e2e.
+- `collaboration.update_delay_ms` (0–2000, default 200) and `collaboration.awareness_delay_ms` (0–5000, default 750)
+  form options; sent in the widget JSON only when set.
+
 ## [1.5.0] - 2026-11-03
 
 Markdown clipboard and the Insert group (opt-in), "Copy as Markdown" for read pages.

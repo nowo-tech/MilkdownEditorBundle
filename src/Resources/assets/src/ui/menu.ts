@@ -93,7 +93,16 @@ export class Menu {
    * @param x - Left edge (viewport px)
    * @param y - Top edge (viewport px)
    */
-  open(groups: MenuGroups, x: number, y: number): void {
+  /**
+   * Opens the menu at viewport coordinates.
+   *
+   * @param groups - Item groups
+   * @param x - Left edge
+   * @param y - Top edge
+   * @param flipX - For a submenu: the parent's left edge; when the menu would overflow the right edge it opens to the
+   *   left of the parent instead of covering it (1.5.1)
+   */
+  open(groups: MenuGroups, x: number, y: number, flipX?: number): void {
     this.closeChild();
     this.element.replaceChildren();
     this.items = [];
@@ -109,7 +118,7 @@ export class Menu {
     }
     if (!this.element.isConnected) this.host.append(this.element);
     this.element.hidden = false;
-    this.place(x, y);
+    this.place(x, y, flipX);
     if (!this.parent) document.addEventListener('pointerdown', this.onOutside, true);
     this.focus(0);
   }
@@ -171,13 +180,15 @@ export class Menu {
   }
 
   /** Keeps the menu inside the viewport (CSSOM: allowed under a strict `style-src-attr`). */
-  private place(x: number, y: number): void {
+  private place(x: number, y: number, flipX?: number): void {
     this.element.style.left = '0px';
     this.element.style.top = '0px';
     const rect = this.element.getBoundingClientRect();
     const width = rect.width || 0;
     const height = rect.height || 0;
     const maxX = Math.max(0, window.innerWidth - width - 4);
+    // A submenu that does not fit on the right opens on the left of its parent (when that fits better).
+    if (flipX !== undefined && x > maxX && flipX - width >= 4) x = flipX - width;
     const maxY = Math.max(0, window.innerHeight - height - 4);
     this.element.style.left = `${Math.round(Math.min(Math.max(4, x), maxX))}px`;
     this.element.style.top = `${Math.round(Math.min(Math.max(4, y), maxY))}px`;
@@ -277,7 +288,7 @@ export class Menu {
     button.setAttribute('aria-expanded', 'true');
     button.setAttribute('aria-controls', child.element.id);
     const rect = button.getBoundingClientRect();
-    child.open([item.items!], rect.right, rect.top);
+    child.open([item.items!], rect.right, rect.top, this.element.getBoundingClientRect().left);
   }
 
   /** Closes the open submenu; `refocus` puts focus back on its item. */

@@ -28,6 +28,8 @@ final readonly class MilkdownEditorTwig
     /** Built entry and stylesheet inside the asset package. */
     public const SCRIPT     = 'milkdown-editor.js';
     public const STYLESHEET = 'milkdown-editor.css';
+    /** Static icon of the copy button (two sheets); markup from the bundle, never from user data. */
+    public const COPY_ICON = '<svg class="nowo-milkdown-copy__icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>';
 
     /**
      * @param MarkdownRendererInterface $renderer Markdown → safe HTML
@@ -76,8 +78,14 @@ final readonly class MilkdownEditorTwig
      * Pass only Markdown the viewer may read, and only on pages the viewer may read: the source is in the page HTML.
      *
      * @param string|null $markdown The source (null or '' renders nothing)
-     * @param array{label?: string, class?: string} $options `label` (default: the translated "Copy as Markdown") and
-     *                                                       extra `class` of the button (e.g. a UiKit button class)
+     *                              Markup (public API, stable since 1.5.1): `span.nowo-milkdown-copy[data-nowo-milkdown-copy]` holding
+     *                              `button.nowo-milkdown-copy__button[data-nowo-milkdown-copy-markdown][data-copied][data-failed]`, the source in an
+     *                              inert `<template>` and `span.nowo-milkdown-copy__status[role=status]`. With `icon`, the button starts with
+     *                              `svg.nowo-milkdown-copy__icon[aria-hidden=true]`; with `icon: 'only'` the label is kept for assistive technology
+     *                              in `span.nowo-milkdown-sr-only` and as the `title` tooltip.
+     * @param array{label?: string, class?: string, icon?: bool|string} $options `label` (default: the translated
+     *                                                                           "Copy as Markdown"), extra `class` of the button (e.g. a UiKit button class), `icon` (`true`: icon and
+     *                                                                           label, `'only'`: icon-only button with an accessible label; default `false`)
      */
     #[AsTwigFunction('nowo_milkdown_copy_markdown', isSafe: ['html'])]
     public function copyMarkdown(?string $markdown, array $options = []): string
@@ -88,11 +96,20 @@ final readonly class MilkdownEditorTwig
 
         $label = is_string($options['label'] ?? null) ? $options['label'] : $this->trans('menu.copy_markdown');
         $class = is_string($options['class'] ?? null) && $options['class'] !== '' ? ' ' . $options['class'] : '';
+        $icon  = $options['icon'] ?? false;
+        $only  = $icon === 'only';
+        // 1.5.1: an optional static icon (bundle markup, no inline style); icon-only keeps a visually hidden label.
+        $content = match (true) {
+            $only          => self::COPY_ICON . '<span class="nowo-milkdown-sr-only">' . DialectRenderer::e($label) . '</span>',
+            $icon === true => self::COPY_ICON . '<span class="nowo-milkdown-copy__label">' . DialectRenderer::e($label) . '</span>',
+            default        => DialectRenderer::e($label),
+        };
 
         return '<span class="nowo-milkdown-copy" data-nowo-milkdown-copy>'
-            . '<button type="button" class="nowo-milkdown-copy__button' . DialectRenderer::e($class) . '" data-nowo-milkdown-copy-markdown'
+            . '<button type="button" class="nowo-milkdown-copy__button' . ($only ? ' nowo-milkdown-copy__button--icon' : '') . DialectRenderer::e($class) . '" data-nowo-milkdown-copy-markdown'
+            . ($only ? ' title="' . DialectRenderer::e($label) . '"' : '')
             . ' data-copied="' . DialectRenderer::e($this->trans('clipboard.copied_markdown')) . '"'
-            . ' data-failed="' . DialectRenderer::e($this->trans('clipboard.copy_failed')) . '">' . DialectRenderer::e($label) . '</button>'
+            . ' data-failed="' . DialectRenderer::e($this->trans('clipboard.copy_failed')) . '">' . $content . '</button>'
             . '<template>' . DialectRenderer::e($markdown) . '</template>'
             . '<span class="nowo-milkdown-copy__status" role="status"></span></span>';
     }

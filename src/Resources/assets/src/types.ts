@@ -68,6 +68,9 @@ export type CollaborationOptions = {
   topic: string;
   /** Name and colour shown with this user's cursor. */
   user: { name: string; color: string };
+  /** 1.5.1: coalescing window of document updates (ms, default 200) and presence throttle (ms, default 750). */
+  updateDelay?: number;
+  awarenessDelay?: number;
 };
 
 export type Theme = 'light' | 'dark' | 'auto';

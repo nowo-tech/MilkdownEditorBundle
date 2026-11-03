@@ -4490,7 +4490,16 @@ var qc = (e) => {
 	let t = "";
 	for (let n = 0; n < e.length; n += 32768) t += String.fromCharCode(...e.subarray(n, n + 32768));
 	return btoa(t);
-}, Jc = (e) => Uint8Array.from(atob(e), (e) => e.charCodeAt(0)), Yc = (e) => [e.state, ...Array.isArray(e.updates) ? e.updates : []].filter((e) => typeof e == "string" && e !== ""), Xc = class {
+}, Jc = (e) => Uint8Array.from(atob(e), (e) => e.charCodeAt(0)), Yc = 3e4, Xc = 6e4, Zc = (e, t, n) => typeof e == "number" && Number.isFinite(e) ? Math.min(n, Math.max(0, Math.round(e))) : t;
+function Qc(e, t, n = Date.now()) {
+	let r = Math.min(Yc, 1e3 * 2 ** t);
+	if (!e) return r;
+	let i = Number(e.trim());
+	if (/^\d+(\.\d+)?$/.test(e.trim()) && Number.isFinite(i)) return Math.min(Yc, Math.max(0, i * 1e3));
+	let a = Date.parse(e);
+	return Number.isNaN(a) ? r : Math.min(Yc, Math.max(0, a - n));
+}
+var $c = (e) => [e.state, ...Array.isArray(e.updates) ? e.updates : []].filter((e) => typeof e == "string" && e !== ""), el = class {
 	doc;
 	base;
 	hubUrl;
@@ -4510,15 +4519,48 @@ var qc = (e) => {
 	onOffline = () => {
 		this.es?.close(), this.setStatus("offline");
 	};
-	onUnload = () => Es(this.awareness, [this.doc.clientID], "window unload");
-	constructor(e, t, n, r) {
-		this.doc = e, this.base = t, this.hubUrl = n, this.topic = r, this.awareness = new Ts(e), e.on("update", this.onDocUpdate), this.awareness.on("update", this.onAwarenessUpdate), window.addEventListener("online", this.onOnline), window.addEventListener("offline", this.onOffline), window.addEventListener("beforeunload", this.onUnload);
+	onUnload = () => {
+		this.flush(!0), Es(this.awareness, [this.doc.clientID], "window unload");
+	};
+	onPageHide = () => this.flush(!0);
+	onVisibility = () => {
+		document.visibilityState === "hidden" && this.flush(!0);
+	};
+	pending = [];
+	inFlight = !1;
+	updateTimer = null;
+	awarenessTimer = null;
+	awarenessDue = !1;
+	throttled = 0;
+	blockedUntil = 0;
+	updateDelay;
+	awarenessDelay;
+	constructor(e, t, n, r, i = {}) {
+		this.doc = e, this.base = t, this.hubUrl = n, this.topic = r, this.updateDelay = Zc(i.updateDelay, 200, 2e3), this.awarenessDelay = Zc(i.awarenessDelay, 750, 5e3), this.awareness = new Ts(e), e.on("update", this.onDocUpdate), this.awareness.on("update", this.onAwarenessUpdate), window.addEventListener("online", this.onOnline), window.addEventListener("offline", this.onOffline), window.addEventListener("beforeunload", this.onUnload), window.addEventListener("pagehide", this.onPageHide), document.addEventListener("visibilitychange", this.onVisibility);
 	}
 	onStatus(e) {
 		this.listeners.add(e);
 	}
 	get hasPendingChanges() {
-		return this.dirty;
+		return this.dirty || this.pending.length > 0 || this.inFlight;
+	}
+	flush(e = !1) {
+		if (this.updateTimer && clearTimeout(this.updateTimer), this.updateTimer = null, e) {
+			if (this.status !== "online" || !this.pending.length) return;
+			let e = xa(this.pending);
+			this.pending = [];
+			let t = JSON.stringify({
+				c: this.doc.clientID,
+				d: qc(e)
+			});
+			fetch(`${this.base}/update`, {
+				method: "POST",
+				credentials: "same-origin",
+				headers: { "Content-Type": "application/json" },
+				body: t,
+				keepalive: t.length <= Xc
+			}).catch(() => void 0);
+		} else this.sendUpdates();
 	}
 	connect() {
 		return this.closed ? Promise.resolve() : (this.connecting ??= this.doConnect().finally(() => {
@@ -4526,7 +4568,7 @@ var qc = (e) => {
 		}), this.connecting);
 	}
 	disconnect() {
-		this.closed = !0, this.es?.close(), this.doc.off("update", this.onDocUpdate), this.awareness.off("update", this.onAwarenessUpdate), window.removeEventListener("online", this.onOnline), window.removeEventListener("offline", this.onOffline), window.removeEventListener("beforeunload", this.onUnload), this.awareness.destroy(), this.setStatus("offline");
+		this.flush(!0), this.awarenessTimer && clearTimeout(this.awarenessTimer), this.closed = !0, this.es?.close(), this.doc.off("update", this.onDocUpdate), this.awareness.off("update", this.onAwarenessUpdate), window.removeEventListener("online", this.onOnline), window.removeEventListener("offline", this.onOffline), window.removeEventListener("beforeunload", this.onUnload), window.removeEventListener("pagehide", this.onPageHide), document.removeEventListener("visibilitychange", this.onVisibility), this.awareness.destroy(), this.setStatus("offline");
 	}
 	setStatus(e) {
 		this.status = e, this.listeners.forEach((t) => t(e));
@@ -4564,13 +4606,13 @@ var qc = (e) => {
 		this.seed = i.seed === !0, this.seq = typeof i.seq == "number" && Number.isInteger(i.seq) ? i.seq : 0;
 		let a = new L();
 		try {
-			for (let e of Yc(i)) bi(a, Jc(e)), bi(this.doc, Jc(e), this);
+			for (let e of $c(i)) bi(a, Jc(e)), bi(this.doc, Jc(e), this);
 		} catch {
 			a.destroy(), await this.reportCorrupt();
 			return;
 		}
 		let o = Ci(this.doc, ki(a));
-		a.destroy(), o.length > 2 && await this.post("update", o), i.compact === !0 && typeof i.seq == "number" && Number.isInteger(i.seq) && await this.compact(i.seq), this.dirty = !1, this.retry = 0, this.setStatus("online"), await this.post("awareness", Ds(this.awareness, [this.doc.clientID]));
+		a.destroy(), this.pending = [], o.length > 2 && await this.post("update", o), i.compact === !0 && typeof i.seq == "number" && Number.isInteger(i.seq) && await this.compact(i.seq), this.dirty = !1, this.retry = 0, this.setStatus("online"), await this.post("awareness", Ds(this.awareness, [this.doc.clientID]));
 	}
 	scheduleReconnect() {
 		if (this.closed) return;
@@ -4597,7 +4639,7 @@ var qc = (e) => {
 		} catch {
 			return;
 		}
-		t || this.post("awareness", Ds(this.awareness, [this.doc.clientID]));
+		t || this.scheduleAwareness();
 	}
 	async reportCorrupt() {
 		if (this.setStatus("offline"), !this.reported) {
@@ -4616,8 +4658,35 @@ var qc = (e) => {
 		}
 	}
 	onDocUpdate = (e, t) => {
-		t !== this && (this.status === "online" ? this.post("update", e) : this.dirty = !0);
+		t !== this && (this.status === "online" ? (this.pending.push(e), this.scheduleUpdates(this.updateDelay)) : this.dirty = !0);
 	};
+	scheduleUpdates(e) {
+		if (this.updateTimer || this.closed) return;
+		let t = Math.max(e, this.blockedUntil - Date.now());
+		this.updateTimer = setTimeout(() => {
+			this.updateTimer = null, this.sendUpdates();
+		}, t);
+	}
+	async sendUpdates() {
+		if (this.inFlight || !this.pending.length || this.status !== "online") return;
+		if (Date.now() < this.blockedUntil) {
+			this.scheduleUpdates(0);
+			return;
+		}
+		let e = this.pending.length === 1 ? this.pending[0] : xa(this.pending);
+		this.pending = [], this.inFlight = !0;
+		let t = await this.post("update", e);
+		this.inFlight = !1, t === "throttled" ? (this.pending.unshift(e), this.scheduleUpdates(0)) : this.pending.length && this.scheduleUpdates(this.updateDelay);
+	}
+	scheduleAwareness() {
+		if (this.awarenessDue = !0, this.awarenessTimer || this.closed) return;
+		let e = Math.max(this.awarenessDelay, this.blockedUntil - Date.now());
+		this.awarenessTimer = setTimeout(() => {
+			this.awarenessTimer = null, this.awarenessDue && this.status === "online" && (this.awarenessDue = !1, this.post("awareness", Ds(this.awareness, [this.doc.clientID])).then((e) => {
+				e === "throttled" && this.scheduleAwareness();
+			}));
+		}, e);
+	}
 	onAwarenessUpdate = ({ added: e, updated: t, removed: n }, r) => {
 		if (r === this || this.status !== "online") return;
 		let i = [
@@ -4625,7 +4694,16 @@ var qc = (e) => {
 			...t,
 			...n
 		].filter((e) => e === this.doc.clientID);
-		i.length && this.post("awareness", Ds(this.awareness, i));
+		i.length && (n.includes(this.doc.clientID) ? fetch(`${this.base}/awareness`, {
+			method: "POST",
+			credentials: "same-origin",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				c: this.doc.clientID,
+				d: qc(Ds(this.awareness, i))
+			}),
+			keepalive: !0
+		}).catch(() => void 0) : this.scheduleAwareness());
 	};
 	async compact(e) {
 		try {
@@ -4652,29 +4730,31 @@ var qc = (e) => {
 					d: qc(t)
 				})
 			});
+			if (n.status === 429) return this.blockedUntil = Date.now() + Qc(n.headers.get("Retry-After"), this.throttled++), "throttled";
 			if (!n.ok) throw Error(String(n.status));
+			return this.throttled = 0, "sent";
 		} catch {
-			e === "update" && (this.dirty = !0), this.setStatus("offline");
+			return e === "update" && (this.dirty = !0), this.setStatus("offline"), "failed";
 		}
 	}
-}, Zc = (e) => typeof e == "string" && /^#[0-9a-f]{6}$/i.test(e) ? e : "#6b7280";
-function Qc(e) {
+}, tl = (e) => typeof e == "string" && /^#[0-9a-f]{6}$/i.test(e) ? e : "#6b7280";
+function nl(e) {
 	let t = document.createElement("span");
-	t.className = "ProseMirror-yjs-cursor", t.style.borderColor = Zc(e.color);
+	t.className = "ProseMirror-yjs-cursor", t.style.borderColor = tl(e.color);
 	let n = document.createElement("div");
-	return n.style.backgroundColor = Zc(e.color), n.textContent = typeof e.name == "string" ? e.name.slice(0, 40) : "", t.append(document.createTextNode("⁠"), n, document.createTextNode("⁠")), t;
+	return n.style.backgroundColor = tl(e.color), n.textContent = typeof e.name == "string" ? e.name.slice(0, 40) : "", t.append(document.createTextNode("⁠"), n, document.createTextNode("⁠")), t;
 }
-var $c = (e) => ({
-	style: `background-color: ${Zc(e.color)}70`,
+var rl = (e) => ({
+	style: `background-color: ${tl(e.color)}70`,
 	class: "ProseMirror-yjs-selection"
-}), el = 1500, tl = { reload: () => window.location.reload() }, nl = 3, rl = 3e5, il = () => {
+}), il = 1500, al = { reload: () => window.location.reload() }, ol = 3, sl = 3e5, cl = () => {
 	try {
 		return window.sessionStorage;
 	} catch {
 		return null;
 	}
 };
-function al(e, t = il(), n = Date.now()) {
+function ll(e, t = cl(), n = Date.now()) {
 	let r = `nowo-milkdown-reloads:${e}`, i;
 	try {
 		i = JSON.parse(t?.getItem(r) ?? "[]");
@@ -4688,15 +4768,18 @@ function al(e, t = il(), n = Date.now()) {
 	} catch {}
 	return !0;
 }
-async function ol(e, t, n, r, i = () => void 0) {
-	let a = new L(), o = new Xc(a, t.url, t.hubUrl, t.topic);
+async function ul(e, t, n, r, i = () => void 0) {
+	let a = new L(), o = new el(a, t.url, t.hubUrl, t.topic, {
+		updateDelay: t.updateDelay,
+		awarenessDelay: t.awarenessDelay
+	});
 	return o.awareness.setLocalStateField("user", t.user), o.onStatus((e) => {
-		r(e), e === "reset" && (al(t.topic) ? window.setTimeout(() => tl.reload(), el) : i());
+		r(e), e === "reset" && (ll(t.topic) ? window.setTimeout(() => al.reload(), il) : i());
 	}), await o.connect(), e.action((e) => {
 		let t = e.get(Wc);
 		t.setOptions({ yCursorOpts: {
-			cursorBuilder: Qc,
-			selectionBuilder: $c
+			cursorBuilder: nl,
+			selectionBuilder: rl
 		} }), t.bindDoc(a).setAwareness(o.awareness), o.seed && t.applyTemplate(n), t.connect();
 	}), {
 		provider: o,
@@ -4705,4 +4788,4 @@ async function ol(e, t, n, r, i = () => void 0) {
 		}
 	};
 }
-export { nl as RELOAD_CAP, rl as RELOAD_WINDOW, el as RESET_RELOAD_DELAY, al as allowReload, Kc as collab, Qc as cursorBuilder, tl as page, Zc as safeColor, $c as selectionBuilder, ol as startCollaboration };
+export { ol as RELOAD_CAP, sl as RELOAD_WINDOW, il as RESET_RELOAD_DELAY, ll as allowReload, Kc as collab, nl as cursorBuilder, al as page, tl as safeColor, rl as selectionBuilder, ul as startCollaboration };

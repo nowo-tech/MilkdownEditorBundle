@@ -93,7 +93,7 @@ export async function startCollaboration(
   onReloadPaused: () => void = () => undefined,
 ): Promise<Collaboration> {
   const doc = new Y.Doc();
-  const provider = new MercureProvider(doc, options.url, options.hubUrl, options.topic);
+  const provider = new MercureProvider(doc, options.url, options.hubUrl, options.topic, { updateDelay: options.updateDelay, awarenessDelay: options.awarenessDelay });
   provider.awareness.setLocalStateField('user', options.user);
   provider.onStatus((s) => {
     onStatus(s);

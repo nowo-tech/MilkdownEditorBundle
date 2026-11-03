@@ -23,6 +23,7 @@ use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+use function array_key_exists;
 use function class_exists;
 use function in_array;
 use function is_array;
@@ -343,11 +344,13 @@ final class MilkdownEditorType extends AbstractType
     }
 
     /**
-     * Collaboration needs `url`, `hub_url`, `topic` and a `user` name; the colour defaults to the accent.
+     * Collaboration needs `url`, `hub_url`, `topic` and a `user` name; the colour defaults to the accent. 1.5.1:
+     * optional `update_delay_ms` (0–2000, coalescing window of document updates) and `awareness_delay_ms` (0–5000,
+     * presence throttle), sent only when set so the widget JSON is unchanged otherwise.
      *
      * @param array<mixed> $value The option
      *
-     * @return array{url: string, hubUrl: string, topic: string, user: array{name: string, color: string}}
+     * @return array{url: string, hubUrl: string, topic: string, user: array{name: string, color: string}, updateDelay?: int, awarenessDelay?: int}
      */
     public static function normaliseCollaboration(array $value): array
     {
@@ -367,7 +370,18 @@ final class MilkdownEditorType extends AbstractType
         /** @var string $topic */
         $topic = $value['topic'];
 
-        return ['url' => $url, 'hubUrl' => $hub, 'topic' => $topic, 'user' => ['name' => $name, 'color' => $color]];
+        $out = ['url' => $url, 'hubUrl' => $hub, 'topic' => $topic, 'user' => ['name' => $name, 'color' => $color]];
+        foreach (['update_delay_ms' => ['updateDelay', 2000], 'awareness_delay_ms' => ['awarenessDelay', 5000]] as $key => [$json, $max]) {
+            if (!array_key_exists($key, $value)) {
+                continue;
+            }
+            if (!is_int($value[$key]) || $value[$key] < 0 || $value[$key] > $max) {
+                throw new InvalidOptionsException(sprintf('The "collaboration.%s" option must be an integer from 0 to %d (milliseconds).', $key, $max));
+            }
+            $out[$json] = $value[$key];
+        }
+
+        return $out;
     }
 
     /**

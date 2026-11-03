@@ -207,6 +207,8 @@ are marked *default pending user confirmation*.
   PR #13
 - [x] Markdown clipboard (`markdown_clipboard`: smart paste, Paste / Copy as Markdown), *Insert* group of the context
   menu (`insert_menu`) and the read-view "Copy as Markdown" button (owner requests, Beacon) — 1.5, PR #14
+- [x] Collaboration request rate (coalesced updates, throttled presence, 429 backoff; Beacon audit High), submenu
+  flip at the right edge, transient copy status, icon variants of `nowo_milkdown_copy_markdown()` — 1.5.1 patch
 
 ## Feature assessments
 
