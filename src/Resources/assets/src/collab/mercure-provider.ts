@@ -28,12 +28,20 @@ export const fromBase64 = (s: string): Uint8Array => Uint8Array.from(atob(s), (c
 
 export type Status = 'connecting' | 'online' | 'offline' | 'reset';
 
-/** Send windows (1.5.1): coalescing of document updates and throttling of presence, in ms. */
-export type CollabTiming = { updateDelay?: number; awarenessDelay?: number };
+/**
+ * Send windows (1.5.1): coalescing of document updates and throttling of presence (ms), and the largest merged
+ * update the client sends in one POST (raw Yjs bytes; keep it at or below the host's limit, e.g. WikiBundle's
+ * `max_update_bytes`).
+ */
+export type CollabTiming = { updateDelay?: number; awarenessDelay?: number; maxUpdateBytes?: number };
 export const DEFAULT_UPDATE_DELAY = 200;
 export const DEFAULT_AWARENESS_DELAY = 750;
-/** Longest wait after a 429 (ms), also the cap of a `Retry-After` header. */
+export const DEFAULT_MAX_UPDATE_BYTES = 256 * 1024;
+/** Longest exponential backoff after a 429 without a usable `Retry-After` (ms). */
 export const MAX_BACKOFF = 30_000;
+/** A `Retry-After` is honoured within [MIN_RETRY_AFTER, MAX_RETRY_AFTER] ms (audit DS-L1: 0 or a past date looped). */
+export const MIN_RETRY_AFTER = 1000;
+export const MAX_RETRY_AFTER = 60_000;
 /** `keepalive` bodies are limited to 64 KiB by browsers; larger flushes on page hide are sent normally. */
 const KEEPALIVE_MAX = 60_000;
 
@@ -41,20 +49,27 @@ const clamp = (value: unknown, fallback: number, max: number): number =>
   typeof value === 'number' && Number.isFinite(value) ? Math.min(max, Math.max(0, Math.round(value))) : fallback;
 
 /**
- * Delay of a 429 answer: `Retry-After` in seconds or as an HTTP date, otherwise 1 s doubled per attempt.
+ * Delay of a 429 answer: never shorter than the exponential backoff (1 s doubled per 429 in a row, at most
+ * {@link MAX_BACKOFF}); a `Retry-After` (seconds or an HTTP date) may lengthen it, clamped to
+ * [{@link MIN_RETRY_AFTER}, {@link MAX_RETRY_AFTER}] — so `0` or a past date cannot make a request loop (DS-L1).
  *
  * @param header - The `Retry-After` header (or null)
  * @param attempt - 0 for the first 429 in a row
  * @param now - Current time (ms)
- * @returns The delay in ms, at most {@link MAX_BACKOFF}
+ * @returns The delay in ms, between 1 s and {@link MAX_RETRY_AFTER}
  */
 export function retryAfter(header: string | null, attempt: number, now: number = Date.now()): number {
-  const fallback = Math.min(MAX_BACKOFF, 1000 * 2 ** attempt);
-  if (!header) return fallback;
-  const seconds = Number(header.trim());
-  if (/^\d+(\.\d+)?$/.test(header.trim()) && Number.isFinite(seconds)) return Math.min(MAX_BACKOFF, Math.max(0, seconds * 1000));
-  const date = Date.parse(header);
-  return Number.isNaN(date) ? fallback : Math.min(MAX_BACKOFF, Math.max(0, date - now));
+  const backoff = Math.min(MAX_BACKOFF, 1000 * 2 ** attempt);
+  if (!header) return backoff;
+  const value = header.trim();
+  let asked: number;
+  if (/^\d+(\.\d+)?$/.test(value)) asked = Number(value) * 1000;
+  else {
+    const date = Date.parse(value);
+    if (Number.isNaN(date)) return backoff;
+    asked = date - now;
+  }
+  return Math.max(backoff, Math.min(MAX_RETRY_AFTER, Math.max(MIN_RETRY_AFTER, asked)));
 }
 type Message = { t: 'u' | 'a' | 'r'; c: number; d: string };
 /** `GET <url>/state` answer: `state` (1.0), plus the optional update log of 1.2. */
@@ -89,8 +104,9 @@ export class MercureProvider {
     removeAwarenessStates(this.awareness, [this.doc.clientID], 'window unload');
   };
   private readonly onPageHide = (): void => this.flush(true);
+  // DS-L2: a hidden tab may come back: a normal flush (throttle, one request in flight, re-queued on failure).
   private readonly onVisibility = (): void => {
-    if (document.visibilityState === 'hidden') this.flush(true);
+    if (document.visibilityState === 'hidden') this.flush();
   };
   /** Local updates not sent yet (merged on send). */
   private pending: Uint8Array[] = [];
@@ -98,11 +114,14 @@ export class MercureProvider {
   private updateTimer: ReturnType<typeof setTimeout> | null = null;
   private awarenessTimer: ReturnType<typeof setTimeout> | null = null;
   private awarenessDue = false;
-  /** 429s in a row (backoff exponent); 0 after a success. */
-  private throttled = 0;
-  private blockedUntil = 0;
+  /** 429s in a row per endpoint (backoff exponent); 0 after a success. */
+  private throttled = { update: 0, awareness: 0 };
+  private blockedUntil = { update: 0, awareness: 0 };
+  /** The batch a keepalive flush sent while the page went away; kept until it is known to be stored (DS-L2). */
+  private unconfirmed: Uint8Array | null = null;
   readonly updateDelay: number;
   readonly awarenessDelay: number;
+  readonly maxUpdateBytes: number;
 
   constructor(
     readonly doc: Y.Doc,
@@ -113,6 +132,7 @@ export class MercureProvider {
   ) {
     this.updateDelay = clamp(timing.updateDelay, DEFAULT_UPDATE_DELAY, 2000);
     this.awarenessDelay = clamp(timing.awarenessDelay, DEFAULT_AWARENESS_DELAY, 5000);
+    this.maxUpdateBytes = Math.max(1024, clamp(timing.maxUpdateBytes, DEFAULT_MAX_UPDATE_BYTES, 64 * 1024 * 1024));
     this.awareness = new Awareness(doc);
     doc.on('update', this.onDocUpdate);
     this.awareness.on('update', this.onAwarenessUpdate);
@@ -128,33 +148,47 @@ export class MercureProvider {
   }
 
   get hasPendingChanges(): boolean {
-    return this.dirty || this.pending.length > 0 || this.inFlight;
+    return this.dirty || this.pending.length > 0 || this.inFlight || this.unconfirmed !== null;
   }
 
   /**
-   * Sends the pending local updates now (editor blur, page hide, destroy). With `keepalive` the request outlives the
-   * page; it is fire-and-forget.
+   * Sends the pending local updates now. Normally (editor blur, form submit, hidden tab) through the regular path:
+   * the throttle, one request in flight and re-queueing on failure apply. With `keepalive` (pagehide, unload,
+   * destroy) the page is going away: the batch is posted with `keepalive` even while throttled, but it is **kept**
+   * and the provider marked dirty until a 2xx confirms it, so a page that comes back (bfcache) or the next connect's
+   * state diff still delivers it (DS-L2).
    *
    * @param keepalive - Whether the page is going away
    */
   flush(keepalive = false): void {
     if (this.updateTimer) clearTimeout(this.updateTimer);
     this.updateTimer = null;
-    if (keepalive) {
-      if (this.status !== 'online' || !this.pending.length) return;
-      const merged = Y.mergeUpdates(this.pending);
-      this.pending = [];
-      const body = JSON.stringify({ c: this.doc.clientID, d: toBase64(merged) });
-      void fetch(`${this.base}/update`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-        keepalive: body.length <= KEEPALIVE_MAX,
-      }).catch(() => undefined);
+    if (!keepalive) {
+      if (Date.now() < this.blockedUntil.update) this.scheduleUpdates(0);
+      else void this.sendUpdates();
       return;
     }
-    void this.sendUpdates();
+    if (this.status !== 'online' || !this.pending.length) return;
+    const merged = Y.mergeUpdates(this.pending);
+    this.pending = [merged];
+    this.unconfirmed = merged;
+    this.dirty = true;
+    const body = JSON.stringify({ c: this.doc.clientID, d: toBase64(merged) });
+    void fetch(`${this.base}/update`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      keepalive: body.length <= KEEPALIVE_MAX,
+    })
+      .then((r) => {
+        if (!r.ok || this.unconfirmed !== merged) return;
+        // Stored: the page is still here (bfcache), drop the copy unless more was typed meanwhile.
+        this.unconfirmed = null;
+        if (this.pending[0] === merged) this.pending.shift();
+        this.dirty = false;
+      })
+      .catch(() => undefined);
   }
 
   /** Resolves once the stored state is applied (first connect): the caller then binds the editor. */
@@ -237,8 +271,9 @@ export class MercureProvider {
     }
     const diff = Y.encodeStateAsUpdate(this.doc, Y.encodeStateVector(server));
     server.destroy();
-    // The diff covers every update buffered while offline.
+    // The diff covers every update buffered while offline (and an unconfirmed keepalive batch).
     this.pending = [];
+    this.unconfirmed = null;
     if (diff.length > 2) await this.post('update', diff);
     if (answer.compact === true && typeof answer.seq === 'number' && Number.isInteger(answer.seq)) {
       await this.compact(answer.seq);
@@ -313,28 +348,43 @@ export class MercureProvider {
   /** Starts the send window (a running window or backoff is kept: one POST per window). */
   private scheduleUpdates(delay: number): void {
     if (this.updateTimer || this.closed) return;
-    const wait = Math.max(delay, this.blockedUntil - Date.now());
+    const wait = Math.max(delay, this.blockedUntil.update - Date.now());
     this.updateTimer = setTimeout(() => {
       this.updateTimer = null;
       void this.sendUpdates();
     }, wait);
   }
 
-  /** Merges and posts the pending updates; one request at a time keeps their order. */
+  /**
+   * Merges and posts the pending updates; one request at a time keeps their order. A batch stays within
+   * `maxUpdateBytes` (DS-I1): the rest waits for the next window instead of making one oversized POST.
+   */
   private async sendUpdates(): Promise<void> {
     if (this.inFlight || !this.pending.length || this.status !== 'online') return;
-    if (Date.now() < this.blockedUntil) {
+    if (Date.now() < this.blockedUntil.update) {
       this.scheduleUpdates(0);
       return;
     }
-    const merged = this.pending.length === 1 ? this.pending[0]! : Y.mergeUpdates(this.pending);
-    this.pending = [];
+    let count = 0;
+    let bytes = 0;
+    while (count < this.pending.length && (count === 0 || bytes + this.pending[count]!.length <= this.maxUpdateBytes)) {
+      bytes += this.pending[count]!.length;
+      count++;
+    }
+    const batch = this.pending.slice(0, count);
+    this.pending = this.pending.slice(count);
+    const merged = batch.length === 1 ? batch[0]! : Y.mergeUpdates(batch);
     this.inFlight = true;
     const result = await this.post('update', merged);
     this.inFlight = false;
+    if (result === 'sent' && batch.includes(this.unconfirmed as Uint8Array)) {
+      this.unconfirmed = null;
+      this.dirty = false;
+    }
     if (result === 'throttled') {
-      // Keep the merged update first: it is retried, merged with what was typed meanwhile.
+      // Keep the batch first: it is retried after the backoff, merged with what was typed meanwhile.
       this.pending.unshift(merged);
+      if (batch.includes(this.unconfirmed as Uint8Array)) this.unconfirmed = merged;
       this.scheduleUpdates(0);
     } else if (this.pending.length) {
       this.scheduleUpdates(this.updateDelay);
@@ -345,7 +395,7 @@ export class MercureProvider {
   private scheduleAwareness(): void {
     this.awarenessDue = true;
     if (this.awarenessTimer || this.closed) return;
-    const wait = Math.max(this.awarenessDelay, this.blockedUntil - Date.now());
+    const wait = Math.max(this.awarenessDelay, this.blockedUntil.awareness - Date.now());
     this.awarenessTimer = setTimeout(() => {
       this.awarenessTimer = null;
       if (!this.awarenessDue || this.status !== 'online') return;
@@ -405,11 +455,11 @@ export class MercureProvider {
         body: JSON.stringify({ c: this.doc.clientID, d: toBase64(data) }),
       });
       if (r.status === 429) {
-        this.blockedUntil = Date.now() + retryAfter(r.headers.get('Retry-After'), this.throttled++);
+        this.blockedUntil[kind] = Date.now() + retryAfter(r.headers.get('Retry-After'), this.throttled[kind]++);
         return 'throttled';
       }
       if (!r.ok) throw new Error(String(r.status));
-      this.throttled = 0;
+      this.throttled[kind] = 0;
       return 'sent';
     } catch {
       if (kind === 'update') this.dirty = true;

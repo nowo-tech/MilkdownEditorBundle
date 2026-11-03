@@ -346,11 +346,12 @@ final class MilkdownEditorType extends AbstractType
     /**
      * Collaboration needs `url`, `hub_url`, `topic` and a `user` name; the colour defaults to the accent. 1.5.1:
      * optional `update_delay_ms` (0–2000, coalescing window of document updates) and `awareness_delay_ms` (0–5000,
-     * presence throttle), sent only when set so the widget JSON is unchanged otherwise.
+     * presence throttle) and `max_update_bytes` (1024–64 MiB, largest merged update per POST: the host's limit), sent
+     * only when set so the widget JSON is unchanged otherwise.
      *
      * @param array<mixed> $value The option
      *
-     * @return array{url: string, hubUrl: string, topic: string, user: array{name: string, color: string}, updateDelay?: int, awarenessDelay?: int}
+     * @return array{url: string, hubUrl: string, topic: string, user: array{name: string, color: string}, updateDelay?: int, awarenessDelay?: int, maxUpdateBytes?: int}
      */
     public static function normaliseCollaboration(array $value): array
     {
@@ -371,12 +372,12 @@ final class MilkdownEditorType extends AbstractType
         $topic = $value['topic'];
 
         $out = ['url' => $url, 'hubUrl' => $hub, 'topic' => $topic, 'user' => ['name' => $name, 'color' => $color]];
-        foreach (['update_delay_ms' => ['updateDelay', 2000], 'awareness_delay_ms' => ['awarenessDelay', 5000]] as $key => [$json, $max]) {
+        foreach (['update_delay_ms' => ['updateDelay', 0, 2000], 'awareness_delay_ms' => ['awarenessDelay', 0, 5000], 'max_update_bytes' => ['maxUpdateBytes', 1024, 67108864]] as $key => [$json, $min, $max]) {
             if (!array_key_exists($key, $value)) {
                 continue;
             }
-            if (!is_int($value[$key]) || $value[$key] < 0 || $value[$key] > $max) {
-                throw new InvalidOptionsException(sprintf('The "collaboration.%s" option must be an integer from 0 to %d (milliseconds).', $key, $max));
+            if (!is_int($value[$key]) || $value[$key] < $min || $value[$key] > $max) {
+                throw new InvalidOptionsException(sprintf('The "collaboration.%s" option must be an integer from %d to %d.', $key, $min, $max));
             }
             $out[$json] = $value[$key];
         }

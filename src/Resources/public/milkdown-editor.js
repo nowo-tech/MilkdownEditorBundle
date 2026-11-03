@@ -3421,7 +3421,7 @@ function Cs(e) {
 			color: /^#[0-9a-f]{6}$/i.test($(a.color)) ? $(a.color) : "#1f6f54"
 		}
 	};
-	return typeof t.updateDelay == "number" && (o.updateDelay = t.updateDelay), typeof t.awarenessDelay == "number" && (o.awarenessDelay = t.awarenessDelay), o;
+	return typeof t.updateDelay == "number" && (o.updateDelay = t.updateDelay), typeof t.awarenessDelay == "number" && (o.awarenessDelay = t.awarenessDelay), typeof t.maxUpdateBytes == "number" && (o.maxUpdateBytes = t.maxUpdateBytes), o;
 }
 function ws(e) {
 	let t;
@@ -4974,7 +4974,7 @@ async function Vl(e, t = {}) {
 	let { bar: s, surface: c, status: l, announce: u } = zl(e, o), d = Rl(n), f = n.value, p = new An({
 		root: c,
 		defaultValue: r.collaboration ? "" : f
-	}), m = p.editor, h = r.collaboration ? await import("./chunks/collab-DXEj8zBL.js") : null, g = r.features.includes("context_menu") ? await import("./chunks/context-menu-Bz1dxpc9.js") : null, _ = r.features.includes("block_actions") ? await import("./chunks/block-actions-DtN4JMXJ.js") : null, v = r.features.includes("colors") ? await import("./chunks/colors-BL4xTh-v.js") : null, y = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-J7KbfwfQ.js") : null;
+	}), m = p.editor, h = r.collaboration ? await import("./chunks/collab-DT1di4uU.js") : null, g = r.features.includes("context_menu") ? await import("./chunks/context-menu-Bz1dxpc9.js") : null, _ = r.features.includes("block_actions") ? await import("./chunks/block-actions-DtN4JMXJ.js") : null, v = r.features.includes("colors") ? await import("./chunks/colors-BL4xTh-v.js") : null, y = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-J7KbfwfQ.js") : null;
 	m.config((e) => {
 		if (e.set(Ot.key, o), e.update(be, (e) => ({
 			...e,

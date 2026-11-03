@@ -136,12 +136,13 @@ state). Readers without edit rights must not get the options at all.
 **750 ms** (`awareness_delay_ms`, 0–5000, trailing edge). Pending edits are sent at once when the editor loses focus,
 on form submit, when the tab is hidden or closed (`keepalive`) and on destroy. A typist at 15 keys/s therefore costs
 about 6 requests/s (5 updates + 1–2 presence) instead of 30. Answer **429** with `Retry-After` when a limiter trips:
-the client keeps the merged edits, waits (`Retry-After` in seconds or as a date, otherwise 1 s doubling up to 30 s),
-retries and stays online. **Use separate limiters** for `/update` and `/awareness` (and `/token`, `/state`), sized
+the client keeps the merged edits, waits at least its exponential backoff (1 s doubling up to 30 s) or a longer
+`Retry-After` (seconds or a date, honoured between 1 and 60 s), retries and stays online. One POST never carries more
+than `max_update_bytes` (default 256 KiB of Yjs data; set it to your endpoint's limit): a larger backlog is split. **Use separate limiters** for `/update` and `/awareness` (and `/token`, `/state`), sized
 for these windows (e.g. 600/min per user and page for updates, 120/min for presence).
 
 ```php
-'collaboration' => [/* … */, 'update_delay_ms' => 200, 'awareness_delay_ms' => 750],
+'collaboration' => [/* … */, 'update_delay_ms' => 200, 'awareness_delay_ms' => 750, 'max_update_bytes' => 262144],
 ```
 
 **State as a log (1.2).** A host that cannot merge Yjs updates on the server (PHP) may answer `GET <url>/state` with

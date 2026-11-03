@@ -4490,16 +4490,20 @@ var qc = (e) => {
 	let t = "";
 	for (let n = 0; n < e.length; n += 32768) t += String.fromCharCode(...e.subarray(n, n + 32768));
 	return btoa(t);
-}, Jc = (e) => Uint8Array.from(atob(e), (e) => e.charCodeAt(0)), Yc = 3e4, Xc = 6e4, Zc = (e, t, n) => typeof e == "number" && Number.isFinite(e) ? Math.min(n, Math.max(0, Math.round(e))) : t;
-function Qc(e, t, n = Date.now()) {
-	let r = Math.min(Yc, 1e3 * 2 ** t);
+}, Jc = (e) => Uint8Array.from(atob(e), (e) => e.charCodeAt(0)), Yc = 262144, Xc = 3e4, Zc = 1e3, Qc = 6e4, $c = 6e4, el = (e, t, n) => typeof e == "number" && Number.isFinite(e) ? Math.min(n, Math.max(0, Math.round(e))) : t;
+function tl(e, t, n = Date.now()) {
+	let r = Math.min(Xc, 1e3 * 2 ** t);
 	if (!e) return r;
-	let i = Number(e.trim());
-	if (/^\d+(\.\d+)?$/.test(e.trim()) && Number.isFinite(i)) return Math.min(Yc, Math.max(0, i * 1e3));
-	let a = Date.parse(e);
-	return Number.isNaN(a) ? r : Math.min(Yc, Math.max(0, a - n));
+	let i = e.trim(), a;
+	if (/^\d+(\.\d+)?$/.test(i)) a = Number(i) * 1e3;
+	else {
+		let e = Date.parse(i);
+		if (Number.isNaN(e)) return r;
+		a = e - n;
+	}
+	return Math.max(r, Math.min(Qc, Math.max(Zc, a)));
 }
-var $c = (e) => [e.state, ...Array.isArray(e.updates) ? e.updates : []].filter((e) => typeof e == "string" && e !== ""), el = class {
+var nl = (e) => [e.state, ...Array.isArray(e.updates) ? e.updates : []].filter((e) => typeof e == "string" && e !== ""), rl = class {
 	doc;
 	base;
 	hubUrl;
@@ -4524,43 +4528,55 @@ var $c = (e) => [e.state, ...Array.isArray(e.updates) ? e.updates : []].filter((
 	};
 	onPageHide = () => this.flush(!0);
 	onVisibility = () => {
-		document.visibilityState === "hidden" && this.flush(!0);
+		document.visibilityState === "hidden" && this.flush();
 	};
 	pending = [];
 	inFlight = !1;
 	updateTimer = null;
 	awarenessTimer = null;
 	awarenessDue = !1;
-	throttled = 0;
-	blockedUntil = 0;
+	throttled = {
+		update: 0,
+		awareness: 0
+	};
+	blockedUntil = {
+		update: 0,
+		awareness: 0
+	};
+	unconfirmed = null;
 	updateDelay;
 	awarenessDelay;
+	maxUpdateBytes;
 	constructor(e, t, n, r, i = {}) {
-		this.doc = e, this.base = t, this.hubUrl = n, this.topic = r, this.updateDelay = Zc(i.updateDelay, 200, 2e3), this.awarenessDelay = Zc(i.awarenessDelay, 750, 5e3), this.awareness = new Ts(e), e.on("update", this.onDocUpdate), this.awareness.on("update", this.onAwarenessUpdate), window.addEventListener("online", this.onOnline), window.addEventListener("offline", this.onOffline), window.addEventListener("beforeunload", this.onUnload), window.addEventListener("pagehide", this.onPageHide), document.addEventListener("visibilitychange", this.onVisibility);
+		this.doc = e, this.base = t, this.hubUrl = n, this.topic = r, this.updateDelay = el(i.updateDelay, 200, 2e3), this.awarenessDelay = el(i.awarenessDelay, 750, 5e3), this.maxUpdateBytes = Math.max(1024, el(i.maxUpdateBytes, Yc, 67108864)), this.awareness = new Ts(e), e.on("update", this.onDocUpdate), this.awareness.on("update", this.onAwarenessUpdate), window.addEventListener("online", this.onOnline), window.addEventListener("offline", this.onOffline), window.addEventListener("beforeunload", this.onUnload), window.addEventListener("pagehide", this.onPageHide), document.addEventListener("visibilitychange", this.onVisibility);
 	}
 	onStatus(e) {
 		this.listeners.add(e);
 	}
 	get hasPendingChanges() {
-		return this.dirty || this.pending.length > 0 || this.inFlight;
+		return this.dirty || this.pending.length > 0 || this.inFlight || this.unconfirmed !== null;
 	}
 	flush(e = !1) {
-		if (this.updateTimer && clearTimeout(this.updateTimer), this.updateTimer = null, e) {
-			if (this.status !== "online" || !this.pending.length) return;
-			let e = xa(this.pending);
-			this.pending = [];
-			let t = JSON.stringify({
-				c: this.doc.clientID,
-				d: qc(e)
-			});
-			fetch(`${this.base}/update`, {
-				method: "POST",
-				credentials: "same-origin",
-				headers: { "Content-Type": "application/json" },
-				body: t,
-				keepalive: t.length <= Xc
-			}).catch(() => void 0);
-		} else this.sendUpdates();
+		if (this.updateTimer && clearTimeout(this.updateTimer), this.updateTimer = null, !e) {
+			Date.now() < this.blockedUntil.update ? this.scheduleUpdates(0) : this.sendUpdates();
+			return;
+		}
+		if (this.status !== "online" || !this.pending.length) return;
+		let t = xa(this.pending);
+		this.pending = [t], this.unconfirmed = t, this.dirty = !0;
+		let n = JSON.stringify({
+			c: this.doc.clientID,
+			d: qc(t)
+		});
+		fetch(`${this.base}/update`, {
+			method: "POST",
+			credentials: "same-origin",
+			headers: { "Content-Type": "application/json" },
+			body: n,
+			keepalive: n.length <= $c
+		}).then((e) => {
+			e.ok && this.unconfirmed === t && (this.unconfirmed = null, this.pending[0] === t && this.pending.shift(), this.dirty = !1);
+		}).catch(() => void 0);
 	}
 	connect() {
 		return this.closed ? Promise.resolve() : (this.connecting ??= this.doConnect().finally(() => {
@@ -4606,13 +4622,13 @@ var $c = (e) => [e.state, ...Array.isArray(e.updates) ? e.updates : []].filter((
 		this.seed = i.seed === !0, this.seq = typeof i.seq == "number" && Number.isInteger(i.seq) ? i.seq : 0;
 		let a = new L();
 		try {
-			for (let e of $c(i)) bi(a, Jc(e)), bi(this.doc, Jc(e), this);
+			for (let e of nl(i)) bi(a, Jc(e)), bi(this.doc, Jc(e), this);
 		} catch {
 			a.destroy(), await this.reportCorrupt();
 			return;
 		}
 		let o = Ci(this.doc, ki(a));
-		a.destroy(), this.pending = [], o.length > 2 && await this.post("update", o), i.compact === !0 && typeof i.seq == "number" && Number.isInteger(i.seq) && await this.compact(i.seq), this.dirty = !1, this.retry = 0, this.setStatus("online"), await this.post("awareness", Ds(this.awareness, [this.doc.clientID]));
+		a.destroy(), this.pending = [], this.unconfirmed = null, o.length > 2 && await this.post("update", o), i.compact === !0 && typeof i.seq == "number" && Number.isInteger(i.seq) && await this.compact(i.seq), this.dirty = !1, this.retry = 0, this.setStatus("online"), await this.post("awareness", Ds(this.awareness, [this.doc.clientID]));
 	}
 	scheduleReconnect() {
 		if (this.closed) return;
@@ -4662,25 +4678,29 @@ var $c = (e) => [e.state, ...Array.isArray(e.updates) ? e.updates : []].filter((
 	};
 	scheduleUpdates(e) {
 		if (this.updateTimer || this.closed) return;
-		let t = Math.max(e, this.blockedUntil - Date.now());
+		let t = Math.max(e, this.blockedUntil.update - Date.now());
 		this.updateTimer = setTimeout(() => {
 			this.updateTimer = null, this.sendUpdates();
 		}, t);
 	}
 	async sendUpdates() {
 		if (this.inFlight || !this.pending.length || this.status !== "online") return;
-		if (Date.now() < this.blockedUntil) {
+		if (Date.now() < this.blockedUntil.update) {
 			this.scheduleUpdates(0);
 			return;
 		}
-		let e = this.pending.length === 1 ? this.pending[0] : xa(this.pending);
-		this.pending = [], this.inFlight = !0;
-		let t = await this.post("update", e);
-		this.inFlight = !1, t === "throttled" ? (this.pending.unshift(e), this.scheduleUpdates(0)) : this.pending.length && this.scheduleUpdates(this.updateDelay);
+		let e = 0, t = 0;
+		for (; e < this.pending.length && (e === 0 || t + this.pending[e].length <= this.maxUpdateBytes);) t += this.pending[e].length, e++;
+		let n = this.pending.slice(0, e);
+		this.pending = this.pending.slice(e);
+		let r = n.length === 1 ? n[0] : xa(n);
+		this.inFlight = !0;
+		let i = await this.post("update", r);
+		this.inFlight = !1, i === "sent" && n.includes(this.unconfirmed) && (this.unconfirmed = null, this.dirty = !1), i === "throttled" ? (this.pending.unshift(r), n.includes(this.unconfirmed) && (this.unconfirmed = r), this.scheduleUpdates(0)) : this.pending.length && this.scheduleUpdates(this.updateDelay);
 	}
 	scheduleAwareness() {
 		if (this.awarenessDue = !0, this.awarenessTimer || this.closed) return;
-		let e = Math.max(this.awarenessDelay, this.blockedUntil - Date.now());
+		let e = Math.max(this.awarenessDelay, this.blockedUntil.awareness - Date.now());
 		this.awarenessTimer = setTimeout(() => {
 			this.awarenessTimer = null, this.awarenessDue && this.status === "online" && (this.awarenessDue = !1, this.post("awareness", Ds(this.awareness, [this.doc.clientID])).then((e) => {
 				e === "throttled" && this.scheduleAwareness();
@@ -4730,31 +4750,31 @@ var $c = (e) => [e.state, ...Array.isArray(e.updates) ? e.updates : []].filter((
 					d: qc(t)
 				})
 			});
-			if (n.status === 429) return this.blockedUntil = Date.now() + Qc(n.headers.get("Retry-After"), this.throttled++), "throttled";
+			if (n.status === 429) return this.blockedUntil[e] = Date.now() + tl(n.headers.get("Retry-After"), this.throttled[e]++), "throttled";
 			if (!n.ok) throw Error(String(n.status));
-			return this.throttled = 0, "sent";
+			return this.throttled[e] = 0, "sent";
 		} catch {
 			return e === "update" && (this.dirty = !0), this.setStatus("offline"), "failed";
 		}
 	}
-}, tl = (e) => typeof e == "string" && /^#[0-9a-f]{6}$/i.test(e) ? e : "#6b7280";
-function nl(e) {
+}, il = (e) => typeof e == "string" && /^#[0-9a-f]{6}$/i.test(e) ? e : "#6b7280";
+function al(e) {
 	let t = document.createElement("span");
-	t.className = "ProseMirror-yjs-cursor", t.style.borderColor = tl(e.color);
+	t.className = "ProseMirror-yjs-cursor", t.style.borderColor = il(e.color);
 	let n = document.createElement("div");
-	return n.style.backgroundColor = tl(e.color), n.textContent = typeof e.name == "string" ? e.name.slice(0, 40) : "", t.append(document.createTextNode("⁠"), n, document.createTextNode("⁠")), t;
+	return n.style.backgroundColor = il(e.color), n.textContent = typeof e.name == "string" ? e.name.slice(0, 40) : "", t.append(document.createTextNode("⁠"), n, document.createTextNode("⁠")), t;
 }
-var rl = (e) => ({
-	style: `background-color: ${tl(e.color)}70`,
+var ol = (e) => ({
+	style: `background-color: ${il(e.color)}70`,
 	class: "ProseMirror-yjs-selection"
-}), il = 1500, al = { reload: () => window.location.reload() }, ol = 3, sl = 3e5, cl = () => {
+}), sl = 1500, cl = { reload: () => window.location.reload() }, ll = 3, ul = 3e5, dl = () => {
 	try {
 		return window.sessionStorage;
 	} catch {
 		return null;
 	}
 };
-function ll(e, t = cl(), n = Date.now()) {
+function fl(e, t = dl(), n = Date.now()) {
 	let r = `nowo-milkdown-reloads:${e}`, i;
 	try {
 		i = JSON.parse(t?.getItem(r) ?? "[]");
@@ -4768,18 +4788,19 @@ function ll(e, t = cl(), n = Date.now()) {
 	} catch {}
 	return !0;
 }
-async function ul(e, t, n, r, i = () => void 0) {
-	let a = new L(), o = new el(a, t.url, t.hubUrl, t.topic, {
+async function pl(e, t, n, r, i = () => void 0) {
+	let a = new L(), o = new rl(a, t.url, t.hubUrl, t.topic, {
 		updateDelay: t.updateDelay,
-		awarenessDelay: t.awarenessDelay
+		awarenessDelay: t.awarenessDelay,
+		maxUpdateBytes: t.maxUpdateBytes
 	});
 	return o.awareness.setLocalStateField("user", t.user), o.onStatus((e) => {
-		r(e), e === "reset" && (ll(t.topic) ? window.setTimeout(() => al.reload(), il) : i());
+		r(e), e === "reset" && (fl(t.topic) ? window.setTimeout(() => cl.reload(), sl) : i());
 	}), await o.connect(), e.action((e) => {
 		let t = e.get(Wc);
 		t.setOptions({ yCursorOpts: {
-			cursorBuilder: nl,
-			selectionBuilder: rl
+			cursorBuilder: al,
+			selectionBuilder: ol
 		} }), t.bindDoc(a).setAwareness(o.awareness), o.seed && t.applyTemplate(n), t.connect();
 	}), {
 		provider: o,
@@ -4788,4 +4809,4 @@ async function ul(e, t, n, r, i = () => void 0) {
 		}
 	};
 }
-export { ol as RELOAD_CAP, sl as RELOAD_WINDOW, il as RESET_RELOAD_DELAY, ll as allowReload, Kc as collab, nl as cursorBuilder, al as page, tl as safeColor, rl as selectionBuilder, ul as startCollaboration };
+export { ll as RELOAD_CAP, ul as RELOAD_WINDOW, sl as RESET_RELOAD_DELAY, fl as allowReload, Kc as collab, al as cursorBuilder, cl as page, il as safeColor, ol as selectionBuilder, pl as startCollaboration };

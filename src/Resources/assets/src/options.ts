@@ -42,6 +42,7 @@ function collaboration(value: unknown): CollaborationOptions | null {
   // 1.5.1: send windows (the provider clamps them).
   if (typeof v.updateDelay === 'number') out.updateDelay = v.updateDelay;
   if (typeof v.awarenessDelay === 'number') out.awarenessDelay = v.awarenessDelay;
+  if (typeof v.maxUpdateBytes === 'number') out.maxUpdateBytes = v.maxUpdateBytes;
   return out;
 }
 

@@ -28,8 +28,15 @@ Collaboration request rate (patch).
   - local updates are merged with `Y.mergeUpdates` and posted once per **200 ms** window, one request in flight (order
     kept), and flushed at once on editor blur, form submit, hidden / closed tab (`keepalive`) and destroy;
   - presence is posted at most once per **750 ms** (trailing edge); leaving is still announced at once;
-  - a **429** keeps the merged edits and retries after `Retry-After` (seconds or date; otherwise 1 s doubling up to
-    30 s) without going offline; other failures behave as before (offline, the reconnect diff carries the edits).
+  - a **429** keeps the merged edits and retries without going offline, after the exponential backoff (1 s doubling up
+    to 30 s) or a longer `Retry-After` (seconds or a date, clamped to 1–60 s: `0` or a past date cannot loop, audit
+    DS-L1); presence backs off the same way; other failures behave as before (offline, the reconnect diff carries the
+    edits);
+  - a hidden tab flushes through the normal path (throttle, one request in flight, re-queued on failure); only
+    `pagehide` / unload / destroy use `keepalive`, and that batch stays queued and dirty until a 2xx confirms it, so a
+    refused keepalive never drops edits from the shared log (audit DS-L2);
+  - a batch never exceeds `max_update_bytes` (default 256 KiB, the host's limit): a larger backlog goes out in several
+    POSTs instead of one refused request (audit DS-I1).
   - Measured with a deterministic test (15 keys/s for 10 s, caret moving with each key): **300 → 63 requests**
     (50 updates + 13 presence), i.e. 30 → 6.3 requests/s.
 
@@ -43,8 +50,8 @@ Collaboration request rate (patch).
 - **`nowo_milkdown_copy_markdown(markdown, {icon})`** (Beacon): `icon: true` adds a static copy icon before the label,
   `icon: 'only'` renders an icon-only button whose label stays in a visually hidden span and the `title` (no inline
   styles). The markup is now **public API** (see USAGE: *Markdown clipboard*), checked by the demo e2e.
-- `collaboration.update_delay_ms` (0–2000, default 200) and `collaboration.awareness_delay_ms` (0–5000, default 750)
-  form options; sent in the widget JSON only when set.
+- `collaboration.update_delay_ms` (0–2000, default 200), `collaboration.awareness_delay_ms` (0–5000, default 750) and
+  `collaboration.max_update_bytes` (1024–64 MiB, default 256 KiB) form options; sent in the widget JSON only when set.
 
 ## [1.5.0] - 2026-11-03
 

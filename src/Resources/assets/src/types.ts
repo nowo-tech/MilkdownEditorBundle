@@ -71,6 +71,8 @@ export type CollaborationOptions = {
   /** 1.5.1: coalescing window of document updates (ms, default 200) and presence throttle (ms, default 750). */
   updateDelay?: number;
   awarenessDelay?: number;
+  /** 1.5.1 (DS-I1): largest merged update per POST, raw Yjs bytes (default 256 KiB, the host's limit). */
+  maxUpdateBytes?: number;
 };
 
 export type Theme = 'light' | 'dark' | 'auto';
