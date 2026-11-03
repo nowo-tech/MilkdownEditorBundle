@@ -48,9 +48,9 @@ export async function settled(page: Page): Promise<void> {
 export const editable = (page: Page) => page.getByRole('textbox', { name: 'Page content' });
 
 /** axe with WCAG 2.1 A/AA; returns serious and critical violations only. */
-export async function seriousViolations(page: Page): Promise<{ id: string; impact: string | null | undefined; targets: string[] }[]> {
+export async function seriousViolations(page: Page, include = 'main'): Promise<{ id: string; impact: string | null | undefined; targets: string[] }[]> {
   await settled(page);
-  const result = await new AxeBuilder({ page }).include('main').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  const result = await new AxeBuilder({ page }).include(include).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   return result.violations
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')
     .map((v) => ({ id: v.id, impact: v.impact, targets: v.nodes.slice(0, 5).map((n) => n.target.join(' ')) }));

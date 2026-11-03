@@ -401,7 +401,6 @@
 /* Footnotes (read side, 1.2.1) */
 .nowo-md-footnotes { font-size: 0.875em; }
 .nowo-md-footnotes > hr { border: 0; border-top: 1px solid var(--nowo-milkdown-border); }
-.nowo-md-footnote-ref, .nowo-md-footnote-backref { text-decoration: none; }
 
 /* Marks */
 .nowo-milkdown-mark,

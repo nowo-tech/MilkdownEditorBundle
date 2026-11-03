@@ -7,6 +7,7 @@ namespace Nowo\MilkdownEditorBundle\Tests\Unit\Markdown;
 use InvalidArgumentException;
 use League\CommonMark\Node\Inline\Text;
 use League\CommonMark\Renderer\ChildNodeRendererInterface;
+use LogicException;
 use Nowo\MilkdownEditorBundle\Markdown\DialectRenderer;
 use Nowo\MilkdownEditorBundle\Markdown\Directive\DirectiveAttributes;
 use Nowo\MilkdownEditorBundle\Markdown\Directive\DirectiveRendererInterface;
@@ -74,6 +75,7 @@ final class RendererTest extends TestCase
             $directives,
             $translator,
             $logger,
+            'kernel-secret',
         );
     }
 
@@ -124,7 +126,7 @@ final class RendererTest extends TestCase
         yield 'local image kept' => ['![a](/files/a.png)', '<p><img src="/files/a.png" alt="a" /></p>'];
         yield 'code keeps tokens' => ['`@ada [[wiki:' . self::ID . ']]`', '<p><code>@ada [[wiki:' . self::ID . ']]</code></p>'];
         yield 'mermaid fence' => ["```mermaid\ngraph TD\n```", "<pre><code class=\"language-mermaid\">graph TD\n</code></pre>"];
-        yield 'gfm' => ["| a |\n|---|\n| b |\n\n- [x] done", "<table>\n<thead>\n<tr>\n<th>a</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>b</td>\n</tr>\n</tbody>\n</table>\n<ul>\n<li><input checked=\"\" disabled=\"\" type=\"checkbox\"> done</li>\n</ul>"];
+        yield 'gfm' => ["| a |\n|---|\n| b |\n\n- [x] done", "<table>\n<thead>\n<tr>\n<th>a</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>b</td>\n</tr>\n</tbody>\n</table>\n<ul>\n<li><input checked=\"\" disabled=\"\" type=\"checkbox\" aria-label=\"Done\"> done</li>\n</ul>"];
     }
 
     #[Test]
@@ -183,13 +185,13 @@ final class RendererTest extends TestCase
     public function footnotesRenderWithPrefixedSaltedIds(): void
     {
         $html = $this->renderer()->render("Text[^1] and @alice[^n].\n\n[^1]: A *note* with [[wiki:" . self::ID . "]].\n[^n]: <b>raw</b>\n");
-        self::assertMatchesRegularExpression('#<sup id="nowo-md-fnref-([0-9a-f]{6})-1"><a class="nowo-md-footnote-ref" href="\#nowo-md-fn-\1-1" role="doc-noteref">1</a></sup>#', $html);
+        self::assertMatchesRegularExpression('#<sup id="nowo-md-fnref-([0-9a-f]{12})-1"><a class="nowo-md-footnote-ref" href="\#nowo-md-fn-\1-1" role="doc-noteref">1</a></sup>#', $html);
         self::assertStringContainsString('<div class="nowo-md-footnotes" role="doc-endnotes"><hr />', $html);
-        self::assertMatchesRegularExpression('#<li class="nowo-md-footnote" id="nowo-md-fn-[0-9a-f]{6}-1" role="doc-endnote">#', $html);
+        self::assertMatchesRegularExpression('#<li class="nowo-md-footnote" id="nowo-md-fn-[0-9a-f]{12}-1" role="doc-endnote">#', $html);
         self::assertStringContainsString('<em>note</em>', $html);
         self::assertStringContainsString('href="/wiki/install"', $html);
         self::assertStringContainsString('&lt;b&gt;raw&lt;/b&gt;', $html);
-        self::assertMatchesRegularExpression('#class="nowo-md-footnote-backref" rev="footnote" href="\#nowo-md-fnref-[0-9a-f]{6}-1"#', $html);
+        self::assertMatchesRegularExpression('#class="nowo-md-footnote-backref" rev="footnote" href="\#nowo-md-fnref-[0-9a-f]{12}-1"#', $html);
         self::assertStringNotContainsString('[^1]', $html);
 
         // Deterministic per document (stored HTML, ETags); another document, or the same one rendered again in the
@@ -197,11 +199,14 @@ final class RendererTest extends TestCase
         $renderer = $this->renderer();
         $md       = "A[^1] see [jump](#nowo-md-fn-1) and nowo-md-fn-1\n\n[^1]: B";
         $first    = $renderer->render($md);
-        $salt     = substr(hash('sha256', $md), 0, 6);
+        // 1.3.1 (CZ-I10 / CZ-I11): 12 hex characters of an HMAC under a kernel.secret subkey, the counter inside.
+        $key  = hash_hmac('sha256', 'nowo_milkdown_footnote_salt', 'kernel-secret');
+        $salt = substr(hash_hmac('sha256', "0\0" . $md, $key), 0, 12);
         self::assertStringContainsString('id="nowo-md-fn-' . $salt . '-1"', $first);
+        self::assertStringNotContainsString(substr(hash('sha256', $md), 0, 6), $first, 'no digest of the source');
         self::assertStringContainsString('href="#nowo-md-fn-1"', $first, 'user link untouched');
         self::assertStringContainsString('and nowo-md-fn-1', $first, 'user text untouched');
-        self::assertStringContainsString('id="nowo-md-fn-' . $salt . '-1-1"', $renderer->render($md), 'rendered twice on one page');
+        self::assertStringContainsString('id="nowo-md-fn-' . substr(hash_hmac('sha256', "1\0" . $md, $key), 0, 12) . '-1"', $renderer->render($md), 'rendered twice on one page');
         preg_match('/id="(nowo-md-fn-[^"]+)"/', $renderer->render("A[^1]\n\n[^1]: C"), $other);
         self::assertStringNotContainsString($salt, $other[1] ?? '');
         $renderer->reset();
@@ -209,6 +214,34 @@ final class RendererTest extends TestCase
         self::assertStringContainsString('[^x]', $renderer->render('orphan [^x]'), 'orphans keep their unsalted text');
         self::assertSame('<p>plain</p>', trim($this->renderer()->render('plain')));
         $this->renderer(['footnotes' => false])->reset();
+    }
+
+    #[Test]
+    public function anEmptySecretIsRefusedWhenFootnotesAreOn(): void
+    {
+        self::assertSame('<p>a</p>', trim((new MilkdownMarkdownRenderer(['footnotes' => false], new NullPageResolver(), new NullUserResolver(), new AllowlistIconResolver()))->render('a')));
+        $this->expectException(LogicException::class);
+        (new MilkdownMarkdownRenderer([], new NullPageResolver(), new NullUserResolver(), new AllowlistIconResolver()))->render('a');
+    }
+
+    #[Test]
+    public function taskCheckboxesHaveATranslatedName(): void
+    {
+        $translator = new class implements TranslatorInterface {
+            /**
+             * @param array<string, mixed> $parameters
+             */
+            public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
+            {
+                return $id === 'task.toggle' ? 'Hecho' : $id;
+            }
+
+            public function getLocale(): string
+            {
+                return 'es';
+            }
+        };
+        self::assertStringContainsString('<input disabled="" type="checkbox" aria-label="Hecho">', $this->renderer(translator: $translator)->render('- [ ] tarea'));
     }
 
     #[Test]
@@ -338,7 +371,7 @@ final class RendererTest extends TestCase
         } catch (InvalidArgumentException $e) {
             self::assertStringContainsString('Unsupported node', $e->getMessage());
         }
-        $html = (new MilkdownMarkdownRenderer([], new NullPageResolver(), new NullUserResolver(), new AllowlistIconResolver()))->render('[[wiki:' . self::ID . ']] @ada :tabler-bug:');
+        $html = (new MilkdownMarkdownRenderer([], new NullPageResolver(), new NullUserResolver(), new AllowlistIconResolver(), secret: 's'))->render('[[wiki:' . self::ID . ']] @ada :tabler-bug:');
         self::assertSame('<p><span class="nowo-md-ref nowo-md-ref--hidden">Content not visible</span> @ada :tabler-bug:</p>', trim($html));
         $pages = new class implements PageResolverInterface {
             public function resolvePages(array $ids): array
@@ -347,7 +380,7 @@ final class RendererTest extends TestCase
             }
         };
         self::assertSame('<p><span class="nowo-md-ref">T</span></p>', trim($this->renderer([], [], $pages)->render('[[wiki:' . self::ID . ']]')));
-        $badSprite = new MilkdownMarkdownRenderer([], new NullPageResolver(), new NullUserResolver(), new AllowlistIconResolver('javascript:x', ['bug']));
+        $badSprite = new MilkdownMarkdownRenderer([], new NullPageResolver(), new NullUserResolver(), new AllowlistIconResolver('javascript:x', ['bug']), secret: 's');
         self::assertSame('<p>:tabler-bug:</p>', trim($badSprite->render(':tabler-bug:')));
     }
 

@@ -152,6 +152,8 @@ test.describe('Milkdown editor demo', () => {
     const ref = page.locator('[data-preview] sup[id^="nowo-md-fnref-"][id$="-euler"] a');
     const target = await page.locator('[data-preview] .nowo-md-footnotes li[id$="-euler"]').getAttribute('id');
     await expect(ref).toHaveAttribute('href', `#${target}`);
+    // 1.3.1: the PHP render passes axe too (named task checkboxes, distinguishable footnote links).
+    expect(await seriousViolations(page, '[data-preview]')).toEqual([]);
     await page.getByRole('button', { name: 'Save' }).click();
     expect(await page.locator('.demo-source').textContent()).toBe(first);
   });

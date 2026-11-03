@@ -56,8 +56,9 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
   reach each resolver; later ones render as not visible / plain text.
   With `mention_display: name` the resolved name is escaped like every other value (editor: `textContent`); the user
   title endpoint must return only people the viewer may see, like the `@` candidates.
-  Footnote ids are prefixed and salted per document (`nowo-md-fn-<salt>-<label>`, the salt from a hash of the
-  Markdown plus a counter when one document is rendered twice in a request; only footnote nodes are renamed, never
+  Footnote ids are prefixed and salted per document (`nowo-md-fn-<salt>-<label>`, 1.3.1: the salt is 12 hex
+  characters of an HMAC under a `kernel.secret` subkey of the render count and the Markdown, so it reveals nothing
+  about the source; only footnote nodes are renamed, never
   user text or links), so a label cannot clobber a host element id and two documents on one page never share an id; labels are case-insensitive (as in GFM), so no two notes
   share a lower-cased id. Each reference expands to two links, so more than `max_footnote_refs` (200) references
   render as literal text (audit CZ-L1: 4 900 references to one note had grown 24.5 KB into 1.12 MB).

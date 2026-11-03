@@ -15,6 +15,19 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Fixed
+
+- **Accessible read side** (axe): GFM task-list checkboxes in the PHP render get a name (`aria-label`, the editor's
+  `task.toggle` string, *Done*; their checked state tells whether the task is done), and footnote links keep their
+  underline (1.2.1 removed it, so they could only be told apart from text by colour).
+
+### Security
+
+- **Footnote id salt keyed with `kernel.secret`** (audit CZ-I10 / CZ-I11): 12 hex characters of an HMAC, under a
+  purpose-bound subkey of `kernel.secret`, of the render count and the Markdown. 1.2.1 used 6 characters of a plain
+  SHA-256 of the Markdown (24 bits, a digest of the source) and appended the counter with `-`, which could be read as
+  part of the label. Ids stay stable per document; their salt part changes once with this release.
+
 ## [1.3.0] - 2026-11-03
 
 context menu (right-click / Shift+F10), opt-in
