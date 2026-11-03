@@ -35,6 +35,8 @@ export class BlockActionsView {
   readonly menu: Menu;
   /** Top-level block the button points at. */
   private target: number | null = null;
+  /** Element of that block, to find it again at dragstart (DB-I5 residual). */
+  private targetDom: HTMLElement | null = null;
   /** A drag of the handle in progress, and the document it started on (DB-I5). */
   private dragDoc: unknown = null;
   /** True after the document changed during a drag: the drop is swallowed (no stale fragment is inserted). */
@@ -115,6 +117,7 @@ export class BlockActionsView {
   show(pos: number | null): void {
     this.target = pos;
     const dom = pos === null ? null : (this.view.nodeDOM(pos) as HTMLElement | null);
+    this.targetDom = dom instanceof HTMLElement ? dom : null;
     if (!dom || typeof dom.getBoundingClientRect !== 'function') {
       this.button.hidden = true;
       return;
@@ -195,11 +198,22 @@ export class BlockActionsView {
   }
 
   private dragStart(event: DragEvent): void {
-    if (this.target === null) {
+    const { view } = this;
+    // DB-I5 residual: the block is resolved again from its element (the document may have changed since the hover).
+    let target: number | null = null;
+    const dom = this.targetDom;
+    if (dom?.isConnected && dom.parentNode === view.dom) {
+      try {
+        target = topLevelPos(view.state, view.posAtDOM(dom, 0));
+      } catch {
+        target = null;
+      }
+    }
+    if (target === null) {
       event.preventDefault();
       return;
     }
-    const { view } = this;
+    this.target = target;
     const selection = NodeSelection.create(view.state.doc, this.target);
     view.dispatch(view.state.tr.setSelection(selection));
     const slice = selection.content();

@@ -5,13 +5,13 @@
  *   :::details{summary="…"}                        container (collapsible section)
  *   ::: {align=center}                             container without a name (alignment)
  *   :mark[text]{bg=<colour> text=<colour>}         text directive (background / text colour; legacy color= is bg)
- *   ::: {bg=<colour> text=<colour>}                container without a name (block colour, 1.3; with align=)
+ *   ::: {bg=<colour> text=<colour>}                container without a name (block colour, 1.4; with align=)
  *   ::name{…}                                      leaf directive kept as an embedded block (e.g. live host blocks)
  */
 export const CALLOUT_TYPES = ['info', 'success', 'warning', 'danger'] as const;
 export type CalloutType = (typeof CALLOUT_TYPES)[number];
 export const ALIGNMENTS = ['left', 'center', 'right'] as const;
-/** Named colours of the dialect (1.3: Notion's set), each a text and a background token; never raw CSS. */
+/** Named colours of the dialect (1.4: Notion's set), each a text and a background token; never raw CSS. */
 export const COLORS = ['gray', 'brown', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'red'] as const;
 export type Color = (typeof COLORS)[number];
 

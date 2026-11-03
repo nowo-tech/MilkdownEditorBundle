@@ -3278,7 +3278,7 @@ var Zo = {
 	math: () => import("./chunks/latex-B1do5Z9s.js"),
 	katex: () => import("./chunks/katex-DNCsLolD.js"),
 	topBar: () => import("./chunks/top-bar-C1it1osQ.js"),
-	colors: () => import("./chunks/colors-CraKPMZ5.js")
+	colors: () => import("./chunks/colors-0F8V42Fq.js")
 }, Qo = "<svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 16l5-12 5 12\"/><path d=\"M9 11h6\"/><path d=\"M4 20h16\"/></svg>";
 async function $o(e, t, n) {
 	let r = new Set(t.features), [i, a, o] = await Promise.all([
@@ -4965,7 +4965,7 @@ async function zl(e, t = {}) {
 	let { bar: s, surface: c, status: l, announce: u } = Ll(e, o), d = Il(n), f = n.value, p = new kn({
 		root: c,
 		defaultValue: r.collaboration ? "" : f
-	}), m = p.editor, h = r.collaboration ? await import("./chunks/collab-Elq1tKQg.js") : null, g = r.features.includes("context_menu") ? await import("./chunks/context-menu-BUFjenwZ.js") : null, _ = r.features.includes("block_actions") ? await import("./chunks/block-actions-Bs3ZuDJy.js") : null, v = r.features.includes("colors") ? await import("./chunks/colors-CraKPMZ5.js") : null;
+	}), m = p.editor, h = r.collaboration ? await import("./chunks/collab-Elq1tKQg.js") : null, g = r.features.includes("context_menu") ? await import("./chunks/context-menu-DUaGO-7x.js") : null, _ = r.features.includes("block_actions") ? await import("./chunks/block-actions-DKaPrOVm.js") : null, v = r.features.includes("colors") ? await import("./chunks/colors-0F8V42Fq.js") : null;
 	m.config((e) => {
 		if (e.set(kt.key, o), e.update(be, (e) => ({
 			...e,

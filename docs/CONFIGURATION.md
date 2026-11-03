@@ -20,7 +20,7 @@ nowo_milkdown_editor:
     profiles:
         default:
             # toolbar, top_bar, link_tooltip, table, code_mirror, math, mermaid, placeholder, cursor, slash_menu,
-            # context_menu, block_actions, block_drag, colors (1.3)
+            # context_menu (1.3), block_actions, block_drag, colors (1.4)
             features: [toolbar, link_tooltip, table, code_mirror, placeholder, cursor, slash_menu]
             theme: auto                 # light | dark | auto
             min_height: 12rem           # CSS length: px, rem, em or vh
@@ -43,7 +43,7 @@ nowo_milkdown_editor:
         max_references: 500             # distinct page ids / handles sent to each resolver per document
         icon_sprite_url: ~
         icons: []
-        mark_colors: [yellow, green, blue, red, purple, gray, brown, orange, pink]  # 1.3: + brown, orange, pink
+        mark_colors: [yellow, green, blue, red, purple, gray, brown, orange, pink]  # 1.4: + brown, orange, pink
 ```
 
 Invalid values fail at container compile time with the configuration path in the message (unknown feature, `math`
@@ -91,9 +91,9 @@ the `Nowo\MilkdownEditorBundle\ProfileRegistry` service.
 | `placeholder` | Placeholder text of an empty document | entry |
 | `cursor` | Drop cursor and gap cursor | entry |
 | `slash_menu` | Accessible `/` block menu | entry |
-| `block_actions` | "⋮⋮" block handle and block menu (turn into, colour, duplicate, move, delete), **Ctrl / ⌘ + /**, **Alt+Shift+↑ / ↓** (1.3) | lazy |
-| `block_drag` | Drag the block handle to move a block (needs `block_actions`; keyboard moves stay) (1.3) | lazy |
-| `colors` | Text and background colours: *Color* in the block menu, the context menu and the toolbar (1.3, see [USAGE](USAGE.md#block-actions-and-colours)) | lazy |
+| `block_actions` | "⋮⋮" block handle and block menu (turn into, colour, duplicate, move, delete), **Ctrl / ⌘ + /**, **Alt+Shift+↑ / ↓** (1.4) | lazy |
+| `block_drag` | Drag the block handle to move a block (needs `block_actions`; keyboard moves stay) (1.4) | lazy |
+| `colors` | Text and background colours: *Color* in the block menu, the context menu and the toolbar (1.4, see [USAGE](USAGE.md#block-actions-and-colours)) | lazy |
 | `context_menu` | Right-click / Shift+F10 / ContextMenu-key menu: clipboard, *Turn into*, table, link and block actions, host items (1.3, see [USAGE](USAGE.md#context-menu)) | lazy |
 
 Lists, task lists, blockquotes, headings, links, images and the dialect nodes are always available.

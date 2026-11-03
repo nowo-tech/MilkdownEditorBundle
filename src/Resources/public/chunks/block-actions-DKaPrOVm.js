@@ -1,7 +1,7 @@
 import { m as e } from "./dist-DEVWqQ48.js";
 import { at as t, ot as n, st as r, ut as i } from "./lib-9QpRoHAM.js";
 import { i as a, r as o } from "./runtime-CM-Nal4Z.js";
-import { a as s, c, colorItems as l, i as u, l as d, n as f, s as p, t as m } from "./colors-CraKPMZ5.js";
+import { a as s, c, colorItems as l, i as u, l as d, n as f, s as p, t as m } from "./colors-0F8V42Fq.js";
 // src/Resources/assets/src/plugins/block-actions.ts
 var h = new r("nowo-milkdown-block-actions"), g = /* @__PURE__ */ new WeakMap();
 function _(e, t) {
@@ -16,6 +16,7 @@ var v = class {
 	button;
 	menu;
 	target = null;
+	targetDom = null;
 	dragDoc = null;
 	dragCancelled = !1;
 	host;
@@ -43,7 +44,7 @@ var v = class {
 	show(e) {
 		this.target = e;
 		let t = e === null ? null : this.view.nodeDOM(e);
-		if (!t || typeof t.getBoundingClientRect != "function") {
+		if (this.targetDom = t instanceof HTMLElement ? t : null, !t || typeof t.getBoundingClientRect != "function") {
 			this.button.hidden = !0;
 			return;
 		}
@@ -123,16 +124,23 @@ var v = class {
 		this.button.setAttribute("aria-expanded", "true"), this.menu.open(this.groups(), e, t);
 	}
 	dragStart(e) {
-		if (this.target === null) {
+		let { view: n } = this, r = null, i = this.targetDom;
+		if (i?.isConnected && i.parentNode === n.dom) try {
+			r = _(n.state, n.posAtDOM(i, 0));
+		} catch {
+			r = null;
+		}
+		if (r === null) {
 			e.preventDefault();
 			return;
 		}
-		let { view: n } = this, r = t.create(n.state.doc, this.target);
-		if (n.dispatch(n.state.tr.setSelection(r)), n.dragging = {
-			slice: r.content(),
+		this.target = r;
+		let a = t.create(n.state.doc, this.target);
+		if (n.dispatch(n.state.tr.setSelection(a)), n.dragging = {
+			slice: a.content(),
 			move: !0
 		}, this.dragDoc = n.state.doc, this.dragCancelled = !1, e.dataTransfer) {
-			e.dataTransfer.effectAllowed = "move", e.dataTransfer.setData("text/plain", n.state.doc.textBetween(r.from, r.to, "\n"));
+			e.dataTransfer.effectAllowed = "move", e.dataTransfer.setData("text/plain", n.state.doc.textBetween(a.from, a.to, "\n"));
 			let t = n.nodeDOM(this.target);
 			t instanceof HTMLElement && e.dataTransfer.setDragImage(t, 0, 0);
 		}

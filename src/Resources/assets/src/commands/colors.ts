@@ -56,22 +56,24 @@ export function setInlineColor(kind: ColorKind, color: Color | null) {
     const { from, to, empty } = state.selection;
     if (!type || empty) return false;
     if (dispatch) {
-      const attributes = markAttributes(state, type);
-      if (kind === 'bg') delete attributes.color;
-      if (color) attributes[kind] = color;
-      else delete attributes[kind];
-      const colours = Object.keys(attributes).filter((k) => k === 'text' || k === 'bg' || k === 'color');
       const tr = state.tr;
       // Only :mark directives change (DB-I4). Text inside another text directive (:note[…], …) keeps it: one text
-      // directive per character, so that text is left without colour.
+      // directive per character, so that text is left without colour. Each piece keeps its own other colour (DB-I8):
+      // only the colour being changed is set or cleared.
       state.doc.nodesBetween(from, to, (node, pos) => {
         if (!node.isText) return true;
         const marks = node.marks.filter((m) => m.type === type);
         if (marks.some((m) => m.attrs.name !== 'mark')) return false;
         const start = Math.max(from, pos);
         const end = Math.min(to, pos + node.nodeSize);
+        const attributes = marks.length ? decodeAttributes(marks[0]!.attrs.attributes) : {};
+        if (kind === 'bg') delete attributes.color;
+        if (color) attributes[kind] = color;
+        else delete attributes[kind];
         for (const mark of marks) tr.removeMark(start, end, mark);
-        if (colours.length) tr.addMark(start, end, type.create({ name: 'mark', attributes: encodeAttributes(attributes) }));
+        if (Object.keys(attributes).some((k) => k === 'text' || k === 'bg' || k === 'color')) {
+          tr.addMark(start, end, type.create({ name: 'mark', attributes: encodeAttributes(attributes) }));
+        }
         return false;
       });
       dispatch(tr);

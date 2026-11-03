@@ -116,6 +116,8 @@ test.describe('Milkdown editor demo', () => {
     await expect(page.locator('[data-preview] .nowo-md-bg--yellow')).toContainText('Euler:');
     await expect(page.locator('[data-preview] .nowo-md-bg--blue')).toContainText('Coloured block');
     await expect(page.locator('[data-preview] mark.nowo-md-text--red')).toHaveText('risky');
+    // DB-L1: a text-only mark has no background on the read side (as in the editor).
+    await expect(page.locator('[data-preview] mark.nowo-md-text--red')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     // The coloured blocks and marks of the PHP render (contrast in this theme).
     expect(await seriousViolations(page, '[data-preview] .nowo-md-bg--yellow, [data-preview] .nowo-md-bg--blue, [data-preview] mark')).toEqual([]);
     expect(await violations(page)).toEqual([]);

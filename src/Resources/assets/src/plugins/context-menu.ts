@@ -169,7 +169,7 @@ export class ContextMenuView {
       }));
       const block: MenuItem[] = [];
       if (turn.length) block.push({ id: 'turn_into', label: t(runtime, 'menu.turn_into'), items: turn });
-      // 1.3 `colors`: the selected text when there is a selection, otherwise the block.
+      // 1.4 `colors`: the selected text when there is a selection, otherwise the block.
       if (runtime.features.has('colors')) {
         block.push({ id: 'color', label: t(runtime, 'menu.color'), items: colorItems(state, runtime, !empty, (cmd) => command(cmd)()) });
       }

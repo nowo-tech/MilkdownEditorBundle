@@ -158,7 +158,7 @@ final readonly class DialectRenderer implements NodeRendererInterface
     private function textDirective(TextDirective $node, string $content): string
     {
         if ($node->name === 'mark') {
-            // 1.3: `bg=` (legacy `color=`) is the background, `text=` the text colour; names only, from the allow-list.
+            // 1.4: `bg=` (legacy `color=`) is the background, `text=` the text colour; names only, from the allow-list.
             $a    = $node->attributes;
             $text = $this->color($a['text'] ?? null);
             $bg   = $this->color($a['bg'] ?? null) ?? $this->color($a['color'] ?? null) ?? ($text === null ? ($this->markColors[0] ?? 'yellow') : 'none');

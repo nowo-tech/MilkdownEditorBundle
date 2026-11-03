@@ -278,13 +278,13 @@ Or change the menu per editor with the cancellable `nowo-milkdown:contextmenu` e
 
 ## Block actions and colours
 
-`block_actions` (1.3) adds a "⋮⋮" button beside the block under the pointer or the caret. It opens the block menu:
+`block_actions` (1.4) adds a "⋮⋮" button beside the block under the pointer or the caret. It opens the block menu:
 *Turn into*, *Color* (with `colors`), *Duplicate*, *Move up*, *Move down*, *Delete*. From the keyboard: **Ctrl / ⌘ + /**
 opens the same menu at the caret and **Alt+Shift+↑ / ↓** move the block (announced in the widget's live region). The
 button is not in the tab order, so Tab still leaves the editor. `block_drag` also lets pointer users drag the button to
 move the block (ProseMirror's drop cursor shows where it lands).
 
-`colors` (1.3) adds *Color* to the block menu, to the context menu (the selected text, or the block without a
+`colors` (1.4) adds *Color* to the block menu, to the context menu (the selected text, or the block without a
 selection) and a colour button to the selection toolbar. The palette is Notion's: gray, brown, orange, yellow, green,
 blue, purple, pink, red, each as a text colour and a background, plus *Default*. The Markdown stays portable:
 

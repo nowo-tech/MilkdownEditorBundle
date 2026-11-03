@@ -37,7 +37,7 @@ const sub = (menu: HTMLElement, id: string) => {
   return document.getElementById(item(menu, id).getAttribute('aria-controls')!)!;
 };
 
-describe('colour dialect (1.3)', () => {
+describe('colour dialect (1.4)', () => {
   it('reads bg / text / legacy color and round trips inline and block colours', async () => {
     expect(markColor({})).toBe('yellow');
     expect(markColor({ color: 'green' })).toBe('green');
@@ -89,6 +89,11 @@ describe('colour dialect (1.3)', () => {
     expect(currentColors(view(handle).state, true)).toEqual({ text: null, bg: 'green' });
     setInlineColor('bg', 'blue')(view(handle).state, v.dispatch);
     expect(handle.getMarkdown()).toBe(':mark[Hi]{bg="blue"}\n');
+    // DB-I8: each mark keeps its own other colour; only the colour being changed is set.
+    handle.setMarkdown(':mark[Ab]{bg="green"}:mark[Cd]{bg="blue"}');
+    select(handle, 1, 5);
+    setInlineColor('text', 'red')(view(handle).state, v.dispatch);
+    expect(handle.getMarkdown()).toBe(':mark[Ab]{bg="green" text="red"}:mark[Cd]{bg="blue" text="red"}\n');
   });
 
   it('block commands wrap, update and unwrap the coloured container (alignment kept)', async () => {
@@ -128,6 +133,20 @@ describe('colour contrast (DB-I3)', () => {
     return (hi! + 0.05) / (lo! + 0.05);
   };
 
+  it('text-only marks have no background on either side; text inside a coloured block is paired (DB-L1, DB-I3)', () => {
+    expect(css).toMatch(/\.nowo-milkdown-mark--none,\s*\.nowo-md-mark--none \{ background: transparent; color: inherit; \}/);
+    expect(css).toMatch(/\[class\*='nowo-md-bg--'\] \[class\*='nowo-md-text--'\][^{]*\{[^}]*color: var\(--nowo-milkdown-mark-text\)/);
+    expect(css).toMatch(/\[class\*='nowo-milkdown-bg--'\] \[class\*='nowo-milkdown-color--'\]/);
+  });
+
+  it('Crepe icons (outline) use a mid text tone with at least 3:1 on the toolbar and the page', () => {
+    expect(css).toContain('--crepe-color-outline: var(--nowo-milkdown-muted);');
+    for (const tokens of themes) {
+      expect(ratio(tokens.muted!, tokens.surface!)).toBeGreaterThanOrEqual(3);
+      expect(ratio(tokens.muted!, tokens.background!)).toBeGreaterThanOrEqual(3);
+    }
+  });
+
   it('every text colour on the page, every background with its text, and every text + background pair pass AA', () => {
     expect(themes).toHaveLength(2);
     expect(css).toMatch(/\[class\*='nowo-md-bg--'\]\[class\*='nowo-md-text--'\][^{]*\{\s*color: var\(--nowo-milkdown-mark-text\)/);
@@ -144,7 +163,7 @@ describe('colour contrast (DB-I3)', () => {
   });
 });
 
-describe('block actions (1.3)', () => {
+describe('block actions (1.4)', () => {
   it('is off by default; block_drag needs block_actions', async () => {
     expect(parseOptions('{"features":["block_drag"]}').features).toEqual([]);
     expect(parseOptions('{"features":["block_actions","block_drag","colors"]}').features).toEqual(['block_actions', 'block_drag', 'colors']);
@@ -285,6 +304,13 @@ describe('block actions (1.3)', () => {
     expect(data.effectAllowed).toBe('move');
     button.dispatchEvent(new Event('dragend'));
     expect(v.dragging).toBeNull();
+    // DB-I5 residual: the block is resolved again at dragstart (a block inserted above since the hover).
+    actions.show(0);
+    v.dispatch(v.state.tr.insert(0, v.state.schema.nodes.paragraph!.create(null, v.state.schema.text('Zero'))));
+    button.dispatchEvent(drag);
+    expect(data.setData).toHaveBeenLastCalledWith('text/plain', 'One');
+    button.dispatchEvent(new Event('dragend'));
+    handle.setMarkdown('One\n\nTwo');
     // DB-I5: the document changes during a drag: the drag is cancelled and the drop swallowed.
     vi.stubGlobal('DragEvent', class extends Event {});
     actions.show(0);

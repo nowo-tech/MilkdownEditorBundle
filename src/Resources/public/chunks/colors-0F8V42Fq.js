@@ -326,20 +326,19 @@ function N(e, t) {
 		let i = n.schema.marks.textDirective, { from: a, to: o, empty: s } = n.selection;
 		if (!i || s) return !1;
 		if (r) {
-			let s = A(n, i);
-			e === "bg" && delete s.color, t ? s[e] = t : delete s[e];
-			let c = Object.keys(s).filter((e) => e === "text" || e === "bg" || e === "color"), l = n.tr;
-			n.doc.nodesBetween(a, o, (e, t) => {
-				if (!e.isText) return !0;
-				let n = e.marks.filter((e) => e.type === i);
-				if (n.some((e) => e.attrs.name !== "mark")) return !1;
-				let r = Math.max(a, t), u = Math.min(o, t + e.nodeSize);
-				for (let e of n) l.removeMark(r, u, e);
-				return c.length && l.addMark(r, u, i.create({
+			let s = n.tr;
+			n.doc.nodesBetween(a, o, (n, r) => {
+				if (!n.isText) return !0;
+				let c = n.marks.filter((e) => e.type === i);
+				if (c.some((e) => e.attrs.name !== "mark")) return !1;
+				let l = Math.max(a, r), u = Math.min(o, r + n.nodeSize), d = c.length ? p(c[0].attrs.attributes) : {};
+				e === "bg" && delete d.color, t ? d[e] = t : delete d[e];
+				for (let e of c) s.removeMark(l, u, e);
+				return Object.keys(d).some((e) => e === "text" || e === "bg" || e === "color") && s.addMark(l, u, i.create({
 					name: "mark",
-					attributes: h(s)
+					attributes: h(d)
 				})), !1;
-			}), r(l);
+			}), r(s);
 		}
 		return !0;
 	};

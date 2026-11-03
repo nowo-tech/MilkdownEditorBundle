@@ -39,7 +39,7 @@ export async function addFeatures(builder: CrepeBuilder, options: EditorOptions,
   if (on.has('placeholder')) builder.addFeature(placeholder, { text: options.placeholder || t(runtime, 'editor.placeholder'), mode: 'doc' });
   if (on.has('link_tooltip')) builder.addFeature(linkTooltip);
   if (on.has('toolbar')) {
-    // 1.3 `colors`: one more toolbar button opening the text / background colour menu (a lazy chunk).
+    // 1.4 `colors`: one more toolbar button opening the text / background colour menu (a lazy chunk).
     builder.addFeature(
       toolbar,
       on.has('colors')

@@ -203,7 +203,7 @@ are marked *default pending user confirmation*.
 - [x] Context menu (`context_menu`: right click, Shift+F10, ContextMenu key, host items) — 1.3, PR #10. D11 (*Paste*
   kept, disabled with a hint) and D12 (native menu on touch): *default pending user confirmation*.
 - [x] Block handle and "⋮⋮" block menu (`block_actions`), Alt+Shift+↑/↓, Ctrl+/, drag (`block_drag`; D1 default
-  *pending user confirmation*: opt-in) and text / background colours (`colors`; D5 syntax as recommended) — 1.3,
+  *pending user confirmation*: opt-in) and text / background colours (`colors`; D5 syntax as recommended) — 1.4,
   PR #13
 
 ## Feature assessments

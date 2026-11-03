@@ -42,7 +42,7 @@
   --nowo-milkdown-mark-purple: #e9d5ff;
   --nowo-milkdown-mark-gray: #e5e7eb;
   --nowo-milkdown-mark-text: #0f1c18;
-  /* 1.3: named text colours (AA on background and surface) and the extra background colours. */
+  /* 1.4: named text colours (AA on background and surface) and the extra background colours. */
   --nowo-milkdown-mark-brown: #efe0d2;
   --nowo-milkdown-mark-orange: #fed7aa;
   --nowo-milkdown-mark-pink: #fbcfe8;
@@ -282,7 +282,8 @@
   --crepe-color-surface-low: var(--nowo-milkdown-surface);
   --crepe-color-on-surface: var(--nowo-milkdown-text);
   --crepe-color-on-surface-variant: var(--nowo-milkdown-muted);
-  --crepe-color-outline: var(--nowo-milkdown-border);
+  /* In Crepe, outline is the tone of icons (toolbar, table, link tooltips), not a border: a mid text tone, ≥ 3:1 */
+  --crepe-color-outline: var(--nowo-milkdown-muted);
   --crepe-color-primary: var(--nowo-milkdown-accent);
   --crepe-color-secondary: var(--nowo-milkdown-accent-soft);
   --crepe-color-on-secondary: var(--nowo-milkdown-text);
@@ -457,9 +458,11 @@
 .nowo-md-mark--purple { background: var(--nowo-milkdown-mark-purple); }
 .nowo-milkdown-mark--gray,
 .nowo-md-mark--gray { background: var(--nowo-milkdown-mark-gray); }
-.nowo-milkdown-mark--none { background: transparent; color: inherit; }
+/* DB-L1: a text-only mark (`:mark[x]{text=…}`) has no background on the read side either */
+.nowo-milkdown-mark--none,
+.nowo-md-mark--none { background: transparent; color: inherit; }
 
-/* Block handle (1.3, block_actions): a 24px target in the gutter of the editable */
+/* Block handle (1.4, block_actions): a 24px target in the gutter of the editable */
 .nowo-milkdown--blocks .milkdown .ProseMirror {
   padding-left: 2.5rem;
 }
@@ -548,11 +551,14 @@
 .nowo-md-text--pink { color: var(--nowo-milkdown-color-pink); }
 .nowo-milkdown-color--red,
 .nowo-md-text--red { color: var(--nowo-milkdown-color-red); }
-/* DB-I3: a text colour on a background colour uses the background's paired text colour (AA in both themes) */
+/* DB-I3: a text colour on a background colour uses the background's paired text colour (AA in both themes), also
+   for text coloured inside a block with a background colour */
 .nowo-milkdown-mark:not(.nowo-milkdown-mark--none)[class*='nowo-milkdown-color--'],
 .nowo-md-mark:not(.nowo-md-mark--none)[class*='nowo-md-text--'],
 [class*='nowo-milkdown-bg--'][class*='nowo-milkdown-color--'],
-[class*='nowo-md-bg--'][class*='nowo-md-text--'] {
+[class*='nowo-md-bg--'][class*='nowo-md-text--'],
+[class*='nowo-milkdown-bg--'] [class*='nowo-milkdown-color--'],
+[class*='nowo-md-bg--'] [class*='nowo-md-text--'] {
   color: var(--nowo-milkdown-mark-text);
 }
 .nowo-milkdown-directive--align[class*='nowo-milkdown-bg--'],
