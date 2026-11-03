@@ -28,7 +28,8 @@ interfaces and `window.NowoMilkdownEditor`.
 - **Footnote ids change once.** The salt in `nowo-md-fn-<salt>-<label>` is now 12 hex characters keyed with
   `kernel.secret` (it was 6, from a plain hash of the Markdown). Cached HTML with footnotes renders with new ids after
   the update; select footnotes by prefix / suffix as before. `MilkdownMarkdownRenderer` gains an optional `$secret`
-  argument (the bundle wires `%kernel.secret%`).
+  argument (the bundle wires `%kernel.secret%`); constructing it yourself with footnotes on and no secret throws a
+  `LogicException` (audit DB-I1).
 
 ## 1.3.0
 

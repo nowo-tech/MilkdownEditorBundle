@@ -7,6 +7,7 @@ namespace Nowo\MilkdownEditorBundle\Tests\Unit\Markdown;
 use InvalidArgumentException;
 use League\CommonMark\Node\Inline\Text;
 use League\CommonMark\Renderer\ChildNodeRendererInterface;
+use LogicException;
 use Nowo\MilkdownEditorBundle\Markdown\DialectRenderer;
 use Nowo\MilkdownEditorBundle\Markdown\Directive\DirectiveAttributes;
 use Nowo\MilkdownEditorBundle\Markdown\Directive\DirectiveRendererInterface;
@@ -216,6 +217,14 @@ final class RendererTest extends TestCase
     }
 
     #[Test]
+    public function anEmptySecretIsRefusedWhenFootnotesAreOn(): void
+    {
+        self::assertSame('<p>a</p>', trim((new MilkdownMarkdownRenderer(['footnotes' => false], new NullPageResolver(), new NullUserResolver(), new AllowlistIconResolver()))->render('a')));
+        $this->expectException(LogicException::class);
+        (new MilkdownMarkdownRenderer([], new NullPageResolver(), new NullUserResolver(), new AllowlistIconResolver()))->render('a');
+    }
+
+    #[Test]
     public function taskCheckboxesHaveATranslatedName(): void
     {
         $translator = new class implements TranslatorInterface {
@@ -362,7 +371,7 @@ final class RendererTest extends TestCase
         } catch (InvalidArgumentException $e) {
             self::assertStringContainsString('Unsupported node', $e->getMessage());
         }
-        $html = (new MilkdownMarkdownRenderer([], new NullPageResolver(), new NullUserResolver(), new AllowlistIconResolver()))->render('[[wiki:' . self::ID . ']] @ada :tabler-bug:');
+        $html = (new MilkdownMarkdownRenderer([], new NullPageResolver(), new NullUserResolver(), new AllowlistIconResolver(), secret: 's'))->render('[[wiki:' . self::ID . ']] @ada :tabler-bug:');
         self::assertSame('<p><span class="nowo-md-ref nowo-md-ref--hidden">Content not visible</span> @ada :tabler-bug:</p>', trim($html));
         $pages = new class implements PageResolverInterface {
             public function resolvePages(array $ids): array
@@ -371,7 +380,7 @@ final class RendererTest extends TestCase
             }
         };
         self::assertSame('<p><span class="nowo-md-ref">T</span></p>', trim($this->renderer([], [], $pages)->render('[[wiki:' . self::ID . ']]')));
-        $badSprite = new MilkdownMarkdownRenderer([], new NullPageResolver(), new NullUserResolver(), new AllowlistIconResolver('javascript:x', ['bug']));
+        $badSprite = new MilkdownMarkdownRenderer([], new NullPageResolver(), new NullUserResolver(), new AllowlistIconResolver('javascript:x', ['bug']), secret: 's');
         self::assertSame('<p>:tabler-bug:</p>', trim($badSprite->render(':tabler-bug:')));
     }
 

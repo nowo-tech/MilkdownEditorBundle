@@ -8,6 +8,7 @@ use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\Footnote\Node\Footnote;
 use League\CommonMark\Extension\Footnote\Node\FootnoteRef;
 use League\CommonMark\Reference\Reference;
+use LogicException;
 use Symfony\Contracts\Service\ResetInterface;
 
 use function hash_hmac;
@@ -36,10 +37,15 @@ final class FootnoteSalt implements ResetInterface
     private readonly string $key;
 
     /**
-     * @param string $secret `kernel.secret` (a purpose-bound subkey is derived from it; '' only outside a kernel)
+     * @param string $secret `kernel.secret` (a purpose-bound subkey is derived from it)
+     *
+     * @throws LogicException when the secret is empty (audit DB-I1: the salt must not be guessable)
      */
-    public function __construct(string $secret = '')
+    public function __construct(string $secret)
     {
+        if ($secret === '') {
+            throw new LogicException('MilkdownMarkdownRenderer needs a non-empty $secret (kernel.secret) to salt footnote ids; pass one, or set markdown.footnotes: false.');
+        }
         $this->key = hash_hmac('sha256', 'nowo_milkdown_footnote_salt', $secret);
     }
 
