@@ -204,7 +204,7 @@ are marked *default pending user confirmation*.
   kept, disabled with a hint) and D12 (native menu on touch): *default pending user confirmation*.
 - [x] Block handle and "⋮⋮" block menu (`block_actions`), Alt+Shift+↑/↓, Ctrl+/, drag (`block_drag`; D1 default
   *pending user confirmation*: opt-in) and text / background colours (`colors`; D5 syntax as recommended) — 1.3,
-  PR (feat/block-menu)
+  PR #13
 
 ## Feature assessments
 
