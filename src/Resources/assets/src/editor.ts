@@ -14,9 +14,10 @@ import { replaceAll } from '@milkdown/kit/utils';
 import type { Schema } from '@milkdown/kit/prose/model';
 import { addFeatures } from './features';
 import { createPageResolver } from './link-titles';
+import { createUserResolver } from './user-names';
 import { parseOptions } from './options';
 import { directives } from './nodes/directives';
-import { inlineRefs } from './nodes/inline-refs';
+import { inlineRefs, mentionNameView } from './nodes/inline-refs';
 import { taskListView } from './nodes/task-list';
 import { editableAttributes, watchControls } from './plugins/a11y';
 import { keyboardPlugin } from './plugins/keyboard';
@@ -110,12 +111,14 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   if (!textarea) throw new Error('nowo-milkdown: the widget has no textarea');
   const options: EditorOptions = { ...parseOptions(root.dataset.nowoMilkdownOptions), ...overrides };
   const pages = createPageResolver(options.linkTitleUrl);
+  const users = createUserResolver(options.mentionDisplay === 'name' ? options.userTitleUrl : null);
   const runtime: Runtime = {
     ...defaultRuntime(),
     messages: options.messages,
     spriteUrl: options.iconSpriteUrl,
     icons: new Set(options.icons),
     resolvePage: pages.resolve,
+    resolveUser: users.resolve,
     nonce: options.nonce,
     dark: () => isDark(root),
   };
@@ -147,8 +150,9 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     .use(inlineRefs)
     .use(directives)
     .use(taskListView)
-    .use(suggestPlugin((ctx) => buildTriggers(ctx, { options, runtime, remember: pages.remember })))
+    .use(suggestPlugin((ctx) => buildTriggers(ctx, { options, runtime, remember: pages.remember, rememberUser: users.remember })))
     .use(keyboardPlugin);
+  if (options.mentionDisplay === 'name') editor.use(mentionNameView);
   if (collabModule) editor.use(collabModule.collab);
   await addFeatures(builder, options, runtime);
 

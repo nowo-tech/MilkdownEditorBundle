@@ -44,12 +44,14 @@ final readonly class DialectRenderer implements NodeRendererInterface
      * @param iterable<DirectiveRendererInterface> $directiveRenderers Host renderers of leaf directives
      * @param list<string> $markColors Accepted `:mark` colours
      * @param TranslatorInterface|null $translator Translates *Content not visible* (per request locale)
+     * @param string $mentionDisplay `handle` (`@handle`) or `name` (the resolved name, handle in `data-handle` / `title`)
      */
     public function __construct(
         private IconResolverInterface $icons,
         private iterable $directiveRenderers = [],
         private array $markColors = ['yellow'],
         private ?TranslatorInterface $translator = null,
+        private string $mentionDisplay = 'handle',
     ) {
     }
 
@@ -132,6 +134,11 @@ final readonly class DialectRenderer implements NodeRendererInterface
         }
         $url   = self::safeUrl((string) $node->user->url);
         $title = ' title="' . self::e($node->user->name) . '"';
+        if ($this->mentionDisplay === 'name' && trim($node->user->name) !== '') {
+            // For apps without user names (1.2.1): the person's name is the text, the handle stays in the markup.
+            $title = ' title="@' . self::e($node->handle) . '" data-handle="' . self::e($node->handle) . '"';
+            $text  = self::e($node->user->name);
+        }
 
         return $url !== ''
             ? '<a class="nowo-md-mention" href="' . self::e($url) . '"' . $title . '>' . $text . '</a>'

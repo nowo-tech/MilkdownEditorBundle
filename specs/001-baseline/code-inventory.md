@@ -2,7 +2,7 @@
 
 **Package**: `nowo-tech/milkdown-editor-bundle`  
 **Last audited**: 2026-11-01  
-**Production units**: **79/79**  
+**Production units**: **80/80**  
 **Audit command**: `find src -type f \( -name '*.php' -o -name '*.twig' -o -name '*.yaml' -o -name '*.ts' -o -name '*.css' \) -not -path 'src/Resources/assets/tests/*' -not -path 'src/Resources/public/*' | wc -l`
 
 ## Scope notes
@@ -23,8 +23,8 @@
 | Browser: dialect | 3 |
 | Browser: nodes & plugins | 6 |
 | Browser: previews, collaboration & features | 6 |
-| Browser: editor core | 13 |
-| **Total** | **79** |
+| Browser: editor core | 14 |
+| **Total** | **80** |
 
 ## Bundle, configuration & DI
 
@@ -148,6 +148,7 @@
 | `src/Resources/assets/src/styles/milkdown-editor.css` | Browser: editor core — milkdown-editor.css | FR-EDIT-003, FR-THEME-001 |
 | `src/Resources/assets/src/triggers.ts` | Browser: editor core — triggers.ts | FR-EDIT-002 |
 | `src/Resources/assets/src/types.ts` | Browser: editor core — types.ts | FR-TS-001 |
+| `src/Resources/assets/src/user-names.ts` | Browser: editor core — user-names.ts (mention names, 1.2.1) | FR-EDIT-001 |
 | `src/Resources/assets/src/upload.ts` | Browser: editor core — upload.ts | FR-TS-002 |
 
 ## Build outputs

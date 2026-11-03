@@ -43,7 +43,13 @@ function insertNode(view: EditorView, range: Range, type: NodeType | undefined, 
 
 const isEmoji = (value: string): boolean => value !== '' && !/^[\x20-\x7e]*$/.test(value) && [...value].length <= 8;
 
-type Deps = { options: EditorOptions; runtime: Runtime; remember: (info: PageInfo) => void; fetcher?: FetchJson };
+type Deps = {
+  options: EditorOptions;
+  runtime: Runtime;
+  remember: (info: PageInfo) => void;
+  rememberUser?: (handle: string, name: string) => void;
+  fetcher?: FetchJson;
+};
 
 export function buildTriggers(ctx: Ctx, deps: Deps): SuggestTrigger[] {
   const { options, runtime, remember } = deps;
@@ -76,7 +82,10 @@ export function buildTriggers(ctx: Ctx, deps: Deps): SuggestTrigger[] {
       source: async (q, signal) =>
         (await candidates(fetcher, mentionUrl, q, signal))
           .filter((c) => isHandle(c.id))
-          .map((c) => ({ id: c.id, label: c.label, hint: c.hint ?? `@${c.id}` })),
+          .map((c) => {
+            deps.rememberUser?.(c.id, c.label);
+            return { id: c.id, label: c.label, hint: c.hint ?? `@${c.id}` };
+          }),
       apply: (view, range, item) => insertNode(view, range, view.state.schema.nodes.mention, { handle: item.id }),
     });
   }

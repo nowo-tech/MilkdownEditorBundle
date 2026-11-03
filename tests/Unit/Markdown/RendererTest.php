@@ -40,7 +40,7 @@ final class RendererTest extends TestCase
     private array $pageCalls = [];
 
     /**
-     * @param array{html_input?: string, allow_remote_images?: bool, math?: bool, max_input_length?: int, max_inline_markers?: int, max_references?: int} $options
+     * @param array{html_input?: string, allow_remote_images?: bool, math?: bool, footnotes?: bool, mention_display?: string, max_input_length?: int, max_inline_markers?: int, max_references?: int} $options
      * @param list<DirectiveRendererInterface> $directives
      */
     private function renderer(array $options = [], array $directives = [], ?PageResolverInterface $pages = null, ?UserResolverInterface $users = null, ?AbstractLogger $logger = null, ?TranslatorInterface $translator = null): MilkdownMarkdownRenderer
@@ -176,6 +176,43 @@ final class RendererTest extends TestCase
         self::assertSame('<p><img src="https://x.example/a.png" alt="a" /></p>', trim($r->render('![a](https://x.example/a.png)')));
         self::assertSame('<p>a</p>', trim($r->render('a<b>')));
         self::assertSame("<p>&lt;b&gt;<br>\n" . str_repeat('x', 30) . '</p>', $r->render("<b>\r\n" . str_repeat('x', 30)));
+    }
+
+    #[Test]
+    public function footnotesRenderWithPrefixedIds(): void
+    {
+        $html = $this->renderer()->render("Text[^1] and @alice[^n].\n\n[^1]: A *note* with [[wiki:" . self::ID . "]].\n[^n]: <b>raw</b>\n");
+        self::assertStringContainsString('<sup id="nowo-md-fnref-1"><a class="nowo-md-footnote-ref" href="#nowo-md-fn-1" role="doc-noteref">1</a></sup>', $html);
+        self::assertStringContainsString('<div class="nowo-md-footnotes" role="doc-endnotes"><hr />', $html);
+        self::assertStringContainsString('<li class="nowo-md-footnote" id="nowo-md-fn-1" role="doc-endnote">', $html);
+        self::assertStringContainsString('<em>note</em>', $html);
+        self::assertStringContainsString('href="/wiki/install"', $html);
+        self::assertStringContainsString('&lt;b&gt;raw&lt;/b&gt;', $html);
+        self::assertStringContainsString('class="nowo-md-footnote-backref"', $html);
+        self::assertStringNotContainsString('[^1]', $html);
+    }
+
+    #[Test]
+    public function mentionsCanShowTheResolvedName(): void
+    {
+        $users = new class implements UserResolverInterface {
+            public function resolveUsers(array $handles): array
+            {
+                return ['ada' => new ResolvedUser('Ada <Lovelace>', '/users/ada'), 'grace' => new ResolvedUser('Grace'), 'blank' => new ResolvedUser(' ')];
+            }
+        };
+        self::assertSame(
+            '<p><a class="nowo-md-mention" href="/users/ada" title="@ada" data-handle="ada">Ada &lt;Lovelace&gt;</a> <span class="nowo-md-mention" title="@grace" data-handle="grace">Grace</span> <span class="nowo-md-mention" title=" ">@blank</span> @nobody</p>',
+            trim($this->renderer(['mention_display' => 'name'], users: $users)->render('@ada @grace @blank @nobody')),
+        );
+    }
+
+    #[Test]
+    public function footnotesCanBeTurnedOff(): void
+    {
+        // 1.2.0 output: the definition is read as a link reference, so the footnote becomes a link to its text.
+        $html = trim($this->renderer(['footnotes' => false])->render("Text[^1].\n\n[^1]: Note."));
+        self::assertSame('<p>Text<a href="Note.">^1</a>.</p>', $html);
     }
 
     #[Test]

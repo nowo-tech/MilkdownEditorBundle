@@ -54,6 +54,10 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
   (10 000) inline delimiter characters and line feeds is rendered as escaped text without parsing (see
   [Parser cost](#parser-cost)). At most `max_references` (500) distinct page ids and mention handles per document
   reach each resolver; later ones render as not visible / plain text.
+  With `mention_display: name` the resolved name is escaped like every other value (editor: `textContent`); the user
+  title endpoint must return only people the viewer may see, like the `@` candidates.
+  Footnote ids are prefixed (`nowo-md-fn-*`, `nowo-md-fnref-*`) so a label cannot clobber a host element id, and their
+  characters count in `max_inline_markers` like other delimiters (`[`, `]`).
   `MilkdownEditorType` adds a matching `Length` constraint (bytes) when symfony/validator is installed, so such input
   is rejected when it is saved.
 - Every value in dialect HTML is escaped; resolver URLs keep relative and http(s) forms only; icon, directive and

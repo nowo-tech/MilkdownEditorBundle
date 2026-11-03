@@ -13,6 +13,25 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Fixed
+
+- **Footnotes render on read pages.** The editor (Crepe's GFM preset) writes GFM footnotes (`text[^1]` and
+  `[^1]: note`), but the PHP renderer did not parse them: the definition was read as a CommonMark link reference,
+  so `text[^1]` became a link labelled `^1` pointing at the note's first word, and the note itself disappeared. The
+  renderer now enables league/commonmark's `FootnoteExtension` with prefixed ids (`nowo-md-fn-*`, `nowo-md-fnref-*`) and classes
+  (`nowo-md-footnotes`, `nowo-md-footnote-ref`, `nowo-md-footnote-backref`). New option
+  `nowo_milkdown_editor.markdown.footnotes` (default `true`; `false` keeps the 1.2.0 output). See
+  [UPGRADING](UPGRADING.md#121).
+
+### Added
+
+- **Mention names (opt-in, for apps without user names):** `nowo_milkdown_editor.markdown.mention_display: name`
+  renders a resolved mention as the person's name (`ResolvedUser::$name`, escaped) with the handle in `data-handle`
+  and `title="@handle"`; the profile / field option `mention_display: name` does the same in the editor, with names
+  from the `@` suggestions and the new optional `user_title_url` (`GET url?handles=a,b` → `[{handle, name}]`). The
+  Markdown keeps `@handle`. Defaults (`handle`) render exactly as 1.2.0, and the widget JSON only gains
+  `mentionDisplay` / `userTitleUrl` when they are set.
+
 ### Documentation
 
 - `docs/ROADMAP.md`: feature roadmap towards Notion / Outline parity (context menu, block menu with colour, comments,

@@ -235,6 +235,7 @@ var E = () => ({
 		url: "",
 		visible: !1
 	}),
+	resolveUser: async () => null,
 	nonce: "",
 	dark: () => !1
 }), D = e(E(), "nowoMilkdownRuntime"), O = (e, t, n = {}) => T(e.messages, t, n);

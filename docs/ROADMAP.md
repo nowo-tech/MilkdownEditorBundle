@@ -20,6 +20,7 @@ symfony-beacon `specs/178-wiki/tasks.md`.
   - [Parity summary](#parity-summary)
   - [Notion features that fight Markdown](#notion-features-that-fight-markdown)
 - [Milestones](#milestones)
+  - [Progress](#progress)
 - [Feature assessments](#feature-assessments)
   - [Context menu (right click)](#context-menu-right-click)
   - [Block actions, block handle and drag and drop](#block-actions-block-handle-and-drag-and-drop)
@@ -75,7 +76,7 @@ symfony-beacon `specs/178-wiki/tasks.md`.
   Yjs collaboration over Mercure (cursors with names and colours, state log, compaction).
 - PHP renderer: CommonMark + GFM + the dialect. **Gap found while writing this roadmap:** the editor's GFM preset
   (from Crepe) parses footnotes (`[^1]` / `[^1]: …`) but the PHP renderer does not enable league/commonmark's
-  `FootnoteExtension`, so footnotes written in the editor render as literal text on read pages. Fixed in 1.3 (below).
+  `FootnoteExtension`, so footnotes written in the editor render as literal text on read pages. Fixed in 1.2.1 (PR #11).
 
 ## Upstream: Milkdown 7.23 and what we do not use yet
 
@@ -191,6 +192,14 @@ TypeScript, axe and CSP e2e, and a security note in [SECURITY.md](SECURITY.md).
 Recommended order inside 1.3: footnote fix (S, a correctness bug) → heading anchors → shared menu component →
 context menu → block actions → colour (dialect, PHP, toolbar, block menu) → slash menu v2 and "+" → shortcut help →
 drag (if D1).
+
+### Progress
+
+Ticked when the PR is open and green; the version is the one the change ships in. Defaults taken for open decisions
+are marked *default pending user confirmation*.
+
+- [x] Footnote rendering fix (`markdown.footnotes`) — 1.2.1, PR #11
+- [x] Mention names for apps without user names (`mention_display: name`, Beacon request) — 1.2.1, PR #11
 
 ## Feature assessments
 

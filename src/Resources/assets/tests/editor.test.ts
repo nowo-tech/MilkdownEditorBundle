@@ -65,6 +65,16 @@ describe('createEditor', () => {
     expect(handle.textarea.hidden).toBe(true);
   });
 
+  it('round trips GFM footnotes (rendered by the PHP renderer since 1.2.1)', async () => {
+    handle = await editor('Text[^1] and more[^note].\n\n[^1]: First *note*.\n\n[^note]: Second.\n');
+    const first = handle.getMarkdown();
+    handle.setMarkdown(first);
+    expect(handle.getMarkdown()).toBe(first);
+    expect(first).toContain('Text[^1]');
+    expect(first).toContain('[^1]: First *note*.');
+    expect(first).toContain('[^note]: Second.');
+  });
+
   it('page links resolve per viewer (visible, hidden)', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify([{ id: ID, title: 'Install', url: '/wiki/install', visible: true }])));
     vi.stubGlobal('fetch', fetchMock);

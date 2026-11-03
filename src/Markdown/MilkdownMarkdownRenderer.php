@@ -6,6 +6,7 @@ namespace Nowo\MilkdownEditorBundle\Markdown;
 
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
+use League\CommonMark\Extension\Footnote\FootnoteExtension;
 use League\CommonMark\Extension\GithubFlavoredMarkdownExtension;
 use League\CommonMark\MarkdownConverter;
 use Nowo\MilkdownEditorBundle\Markdown\Directive\DirectiveRendererInterface;
@@ -47,7 +48,7 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface
     private ?MarkdownConverter $converter = null;
 
     /**
-     * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, max_nesting_level?: int, max_input_length?: int, max_inline_markers?: int, max_references?: int, mark_colors?: list<string>} $options The `nowo_milkdown_editor.markdown` configuration
+     * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, footnotes?: bool, mention_display?: string, max_nesting_level?: int, max_input_length?: int, max_inline_markers?: int, max_references?: int, mark_colors?: list<string>} $options The `nowo_milkdown_editor.markdown` configuration
      * @param PageResolverInterface $pages Page link resolver (per viewer)
      * @param UserResolverInterface $users Mention resolver
      * @param IconResolverInterface $icons Icon allowlist and sprite
@@ -106,11 +107,24 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface
             'html_input'         => $this->options['html_input'] ?? 'escape',
             'allow_unsafe_links' => $this->options['allow_unsafe_links'] ?? false,
             'max_nesting_level'  => $this->options['max_nesting_level'] ?? 50,
+            // Prefixed ids: a footnote can never clobber a host element id or a heading anchor.
+            'footnote' => [
+                'backref_class'      => 'nowo-md-footnote-backref',
+                'container_add_hr'   => true,
+                'container_class'    => 'nowo-md-footnotes',
+                'ref_class'          => 'nowo-md-footnote-ref',
+                'ref_id_prefix'      => 'nowo-md-fnref-',
+                'footnote_class'     => 'nowo-md-footnote',
+                'footnote_id_prefix' => 'nowo-md-fn-',
+            ],
         ]);
         $environment->addExtension(new CommonMarkCoreExtension());
         $environment->addExtension(new GithubFlavoredMarkdownExtension());
+        if ($this->options['footnotes'] ?? true) {
+            $environment->addExtension(new FootnoteExtension());
+        }
         $environment->addExtension(new MilkdownDialectExtension(
-            new DialectRenderer($this->icons, $this->directiveRenderers, $this->options['mark_colors'] ?? ['yellow'], $this->translator),
+            new DialectRenderer($this->icons, $this->directiveRenderers, $this->options['mark_colors'] ?? ['yellow'], $this->translator, $this->options['mention_display'] ?? 'handle'),
             new DocumentProcessor(
                 $this->pages,
                 $this->users,

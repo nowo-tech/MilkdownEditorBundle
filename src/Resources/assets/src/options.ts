@@ -78,6 +78,8 @@ export function parseOptions(raw: string | undefined | null): EditorOptions {
         }
       : null,
     collaboration: collaboration(data.collaboration),
+    mentionDisplay: data.mentionDisplay === 'name' ? 'name' : 'handle',
+    userTitleUrl: strOrNull(data.userTitleUrl),
     nonce: str(data.nonce) || pageNonce(),
     messages,
   };

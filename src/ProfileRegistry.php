@@ -11,7 +11,7 @@ use function sprintf;
 /**
  * Named editor profiles from `nowo_milkdown_editor.profiles` (REQ-CFG-001).
  *
- * @phpstan-type Profile array{features: list<string>, theme: string, min_height: string, icon_sprite_url: ?string, icons: list<string>, upload_max_size: int, upload_accept: list<string>}
+ * @phpstan-type Profile array{features: list<string>, theme: string, min_height: string, icon_sprite_url: ?string, icons: list<string>, upload_max_size: int, upload_accept: list<string>, mention_display?: string}
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  */
