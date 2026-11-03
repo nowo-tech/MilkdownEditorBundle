@@ -206,7 +206,7 @@ are marked *default pending user confirmation*.
   *pending user confirmation*: opt-in) and text / background colours (`colors`; D5 syntax as recommended) — 1.4,
   PR #13
 - [x] Markdown clipboard (`markdown_clipboard`: smart paste, Paste / Copy as Markdown), *Insert* group of the context
-  menu (`insert_menu`) and the read-view "Copy as Markdown" button (owner requests, Beacon) — 1.5
+  menu (`insert_menu`) and the read-view "Copy as Markdown" button (owner requests, Beacon) — 1.5, PR #14
 
 ## Feature assessments
 
