@@ -101,12 +101,14 @@ final class MilkdownEditorType extends AbstractType
      * @param CspNonceProviderInterface|null $nonceProvider Nonce of the current response (when `csp_nonce` is null)
      * @param TranslatorInterface|null $translator Translates the editor UI strings
      * @param int $maxInputLength Default `max_length` (the renderer's `max_input_length`)
+     * @param list<string> $markColors The renderer's `mark_colors`: the colours the editor offers (1.4, audit DB-I7)
      */
     public function __construct(
         private readonly ProfileRegistry $profiles,
         private readonly ?CspNonceProviderInterface $nonceProvider = null,
         private readonly ?TranslatorInterface $translator = null,
         private readonly int $maxInputLength = MilkdownMarkdownRenderer::DEFAULT_MAX_INPUT_LENGTH,
+        private readonly array $markColors = [],
     ) {
     }
 
@@ -160,6 +162,10 @@ final class MilkdownEditorType extends AbstractType
             'messages'      => (object) $this->messages($features),
         ];
         // 1.2.1: only when set, so fields with the defaults keep the same widget JSON.
+        // 1.4: the editor offers the colours the renderer accepts (only with the colors feature: same JSON otherwise).
+        if (in_array('colors', $features, true) && $this->markColors !== []) {
+            $view->vars['milkdown_options']['colors'] = $this->markColors;
+        }
         if ($options['mention_display'] === 'name') {
             $view->vars['milkdown_options']['mentionDisplay'] = 'name';
         }

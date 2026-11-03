@@ -129,6 +129,7 @@ var r = () => ({
 	}),
 	resolveUser: async () => null,
 	features: /* @__PURE__ */ new Set(),
+	colors: [],
 	nonce: "",
 	dark: () => !1
 }), i = e(r(), "nowoMilkdownRuntime"), a = (e, t, r = {}) => n(e.messages, t, r);

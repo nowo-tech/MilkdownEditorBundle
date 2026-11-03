@@ -1,7 +1,7 @@
 import { $ as e, Ot as t, St as n, at as r, ct as i, et as a, nt as o, ot as s, st as c, ut as l } from "./lib-9QpRoHAM.js";
 import { i as u, m as d } from "./dist-DEVWqQ48.js";
 import { c as f, l as p, r as m, u as h } from "./directives-DbJLoMed.js";
-import { i as g } from "./runtime-dbQ0IuNu.js";
+import { i as g } from "./runtime-CM-Nal4Z.js";
 // src/Resources/assets/src/commands/blocks.ts
 function _(e) {
 	let { selection: t } = e;
@@ -328,11 +328,18 @@ function N(e, t) {
 		if (r) {
 			let s = A(n, i);
 			e === "bg" && delete s.color, t ? s[e] = t : delete s[e];
-			let c = n.tr.removeMark(a, o, i);
-			Object.keys(s).filter((e) => e === "text" || e === "bg" || e === "color").length && c.addMark(a, o, i.create({
-				name: "mark",
-				attributes: h(s)
-			})), r(c);
+			let c = Object.keys(s).filter((e) => e === "text" || e === "bg" || e === "color"), l = n.tr;
+			n.doc.nodesBetween(a, o, (e, t) => {
+				if (!e.isText) return !0;
+				let n = e.marks.filter((e) => e.type === i);
+				if (n.some((e) => e.attrs.name !== "mark")) return !1;
+				let r = Math.max(a, t), u = Math.min(o, t + e.nodeSize);
+				for (let e of n) l.removeMark(r, u, e);
+				return c.length && l.addMark(r, u, i.create({
+					name: "mark",
+					attributes: h(s)
+				})), !1;
+			}), r(l);
 		}
 		return !0;
 	};
@@ -372,7 +379,7 @@ function F(e, t, n, r) {
 			separatorBefore: e === "bg",
 			run: () => r(a(e, null))
 		});
-		for (let s of m) o.push({
+		for (let s of m.filter((e) => t.colors.length === 0 || t.colors.includes(e))) o.push({
 			id: `${e}_${s}`,
 			label: g(t, `color.${n}`, { color: g(t, `color.${s}`) }),
 			swatch: e === "text" ? `nowo-milkdown-color--${s}` : `nowo-milkdown-bg--${s}`,

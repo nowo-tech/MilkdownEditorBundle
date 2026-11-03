@@ -1,7 +1,7 @@
 import { ot as e, st as t } from "./lib-9QpRoHAM.js";
 import { m as n, n as r, t as i } from "./dist-DEVWqQ48.js";
 import { f as a } from "./dist-DPp-l4A4.js";
-import { i as o, n as s, r as c } from "./runtime-dbQ0IuNu.js";
+import { i as o, n as s, r as c } from "./runtime-CM-Nal4Z.js";
 // src/Resources/assets/src/link-titles.ts
 var l = 50;
 function u(e, t = (...e) => fetch(...e)) {

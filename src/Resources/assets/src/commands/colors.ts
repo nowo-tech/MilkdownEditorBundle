@@ -60,9 +60,20 @@ export function setInlineColor(kind: ColorKind, color: Color | null) {
       if (kind === 'bg') delete attributes.color;
       if (color) attributes[kind] = color;
       else delete attributes[kind];
-      const tr = state.tr.removeMark(from, to, type);
       const colours = Object.keys(attributes).filter((k) => k === 'text' || k === 'bg' || k === 'color');
-      if (colours.length) tr.addMark(from, to, type.create({ name: 'mark', attributes: encodeAttributes(attributes) }));
+      const tr = state.tr;
+      // Only :mark directives change (DB-I4). Text inside another text directive (:note[…], …) keeps it: one text
+      // directive per character, so that text is left without colour.
+      state.doc.nodesBetween(from, to, (node, pos) => {
+        if (!node.isText) return true;
+        const marks = node.marks.filter((m) => m.type === type);
+        if (marks.some((m) => m.attrs.name !== 'mark')) return false;
+        const start = Math.max(from, pos);
+        const end = Math.min(to, pos + node.nodeSize);
+        for (const mark of marks) tr.removeMark(start, end, mark);
+        if (colours.length) tr.addMark(start, end, type.create({ name: 'mark', attributes: encodeAttributes(attributes) }));
+        return false;
+      });
       dispatch(tr);
     }
     return true;
@@ -121,7 +132,7 @@ export function colorItems(state: EditorState, runtime: Runtime, inline: boolean
       separatorBefore: kind === 'bg',
       run: () => run(set(kind, null)),
     });
-    for (const color of COLORS) {
+    for (const color of COLORS.filter((name) => runtime.colors.length === 0 || runtime.colors.includes(name))) {
       items.push({
         id: `${kind}_${color}`,
         label: t(runtime, `color.${key}`, { color: t(runtime, `color.${color}`) }),

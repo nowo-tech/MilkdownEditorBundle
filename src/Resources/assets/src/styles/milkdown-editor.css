@@ -549,6 +549,13 @@
 .nowo-md-text--pink { color: var(--nowo-milkdown-color-pink); }
 .nowo-milkdown-color--red,
 .nowo-md-text--red { color: var(--nowo-milkdown-color-red); }
+/* DB-I3: a text colour on a background colour uses the background's paired text colour (AA in both themes) */
+.nowo-milkdown-mark:not(.nowo-milkdown-mark--none)[class*='nowo-milkdown-color--'],
+.nowo-md-mark:not(.nowo-md-mark--none)[class*='nowo-md-text--'],
+[class*='nowo-milkdown-bg--'][class*='nowo-milkdown-color--'],
+[class*='nowo-md-bg--'][class*='nowo-md-text--'] {
+  color: var(--nowo-milkdown-mark-text);
+}
 .nowo-milkdown-directive--align[class*='nowo-milkdown-bg--'],
 .nowo-md-align[class*='nowo-md-bg--'] {
   padding: 0.25rem 0.5rem;

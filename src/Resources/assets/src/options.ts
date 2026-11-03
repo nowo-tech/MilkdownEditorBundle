@@ -80,6 +80,7 @@ export function parseOptions(raw: string | undefined | null): EditorOptions {
         }
       : null,
     collaboration: collaboration(data.collaboration),
+    colors: Array.isArray(data.colors) ? data.colors.filter((c): c is string => typeof c === 'string') : [],
     mentionDisplay: data.mentionDisplay === 'name' ? 'name' : 'handle',
     userTitleUrl: strOrNull(data.userTitleUrl),
     nonce: str(data.nonce) || pageNonce(),

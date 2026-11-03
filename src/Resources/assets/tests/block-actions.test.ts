@@ -4,7 +4,9 @@ import { NodeSelection, TextSelection } from '@milkdown/kit/prose/state';
 import { editor, keydown } from './helpers';
 import type { MilkdownEditorHandle } from '../src/editor';
 import { currentColors, openColorMenu, setBlockColor, setInlineColor } from '../src/commands/colors';
-import { colorOf, markColor } from '../src/dialect/directives';
+import { COLORS, colorOf, markColor } from '../src/dialect/directives';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { topLevelPos, type BlockActionsView } from '../src/plugins/block-actions';
 import { parseOptions } from '../src/options';
 import { COLOR_ICON } from '../src/features';
@@ -12,6 +14,7 @@ import { runtimeCtx } from '../src/runtime';
 
 let handle: MilkdownEditorHandle | null = null;
 afterEach(async () => {
+  vi.unstubAllGlobals();
   await handle?.destroy();
   handle = null;
   document.body.replaceChildren();
@@ -56,6 +59,18 @@ describe('colour dialect (1.3)', () => {
     expect(dom.querySelector('.nowo-milkdown-directive--align.nowo-milkdown-bg--orange.nowo-milkdown-color--brown')).not.toBeNull();
   });
 
+  it('inline colours keep other text directives (DB-I4) and follow mark_colors (DB-I7)', async () => {
+    handle = await editor(':note[x]{a="1"} plain', { features: ['colors', 'context_menu'], colors: ['red', 'blue'] });
+    const v = view(handle);
+    select(handle, 1, 9);
+    setInlineColor('text', 'red')(v.state, v.dispatch);
+    expect(handle.getMarkdown()).toContain(':note[');
+    expect(handle.getMarkdown()).toContain('text="red"');
+    keydown(v.dom, 'F10', { shiftKey: true });
+    const colors = sub(openMenu(handle), 'color');
+    expect([...colors.querySelectorAll('[data-id]')].map((b) => (b as HTMLElement).dataset.id)).toEqual(['text_default', 'text_blue', 'text_red', 'bg_default', 'bg_blue', 'bg_red']);
+  });
+
   it('inline commands set, change and clear colours; legacy color becomes bg', async () => {
     handle = await editor('Hello world');
     const v = view(handle);
@@ -94,6 +109,38 @@ describe('colour dialect (1.3)', () => {
     setBlockColor('bg', 'blue')(view(handle).state, v.dispatch);
     setBlockColor('bg', null)(view(handle).state, v.dispatch);
     expect(handle.getMarkdown()).toBe('::: {align="center"}\nMid\n:::\n');
+  });
+});
+
+describe('colour contrast (DB-I3)', () => {
+  const css = readFileSync(resolve(process.cwd(), 'src/Resources/assets/src/styles/milkdown-editor.css'), 'utf8');
+  /** Token values of the first block defining `--nowo-milkdown-mark-text` (light), then of the next one (dark). */
+  const themes = (() => {
+    const blocks = css.split('}').filter((b) => b.includes('--nowo-milkdown-mark-text:'));
+    return blocks.slice(0, 2).map((block) => Object.fromEntries([...block.matchAll(/--nowo-milkdown-([\w-]+):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1]!, m[2]!])));
+  })();
+  const lum = (hex: string) => {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+  };
+  const ratio = (a: string, b: string) => {
+    const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+    return (hi! + 0.05) / (lo! + 0.05);
+  };
+
+  it('every text colour on the page, every background with its text, and every text + background pair pass AA', () => {
+    expect(themes).toHaveLength(2);
+    expect(css).toMatch(/\[class\*='nowo-md-bg--'\]\[class\*='nowo-md-text--'\][^{]*\{\s*color: var\(--nowo-milkdown-mark-text\)/);
+    for (const tokens of themes) {
+      for (const text of COLORS) {
+        expect(ratio(tokens[`color-${text}`]!, tokens.background!)).toBeGreaterThanOrEqual(4.5);
+        expect(ratio(tokens[`color-${text}`]!, tokens.surface!)).toBeGreaterThanOrEqual(4.5);
+        for (const bg of COLORS) {
+          // With both set the text uses the background's paired text colour (the rule above): 81 pairs per theme.
+          expect(ratio(tokens['mark-text']!, tokens[`mark-${bg}`]!)).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    }
   });
 });
 
@@ -238,6 +285,21 @@ describe('block actions (1.3)', () => {
     expect(data.effectAllowed).toBe('move');
     button.dispatchEvent(new Event('dragend'));
     expect(v.dragging).toBeNull();
+    // DB-I5: the document changes during a drag: the drag is cancelled and the drop swallowed.
+    vi.stubGlobal('DragEvent', class extends Event {});
+    actions.show(0);
+    button.dispatchEvent(drag);
+    v.dispatch(v.state.tr.insertText('!', 1));
+    expect(v.dragging).toBeNull();
+    expect(actions.dragCancelled).toBe(true);
+    const before = handle.getMarkdown();
+    const drop = new Event('drop', { bubbles: true, cancelable: true }) as DragEvent;
+    Object.defineProperty(drop, 'dataTransfer', { value: { getData: () => 'One', files: [], types: ['text/plain'] } });
+    Object.defineProperty(drop, 'clientX', { value: 1 });
+    Object.defineProperty(drop, 'clientY', { value: 1 });
+    v.dom.dispatchEvent(drop);
+    expect(handle.getMarkdown()).toBe(before);
+    expect(actions.dragCancelled).toBe(false);
   });
 
   it('context menu shows Color for the selection (inline) or the block; toolbar colour menu', async () => {

@@ -1,9 +1,9 @@
 import { m as e } from "./dist-DEVWqQ48.js";
 import { ot as t, st as n, ut as r } from "./lib-9QpRoHAM.js";
 import { a as i, c as a, i as o, l as s, o as c, r as l, u } from "./dist-DPp-l4A4.js";
-import { i as d, r as f } from "./runtime-dbQ0IuNu.js";
-import { a as p, c as m, colorItems as h, i as g, l as _, n as v, o as y, r as b, s as x, t as S } from "./colors-hatfAAa-.js";
-import { i as C, n as w, s as T, t as E } from "./context-menu-registry-Q3hxP7t2.js";
+import { i as d, r as f } from "./runtime-CM-Nal4Z.js";
+import { a as p, c as m, colorItems as h, i as g, l as _, n as v, o as y, r as b, s as x, t as S } from "./colors-CraKPMZ5.js";
+import { i as C, n as w, s as T, t as E } from "./context-menu-registry-Bx3iUZap.js";
 // src/Resources/assets/src/plugins/context-menu.ts
 var D = new n("nowo-milkdown-context-menu"), O = () => typeof navigator < "u" && navigator.clipboard ? navigator.clipboard : {};
 function k(e, t, n) {

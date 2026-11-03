@@ -128,6 +128,9 @@ test.describe('Milkdown editor demo', () => {
     await expect(page.locator('.nowo-milkdown .nowo-md-mermaid svg')).toBeVisible({ timeout: 15000 });
     await expect(page.locator('.nowo-milkdown .katex').first()).toBeVisible();
     await openToolbar(page);
+    // Collapse the selection first: the selection toolbar may cover the paragraph clicked next.
+    await page.keyboard.press('End');
+    await expect(page.locator('.milkdown-toolbar[data-show="true"]')).toHaveCount(0);
     await caretAtEnd(page);
     await page.keyboard.press('Enter');
     await page.keyboard.type('Ask @gr');

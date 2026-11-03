@@ -17,6 +17,7 @@ import { TURN_INTO, deleteBlock, duplicateBlock, moveBlock, selectionRunner, tur
 import { colorItems } from '../commands/colors';
 
 export const blockActionsKey = new PluginKey('nowo-milkdown-block-actions');
+const views = new WeakMap<EditorView, BlockActionsView>();
 
 type Command = (state: EditorState, dispatch?: (tr: Transaction) => void) => boolean;
 
@@ -34,6 +35,10 @@ export class BlockActionsView {
   readonly menu: Menu;
   /** Top-level block the button points at. */
   private target: number | null = null;
+  /** A drag of the handle in progress, and the document it started on (DB-I5). */
+  private dragDoc: unknown = null;
+  /** True after the document changed during a drag: the drop is swallowed (no stale fragment is inserted). */
+  dragCancelled = false;
   private readonly host: HTMLElement;
   private readonly onMove = (event: MouseEvent): void => {
     // The top-level block element under the pointer (DOM lookup: no coordinate mapping on every mouse move).
@@ -71,6 +76,8 @@ export class BlockActionsView {
       this.button.addEventListener('dragstart', (event) => this.dragStart(event));
       this.button.addEventListener('dragend', () => {
         this.view.dragging = null;
+        this.dragDoc = null;
+        this.dragCancelled = false;
       });
     }
     this.host.append(this.button);
@@ -86,6 +93,12 @@ export class BlockActionsView {
   update(view: EditorView, previous?: EditorState): void {
     // A menu built for an older document closes (CZ-I9.2, as the context menu).
     if (this.menu.isOpen && previous && view.state.doc !== previous.doc) this.menu.closeAll(false);
+    // DB-I5: the document changed during a drag of the handle: cancel it (the dragged slice is stale).
+    if (this.dragDoc !== null && view.state.doc !== this.dragDoc) {
+      this.dragDoc = null;
+      this.dragCancelled = true;
+      view.dragging = null;
+    }
     if (view.hasFocus()) this.show(topLevelPos(view.state, view.state.selection.from));
     else if (this.target !== null && this.target >= view.state.doc.content.size) this.show(null);
   }
@@ -191,6 +204,8 @@ export class BlockActionsView {
     view.dispatch(view.state.tr.setSelection(selection));
     const slice = selection.content();
     view.dragging = { slice, move: true };
+    this.dragDoc = view.state.doc;
+    this.dragCancelled = false;
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('text/plain', view.state.doc.textBetween(selection.from, selection.to, '\n'));
@@ -206,7 +221,20 @@ export function blockActionsPlugin(drag: boolean) {
     (ctx) =>
       new Plugin({
         key: blockActionsKey,
-        view: (view) => new BlockActionsView(view, ctx.get(runtimeCtx.key), drag),
+        view: (view) => {
+          const actions = new BlockActionsView(view, ctx.get(runtimeCtx.key), drag);
+          views.set(view, actions);
+          return actions;
+        },
+        props: {
+          // DB-I5: a drop after the document changed during the drag is swallowed.
+          handleDrop: (view) => {
+            const actions = views.get(view);
+            if (!actions?.dragCancelled) return false;
+            actions.dragCancelled = false;
+            return true;
+          },
+        },
       }),
   );
 }

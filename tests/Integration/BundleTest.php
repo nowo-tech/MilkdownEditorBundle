@@ -127,6 +127,19 @@ final class BundleTest extends TestCase
     }
 
     #[Test]
+    public function theColourFeatureOffersTheRendererColours(): void
+    {
+        $container = $this->container();
+        $factory   = $this->service($container, FormFactoryInterface::class, FormFactoryInterface::class);
+        /** @var array<string, mixed> $with */
+        $with = $factory->create(MilkdownEditorType::class, null, ['features' => ['toolbar', 'colors']])->createView()->vars['milkdown_options'];
+        /** @var array<string, mixed> $without */
+        $without = $factory->create(MilkdownEditorType::class, null, ['features' => ['toolbar']])->createView()->vars['milkdown_options'];
+        self::assertSame(['yellow', 'green', 'blue', 'red', 'purple', 'gray', 'brown', 'orange', 'pink'], $with['colors']);
+        self::assertArrayNotHasKey('colors', $without, 'BC: same JSON without the feature');
+    }
+
+    #[Test]
     public function featureStringsAreSentOnlyWithTheirFeature(): void
     {
         $container = $this->container();

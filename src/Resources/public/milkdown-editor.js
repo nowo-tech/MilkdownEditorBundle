@@ -7,8 +7,8 @@ import { A as Qe, B as $e, D as et, E as tt, F as nt, I as rt, L as z, M as it, 
 import { d as wt, t as Tt } from "./chunks/dist-DPp-l4A4.js";
 import { t as Et } from "./chunks/purify.es-CZ6K1J3y.js";
 import { t as Dt } from "./chunks/mermaid-DJO1IgvH.js";
-import { i as V, n as Ot, r as kt, t as At } from "./chunks/runtime-dbQ0IuNu.js";
-import { a as jt, n as Mt, o as Nt, r as Pt, s as Ft } from "./chunks/context-menu-registry-Q3hxP7t2.js";
+import { i as V, n as Ot, r as kt, t as At } from "./chunks/runtime-CM-Nal4Z.js";
+import { a as jt, n as Mt, o as Nt, r as Pt, s as Ft } from "./chunks/context-menu-registry-Bx3iUZap.js";
 import { a as It, d as Lt, f as Rt, i as zt, l as H, n as Bt, o as Vt, p as Ht, s as Ut, t as Wt, u as Gt } from "./chunks/directives-DbJLoMed.js";
 // node_modules/.pnpm/@milkdown+plugin-clipboard@7.23.0/node_modules/@milkdown/plugin-clipboard/lib/index.js
 function Kt(e) {
@@ -3274,11 +3274,11 @@ async function Xo(e, t = {}) {
 }
 // src/Resources/assets/src/features.ts
 var Zo = {
-	code: () => import("./chunks/code-DJxvD3S9.js").then((e) => e.t),
+	code: () => import("./chunks/code-CSYAXRue.js").then((e) => e.t),
 	math: () => import("./chunks/latex-B1do5Z9s.js"),
 	katex: () => import("./chunks/katex-DNCsLolD.js"),
 	topBar: () => import("./chunks/top-bar-C1it1osQ.js"),
-	colors: () => import("./chunks/colors-hatfAAa-.js")
+	colors: () => import("./chunks/colors-CraKPMZ5.js")
 }, Qo = "<svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 16l5-12 5 12\"/><path d=\"M9 11h6\"/><path d=\"M4 20h16\"/></svg>";
 async function $o(e, t, n) {
 	let r = new Set(t.features), [i, a, o] = await Promise.all([
@@ -3453,6 +3453,7 @@ function Cs(e) {
 			accept: Array.isArray(r.accept) ? r.accept.filter((e) => typeof e == "string") : []
 		} : null,
 		collaboration: Ss(t.collaboration),
+		colors: Array.isArray(t.colors) ? t.colors.filter((e) => typeof e == "string") : [],
 		mentionDisplay: t.mentionDisplay === "name" ? "name" : "handle",
 		userTitleUrl: ys(t.userTitleUrl),
 		nonce: $(t.nonce) || ws(),
@@ -4956,6 +4957,7 @@ async function zl(e, t = {}) {
 		resolvePage: i.resolve,
 		resolveUser: a.resolve,
 		features: new Set(r.features),
+		colors: r.colors,
 		nonce: r.nonce,
 		dark: () => Fl(e)
 	};
@@ -4963,7 +4965,7 @@ async function zl(e, t = {}) {
 	let { bar: s, surface: c, status: l, announce: u } = Ll(e, o), d = Il(n), f = n.value, p = new kn({
 		root: c,
 		defaultValue: r.collaboration ? "" : f
-	}), m = p.editor, h = r.collaboration ? await import("./chunks/collab-Elq1tKQg.js") : null, g = r.features.includes("context_menu") ? await import("./chunks/context-menu-DQbZhdPp.js") : null, _ = r.features.includes("block_actions") ? await import("./chunks/block-actions-gmvvDKvq.js") : null, v = r.features.includes("colors") ? await import("./chunks/colors-hatfAAa-.js") : null;
+	}), m = p.editor, h = r.collaboration ? await import("./chunks/collab-Elq1tKQg.js") : null, g = r.features.includes("context_menu") ? await import("./chunks/context-menu-BUFjenwZ.js") : null, _ = r.features.includes("block_actions") ? await import("./chunks/block-actions-Bs3ZuDJy.js") : null, v = r.features.includes("colors") ? await import("./chunks/colors-CraKPMZ5.js") : null;
 	m.config((e) => {
 		if (e.set(kt.key, o), e.update(be, (e) => ({
 			...e,

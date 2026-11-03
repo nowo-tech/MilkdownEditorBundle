@@ -1,39 +1,41 @@
 import { m as e } from "./dist-DEVWqQ48.js";
 import { at as t, ot as n, st as r, ut as i } from "./lib-9QpRoHAM.js";
-import { i as a, r as o } from "./runtime-dbQ0IuNu.js";
-import { a as s, c, colorItems as l, i as u, l as d, n as f, s as p, t as m } from "./colors-hatfAAa-.js";
+import { i as a, r as o } from "./runtime-CM-Nal4Z.js";
+import { a as s, c, colorItems as l, i as u, l as d, n as f, s as p, t as m } from "./colors-CraKPMZ5.js";
 // src/Resources/assets/src/plugins/block-actions.ts
-var h = new r("nowo-milkdown-block-actions");
-function g(e, t) {
+var h = new r("nowo-milkdown-block-actions"), g = /* @__PURE__ */ new WeakMap();
+function _(e, t) {
 	if (e.doc.childCount === 0) return null;
 	let n = e.doc.resolve(Math.min(Math.max(t, 0), e.doc.content.size));
 	return n.depth >= 1 ? n.before(1) : n.nodeAfter ? n.pos : null;
 }
-var _ = class {
+var v = class {
 	view;
 	runtime;
 	drag;
 	button;
 	menu;
 	target = null;
+	dragDoc = null;
+	dragCancelled = !1;
 	host;
 	onMove = (e) => {
 		let t = e.target instanceof Node ? e.target : null;
 		for (; t && t.parentNode !== this.view.dom;) t = t.parentNode;
 		if (t && this.view.state.doc.childCount !== 0) try {
-			this.show(g(this.view.state, this.view.posAtDOM(t, 0)));
+			this.show(_(this.view.state, this.view.posAtDOM(t, 0)));
 		} catch {}
 	};
 	onKey = (e) => this.handleKey(e);
 	constructor(e, t, n) {
 		this.view = e, this.runtime = t, this.drag = n, this.host = e.dom.closest(".nowo-milkdown") ?? document.body, this.button = document.createElement("button"), this.button.type = "button", this.button.tabIndex = -1, this.button.className = "nowo-milkdown-block-handle", this.button.setAttribute("aria-label", a(t, "block.actions")), this.button.setAttribute("aria-haspopup", "menu"), this.button.setAttribute("aria-expanded", "false"), this.button.setAttribute("aria-keyshortcuts", "Control+/"), this.button.textContent = "⋮⋮", this.button.hidden = !0, this.button.addEventListener("mousedown", (e) => e.preventDefault()), this.button.addEventListener("click", () => this.openFromButton()), n && (this.button.draggable = !0, this.button.addEventListener("dragstart", (e) => this.dragStart(e)), this.button.addEventListener("dragend", () => {
-			this.view.dragging = null;
+			this.view.dragging = null, this.dragDoc = null, this.dragCancelled = !1;
 		})), this.host.append(this.button), this.host.classList.add("nowo-milkdown--blocks"), this.menu = new m(this.host, a(t, "block.actions"), (t) => {
 			this.button.setAttribute("aria-expanded", "false"), t && e.focus();
 		}), e.dom.addEventListener("mousemove", this.onMove), e.dom.addEventListener("keydown", this.onKey, !0);
 	}
 	update(e, t) {
-		this.menu.isOpen && t && e.state.doc !== t.doc && this.menu.closeAll(!1), e.hasFocus() ? this.show(g(e.state, e.state.selection.from)) : this.target !== null && this.target >= e.state.doc.content.size && this.show(null);
+		this.menu.isOpen && t && e.state.doc !== t.doc && this.menu.closeAll(!1), this.dragDoc !== null && e.state.doc !== this.dragDoc && (this.dragDoc = null, this.dragCancelled = !0, e.dragging = null), e.hasFocus() ? this.show(_(e.state, e.state.selection.from)) : this.target !== null && this.target >= e.state.doc.content.size && this.show(null);
 	}
 	destroy() {
 		this.view.dom.removeEventListener("mousemove", this.onMove), this.view.dom.removeEventListener("keydown", this.onKey, !0), this.menu.destroy(), this.button.remove(), this.host.classList.remove("nowo-milkdown--blocks");
@@ -129,17 +131,24 @@ var _ = class {
 		if (n.dispatch(n.state.tr.setSelection(r)), n.dragging = {
 			slice: r.content(),
 			move: !0
-		}, e.dataTransfer) {
+		}, this.dragDoc = n.state.doc, this.dragCancelled = !1, e.dataTransfer) {
 			e.dataTransfer.effectAllowed = "move", e.dataTransfer.setData("text/plain", n.state.doc.textBetween(r.from, r.to, "\n"));
 			let t = n.nodeDOM(this.target);
 			t instanceof HTMLElement && e.dataTransfer.setDragImage(t, 0, 0);
 		}
 	}
 };
-function v(t) {
+function y(t) {
 	return e((e) => new n({
 		key: h,
-		view: (n) => new _(n, e.get(o.key), t)
+		view: (n) => {
+			let r = new v(n, e.get(o.key), t);
+			return g.set(n, r), r;
+		},
+		props: { handleDrop: (e) => {
+			let t = g.get(e);
+			return t?.dragCancelled ? (t.dragCancelled = !1, !0) : !1;
+		} }
 	}));
 }
-export { _ as BlockActionsView, h as blockActionsKey, v as blockActionsPlugin, g as topLevelPos };
+export { v as BlockActionsView, h as blockActionsKey, y as blockActionsPlugin, _ as topLevelPos };

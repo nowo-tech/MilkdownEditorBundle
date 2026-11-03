@@ -120,6 +120,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     resolvePage: pages.resolve,
     resolveUser: users.resolve,
     features: new Set(options.features),
+    colors: options.colors,
     nonce: options.nonce,
     dark: () => isDark(root),
   };

@@ -38,7 +38,10 @@ context menu (right-click / Shift+F10), opt-in
   or a block (`::: {text=… bg=…}`, the container that also carries `align=`), from the block menu, the context menu
   and a toolbar button. `:mark{color=…}` keeps meaning the background. The PHP renderer emits classes only, for names
   in `markdown.mark_colors` (default extended with brown, orange and pink); tokens `--nowo-milkdown-color-*` and
-  `--nowo-milkdown-mark-*` meet WCAG AA in both themes.
+  `--nowo-milkdown-mark-*` meet WCAG AA in both themes; a text colour on a background uses the background's paired
+  text colour, so all 81 combinations stay AA (tested). The menus offer the colours of `markdown.mark_colors`
+  (widget JSON `colors`, only with the feature). A drag of the handle is cancelled when the document changes
+  meanwhile.
 - **Host items:** `window.NowoMilkdownEditor.contextMenu.register({ id, label, shortcut?, when?, run })` (also the
   `registerContextMenuItem` export) and the cancellable `nowo-milkdown:contextmenu` event on the widget root, whose
   `detail.groups` the host may edit.

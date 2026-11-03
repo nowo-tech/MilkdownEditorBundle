@@ -299,7 +299,10 @@ Paragraphs, lists or headings.
 Only names from `markdown.mark_colors` are rendered (as classes `nowo-md-text--NAME`, `nowo-md-bg--NAME`,
 `nowo-md-mark--NAME`); anything else keeps the text without colour. Plain Markdown viewers show the directives as
 text. Each colour is a token (`--nowo-milkdown-color-NAME`, `--nowo-milkdown-mark-NAME`) with WCAG AA contrast in light
-and dark; a text colour on a background colour is the author's choice and is not checked. **Colour is never the only
+and dark. When a text colour and a background are both set, the text uses the background's paired text colour, so
+every combination stays AA (the text colour is kept in the Markdown). The menus offer the names of
+`markdown.mark_colors`; text inside another text directive (`:note[…]`) is left without colour (one text directive
+per character). **Colour is never the only
 carrier of meaning**: use a callout, an icon or words for status.
 
 ## Keyboard and accessibility
