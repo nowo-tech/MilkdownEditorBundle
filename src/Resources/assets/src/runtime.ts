@@ -7,12 +7,15 @@ import type { Messages } from './types';
 
 export type PageInfo = { id: string; title: string; url: string; visible: boolean };
 export type PageResolver = (id: string) => Promise<PageInfo>;
+/** Display name of a mentioned handle, or null when unknown (1.2.1). */
+export type UserResolver = (handle: string) => Promise<string | null>;
 
 export type Runtime = {
   messages: Messages;
   spriteUrl: string | null;
   icons: ReadonlySet<string>;
   resolvePage: PageResolver;
+  resolveUser: UserResolver;
   nonce: string;
   /** Dark rendering of previews (Mermaid theme). */
   dark: () => boolean;
@@ -23,6 +26,7 @@ export const defaultRuntime = (): Runtime => ({
   spriteUrl: null,
   icons: new Set<string>(),
   resolvePage: async (id) => ({ id, title: '', url: '', visible: false }),
+  resolveUser: async () => null,
   nonce: '',
   dark: () => false,
 });

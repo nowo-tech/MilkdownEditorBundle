@@ -47,7 +47,9 @@ final class DemoController extends AbstractController
           A[Merge] --> B[Tag] --> C[Deploy]
         ```
 
-        Euler: $e^{i\pi} + 1 = 0$
+        Euler: $e^{i\pi} + 1 = 0$[^euler]
+
+        [^euler]: Euler's identity.
 
         MD;
 

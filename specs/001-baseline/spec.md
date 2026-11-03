@@ -83,7 +83,7 @@ language without overriding templates.
 
 ### PHP Markdown renderer
 
-- **FR-MD-001** CommonMark + GFM + the dialect: page links, mentions, Tabler icons, text / container / leaf
+- **FR-MD-001** CommonMark + GFM (+ footnotes, 1.2.1, `markdown.footnotes`) + the dialect: page links, mentions, Tabler icons, text / container / leaf
   directives, inline and block math; raw HTML escaped or stripped, unsafe links dropped, remote images as links,
   bounded nesting; input over `max_input_length` bytes or `max_inline_markers` inline delimiters is rendered as
   escaped text without parsing (line feeds count as markers).
@@ -104,7 +104,8 @@ language without overriding templates.
   collaboration are lazy chunks; the Markdown is written back to the textarea on change and submit.
 - **FR-DIALECT-001** Remark plugin: directives, inline tokens, verbatim serialisation, narrowed escaping, nameless
   alignment containers, no `<br />` markers; round trip stable after the first save.
-- **FR-EDIT-001** Nodes and views for page links (per-viewer titles), mentions, icons, directives (editable
+- **FR-EDIT-001** Nodes and views for page links (per-viewer titles), mentions (handle, or the name with
+  `mention_display: name`, 1.2.1), icons, directives (editable
   attributes) and task items (real checkboxes).
 - **FR-EDIT-002** Suggestion hook (listbox pattern, capture-phase keys, debounced remote sources, max 10) and the `/`
   block menu.

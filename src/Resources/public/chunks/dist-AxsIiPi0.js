@@ -1,6 +1,6 @@
 import { N as e, P as t, U as n, o as r, r as i } from "./dist-DF6chiwp.js";
-import { html as a } from "./dist-CA3mobfb.js";
-import { r as o } from "./dist-C6DMAmjy.js";
+import { html as a } from "./dist-BwuphisZ.js";
+import { r as o } from "./dist-BpQvon8l.js";
 import { i as s, r as c } from "./dist-Y2YZkjNP.js";
 // node_modules/.pnpm/@codemirror+lang-vue@0.1.3/node_modules/@codemirror/lang-vue/dist/index.js
 var l = /*@__PURE__*/ c.deserialize({

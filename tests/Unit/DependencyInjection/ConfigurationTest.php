@@ -16,11 +16,11 @@ final class ConfigurationTest extends TestCase
     /**
      * @param array<string, mixed> $config
      *
-     * @return array{default_profile: string, profiles: array<string, array{features: list<string>, theme: string}>, markdown: array{html_input: string, allow_unsafe_links: bool, allow_remote_images: bool, max_input_length: int, max_inline_markers: int, max_references: int}}
+     * @return array{default_profile: string, profiles: array<string, array{features: list<string>, theme: string, mention_display: string}>, markdown: array{html_input: string, allow_unsafe_links: bool, allow_remote_images: bool, footnotes: bool, max_footnote_refs: int, mention_display: string, max_input_length: int, max_inline_markers: int, max_references: int}}
      */
     private function process(array $config): array
     {
-        /** @var array{default_profile: string, profiles: array<string, array{features: list<string>, theme: string}>, markdown: array{html_input: string, allow_unsafe_links: bool, allow_remote_images: bool, max_input_length: int, max_inline_markers: int, max_references: int}} $processed */
+        /** @var array{default_profile: string, profiles: array<string, array{features: list<string>, theme: string, mention_display: string}>, markdown: array{html_input: string, allow_unsafe_links: bool, allow_remote_images: bool, footnotes: bool, max_footnote_refs: int, mention_display: string, max_input_length: int, max_inline_markers: int, max_references: int}} $processed */
         $processed = (new Processor())->processConfiguration(new Configuration(), [$config]);
 
         return $processed;
@@ -36,6 +36,10 @@ final class ConfigurationTest extends TestCase
         self::assertSame('escape', $c['markdown']['html_input']);
         self::assertFalse($c['markdown']['allow_unsafe_links']);
         self::assertFalse($c['markdown']['allow_remote_images']);
+        self::assertTrue($c['markdown']['footnotes']);
+        self::assertSame(200, $c['markdown']['max_footnote_refs']);
+        self::assertSame('handle', $c['markdown']['mention_display']);
+        self::assertSame('handle', $c['profiles']['default']['mention_display']);
         self::assertSame(100000, $c['markdown']['max_input_length']);
         self::assertSame(10000, $c['markdown']['max_inline_markers']);
         self::assertSame(500, $c['markdown']['max_references']);

@@ -77,6 +77,10 @@ export type EditorOptions = {
   icons: string[];
   upload: { url: string; csrfToken: string | null; maxSize: number; accept: string[] } | null;
   collaboration: CollaborationOptions | null;
+  /** Mention chips show `@handle` (default) or the person's name (1.2.1). */
+  mentionDisplay: 'handle' | 'name';
+  /** `GET url?handles=a,b` → `[{handle, name}]` for `mentionDisplay: 'name'` (1.2.1). */
+  userTitleUrl: string | null;
   nonce: string;
   messages: Messages;
 };

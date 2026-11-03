@@ -132,6 +132,13 @@ final class MilkdownEditorType extends AbstractType
             'collaboration' => $options['collaboration'],
             'messages'      => (object) $this->messages(),
         ];
+        // 1.2.1: only when set, so fields with the defaults keep the same widget JSON.
+        if ($options['mention_display'] === 'name') {
+            $view->vars['milkdown_options']['mentionDisplay'] = 'name';
+        }
+        if (is_string($options['user_title_url'])) {
+            $view->vars['milkdown_options']['userTitleUrl'] = $options['user_title_url'];
+        }
     }
 
     /**
@@ -162,6 +169,8 @@ final class MilkdownEditorType extends AbstractType
             'icons'             => static fn (Options $o): array => $profile($o)['icons'],
             'upload_max_size'   => static fn (Options $o): int => $profile($o)['upload_max_size'],
             'upload_accept'     => static fn (Options $o): array => $profile($o)['upload_accept'],
+            'mention_display'   => static fn (Options $o): string => $profile($o)['mention_display'] ?? 'handle',
+            'user_title_url'    => null,
             'attr'              => ['rows' => 12],
         ]);
 
@@ -182,6 +191,8 @@ final class MilkdownEditorType extends AbstractType
         $resolver->setAllowedTypes('icons', 'string[]');
         $resolver->setAllowedTypes('upload_max_size', 'int');
         $resolver->setAllowedTypes('upload_accept', 'string[]');
+        $resolver->setAllowedValues('mention_display', ['handle', 'name']);
+        $resolver->setAllowedTypes('user_title_url', ['null', 'string']);
 
         $resolver->setNormalizer('profile', function (Options $o, ?string $value): ?string {
             if ($value !== null && !$this->profiles->has($value)) {

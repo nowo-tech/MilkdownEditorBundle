@@ -27,11 +27,15 @@ nowo_milkdown_editor:
             icons: []                   # allowlisted icon names offered by the `:` trigger
             upload_max_size: 10485760   # bytes, checked in the browser before uploading (0: no limit)
             upload_accept: []           # MIME types, `type/*` or `.ext` (empty: any)
+            mention_display: handle     # handle | name: mention chips show @handle or the name (1.2.1)
     markdown:
         html_input: escape              # escape | strip — raw HTML in Markdown is never rendered
         allow_unsafe_links: false       # javascript:, vbscript:, file:, data: links are dropped
         allow_remote_images: false      # images from other hosts become links
         math: true                      # $inline$ and $$block$$ math
+        footnotes: true                 # GFM footnotes [^1] / [^1]: … (ids nowo-md-fn-<salt>-<label>)
+        max_footnote_refs: 200          # more footnote references render as literal [^label] text (1.2.1)
+        mention_display: handle         # handle | name: rendered mentions show @handle or the resolved name (1.2.1)
         max_nesting_level: 50
         max_input_length: 100000        # bytes; longer input renders as escaped text (also the form's max_length)
         max_inline_markers: 10000       # more [ ] * _ ` ! < & @ : $ ~ | \ characters and line feeds: escaped text
@@ -106,6 +110,7 @@ delimiter-dense input). Two limits keep a hostile document within PHP's default 
 | `max_input_length` | `100000` bytes | Rendered as escaped plain text; `MilkdownEditorType` rejects it on save (`Length`, bytes) |
 | `max_inline_markers` | `10000` delimiters + line feeds | Rendered as escaped plain text |
 | `max_references` | `500` | Later page links render *Content not visible*, later mentions plain `@handle` |
+| `max_footnote_refs` | `200` | Every footnote reference renders as literal `[^label]` text and the notes are dropped (each reference adds two links, ~50× output) |
 
 With the defaults the worst input measured peaks at about 39 MB (process total) and 1.2 s (PHP 8.4); see
 [SECURITY.md](SECURITY.md#parser-cost). For longer documents raise both limits together with `memory_limit`
@@ -122,6 +127,8 @@ With the defaults the worst input measured peaks at about 39 MB (process total) 
 | `placeholder` | `?string` | `null` | Translated with the field's `translation_domain`; null: the bundle default |
 | `suggestions` | `array<'@'\|'[['\|':', string>` | `[]` | Candidate URLs (`GET url?q=…`) |
 | `link_title_url` | `?string` | `null` | `GET url?ids=a,b` → `[{id, title, url, visible}]` |
+| `mention_display` | `handle\|name` | profile | `name`: chips show the person's name (from the `@` suggestions and `user_title_url`), the handle stays in the Markdown (1.2.1) |
+| `user_title_url` | `?string` | `null` | `GET url?handles=a,b` → `[{handle, name}]`, used with `mention_display: name` (1.2.1) |
 | `icon_sprite_url` | `?string` | profile | |
 | `icons` | `list<string>` | profile | Allowlisted names |
 | `upload_url` | `?string` | `null` | POST target (multipart `file`) |

@@ -2,7 +2,7 @@
 
 **Package**: `nowo-tech/milkdown-editor-bundle`  
 **Last audited**: 2026-11-01  
-**Production units**: **79/79**  
+**Production units**: **82/82**  
 **Audit command**: `find src -type f \( -name '*.php' -o -name '*.twig' -o -name '*.yaml' -o -name '*.ts' -o -name '*.css' \) -not -path 'src/Resources/assets/tests/*' -not -path 'src/Resources/public/*' | wc -l`
 
 ## Scope notes
@@ -17,14 +17,14 @@
 | --- | ---: |
 | Bundle, configuration & DI | 8 |
 | Form type & CSP | 4 |
-| PHP Markdown renderer | 30 |
+| PHP Markdown renderer | 32 |
 | Twig & form theme | 2 |
 | Translations | 7 |
 | Browser: dialect | 3 |
 | Browser: nodes & plugins | 6 |
 | Browser: previews, collaboration & features | 6 |
-| Browser: editor core | 13 |
-| **Total** | **79** |
+| Browser: editor core | 14 |
+| **Total** | **82** |
 
 ## Bundle, configuration & DI
 
@@ -55,6 +55,8 @@
 | `src/Markdown/DialectRenderer.php` | PHP Markdown renderer — DialectRenderer.php | FR-MD-001 |
 | `src/Markdown/Directive/DirectiveAttributes.php` | PHP Markdown renderer — DirectiveAttributes.php | FR-MD-001, FR-MD-003 |
 | `src/Markdown/Directive/DirectiveRendererInterface.php` | PHP Markdown renderer — DirectiveRendererInterface.php | FR-MD-003 |
+| `src/Markdown/FootnoteSalt.php` | PHP Markdown renderer — per-document footnote id salt (1.2.1, CZ-I7) | FR-MD-001 |
+| `src/Markdown/FootnoteGuard.php` | PHP Markdown renderer — footnote label case and reference cap (1.2.1, CZ-L1) | FR-MD-001 |
 | `src/Markdown/DocumentProcessor.php` | PHP Markdown renderer — DocumentProcessor.php | FR-MD-001, FR-MD-002, FR-MD-003 |
 | `src/Markdown/MarkdownRendererInterface.php` | PHP Markdown renderer — MarkdownRendererInterface.php | FR-MD-001 |
 | `src/Markdown/MilkdownDialectExtension.php` | PHP Markdown renderer — MilkdownDialectExtension.php | FR-MD-001 |
@@ -148,6 +150,7 @@
 | `src/Resources/assets/src/styles/milkdown-editor.css` | Browser: editor core — milkdown-editor.css | FR-EDIT-003, FR-THEME-001 |
 | `src/Resources/assets/src/triggers.ts` | Browser: editor core — triggers.ts | FR-EDIT-002 |
 | `src/Resources/assets/src/types.ts` | Browser: editor core — types.ts | FR-TS-001 |
+| `src/Resources/assets/src/user-names.ts` | Browser: editor core — user-names.ts (mention names, 1.2.1) | FR-EDIT-001 |
 | `src/Resources/assets/src/upload.ts` | Browser: editor core — upload.ts | FR-TS-002 |
 
 ## Build outputs

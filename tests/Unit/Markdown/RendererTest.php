@@ -30,6 +30,7 @@ use Stringable;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 use function is_string;
+use function strlen;
 
 final class RendererTest extends TestCase
 {
@@ -40,7 +41,7 @@ final class RendererTest extends TestCase
     private array $pageCalls = [];
 
     /**
-     * @param array{html_input?: string, allow_remote_images?: bool, math?: bool, max_input_length?: int, max_inline_markers?: int, max_references?: int} $options
+     * @param array{html_input?: string, allow_remote_images?: bool, math?: bool, footnotes?: bool, max_footnote_refs?: int, mention_display?: string, max_input_length?: int, max_inline_markers?: int, max_references?: int} $options
      * @param list<DirectiveRendererInterface> $directives
      */
     private function renderer(array $options = [], array $directives = [], ?PageResolverInterface $pages = null, ?UserResolverInterface $users = null, ?AbstractLogger $logger = null, ?TranslatorInterface $translator = null): MilkdownMarkdownRenderer
@@ -176,6 +177,85 @@ final class RendererTest extends TestCase
         self::assertSame('<p><img src="https://x.example/a.png" alt="a" /></p>', trim($r->render('![a](https://x.example/a.png)')));
         self::assertSame('<p>a</p>', trim($r->render('a<b>')));
         self::assertSame("<p>&lt;b&gt;<br>\n" . str_repeat('x', 30) . '</p>', $r->render("<b>\r\n" . str_repeat('x', 30)));
+    }
+
+    #[Test]
+    public function footnotesRenderWithPrefixedSaltedIds(): void
+    {
+        $html = $this->renderer()->render("Text[^1] and @alice[^n].\n\n[^1]: A *note* with [[wiki:" . self::ID . "]].\n[^n]: <b>raw</b>\n");
+        self::assertMatchesRegularExpression('#<sup id="nowo-md-fnref-([0-9a-f]{6})-1"><a class="nowo-md-footnote-ref" href="\#nowo-md-fn-\1-1" role="doc-noteref">1</a></sup>#', $html);
+        self::assertStringContainsString('<div class="nowo-md-footnotes" role="doc-endnotes"><hr />', $html);
+        self::assertMatchesRegularExpression('#<li class="nowo-md-footnote" id="nowo-md-fn-[0-9a-f]{6}-1" role="doc-endnote">#', $html);
+        self::assertStringContainsString('<em>note</em>', $html);
+        self::assertStringContainsString('href="/wiki/install"', $html);
+        self::assertStringContainsString('&lt;b&gt;raw&lt;/b&gt;', $html);
+        self::assertMatchesRegularExpression('#class="nowo-md-footnote-backref" rev="footnote" href="\#nowo-md-fnref-[0-9a-f]{6}-1"#', $html);
+        self::assertStringNotContainsString('[^1]', $html);
+
+        // Deterministic per document (stored HTML, ETags); another document, or the same one rendered again in the
+        // request, gets other ids; kernel.reset starts over. User text and links are never rewritten.
+        $renderer = $this->renderer();
+        $md       = "A[^1] see [jump](#nowo-md-fn-1) and nowo-md-fn-1\n\n[^1]: B";
+        $first    = $renderer->render($md);
+        $salt     = substr(hash('sha256', $md), 0, 6);
+        self::assertStringContainsString('id="nowo-md-fn-' . $salt . '-1"', $first);
+        self::assertStringContainsString('href="#nowo-md-fn-1"', $first, 'user link untouched');
+        self::assertStringContainsString('and nowo-md-fn-1', $first, 'user text untouched');
+        self::assertStringContainsString('id="nowo-md-fn-' . $salt . '-1-1"', $renderer->render($md), 'rendered twice on one page');
+        preg_match('/id="(nowo-md-fn-[^"]+)"/', $renderer->render("A[^1]\n\n[^1]: C"), $other);
+        self::assertStringNotContainsString($salt, $other[1] ?? '');
+        $renderer->reset();
+        self::assertSame($first, $renderer->render($md), 'stable across requests');
+        self::assertStringContainsString('[^x]', $renderer->render('orphan [^x]'), 'orphans keep their unsalted text');
+        self::assertSame('<p>plain</p>', trim($this->renderer()->render('plain')));
+        $this->renderer(['footnotes' => false])->reset();
+    }
+
+    #[Test]
+    public function footnoteLabelsAreCaseInsensitive(): void
+    {
+        $html = $this->renderer()->render("A[^Body] B[^body]\n\n[^Body]: First.\n\n[^body]: Second.");
+        preg_match_all('/ id="([^"]+)"/', $html, $ids);
+        self::assertSame($ids[1], array_unique($ids[1]), 'no duplicate ids');
+        self::assertStringContainsString('First.', $html);
+        self::assertStringNotContainsString('Second.', $html, 'one label: the first definition wins');
+    }
+
+    #[Test]
+    public function tooManyFootnoteReferencesStayText(): void
+    {
+        $markdown = str_repeat('x[^a] ', 4) . "\n\n[^a]: Note.";
+        self::assertStringContainsString('nowo-md-footnotes', $this->renderer(['max_footnote_refs' => 4])->render($markdown));
+        $capped = $this->renderer(['max_footnote_refs' => 3])->render($markdown);
+        self::assertStringNotContainsString('nowo-md-footnote', $capped);
+        self::assertStringContainsString('x[^a] x[^a]', $capped);
+        self::assertStringNotContainsString('Note.', $capped);
+        // The audit PoC shape: 4 900 references to one note stay small with the default cap.
+        $poc = str_repeat('[^a]', 4900) . "\n\n[^a]: n";
+        self::assertLessThan(3 * strlen($poc), strlen($this->renderer()->render($poc)));
+    }
+
+    #[Test]
+    public function mentionsCanShowTheResolvedName(): void
+    {
+        $users = new class implements UserResolverInterface {
+            public function resolveUsers(array $handles): array
+            {
+                return ['ada' => new ResolvedUser('Ada <Lovelace>', '/users/ada'), 'grace' => new ResolvedUser('Grace'), 'blank' => new ResolvedUser(' ')];
+            }
+        };
+        self::assertSame(
+            '<p><a class="nowo-md-mention" href="/users/ada" title="@ada" data-handle="ada">Ada &lt;Lovelace&gt;</a> <span class="nowo-md-mention" title="@grace" data-handle="grace">Grace</span> <span class="nowo-md-mention" title=" ">@blank</span> @nobody</p>',
+            trim($this->renderer(['mention_display' => 'name'], users: $users)->render('@ada @grace @blank @nobody')),
+        );
+    }
+
+    #[Test]
+    public function footnotesCanBeTurnedOff(): void
+    {
+        // 1.2.0 output: the definition is read as a link reference, so the footnote becomes a link to its text.
+        $html = trim($this->renderer(['footnotes' => false])->render("Text[^1].\n\n[^1]: Note."));
+        self::assertSame('<p>Text<a href="Note.">^1</a>.</p>', $html);
     }
 
     #[Test]

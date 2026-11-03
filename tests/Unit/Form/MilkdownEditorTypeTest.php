@@ -22,7 +22,7 @@ use Symfony\Component\Validator\Validation;
 
 final class MilkdownEditorTypeTest extends TypeTestCase
 {
-    private const PROFILE = ['features' => ['toolbar'], 'theme' => 'dark', 'min_height' => '10rem', 'icon_sprite_url' => null, 'icons' => [], 'upload_max_size' => 5, 'upload_accept' => ['image/*']];
+    private const PROFILE = ['features' => ['toolbar'], 'theme' => 'dark', 'min_height' => '10rem', 'icon_sprite_url' => null, 'icons' => [], 'upload_max_size' => 5, 'upload_accept' => ['image/*'], 'mention_display' => 'handle'];
 
     protected function getExtensions(): array
     {
@@ -87,8 +87,22 @@ final class MilkdownEditorTypeTest extends TypeTestCase
         self::assertSame(['url' => '/up', 'csrfToken' => null, 'maxSize' => 5, 'accept' => ['image/*']], $o['upload']);
         self::assertSame(['url' => '/c', 'hubUrl' => '/hub', 'topic' => 't', 'user' => ['name' => 'Ada', 'color' => '#123456']], $o['collaboration']);
         self::assertEquals((object) [], $o['messages']);
+        self::assertArrayNotHasKey('mentionDisplay', $o); // 1.2.1 keys only when set: default JSON unchanged
+        self::assertArrayNotHasKey('userTitleUrl', $o);
         self::assertSame('milkdown_editor', (new MilkdownEditorType(new ProfileRegistry(['default' => self::PROFILE], 'default')))->getBlockPrefix());
         self::assertSame(TextareaType::class, (new MilkdownEditorType(new ProfileRegistry(['default' => self::PROFILE], 'default')))->getParent());
+    }
+
+    #[Test]
+    public function mentionsCanShowNames(): void
+    {
+        $o = $this->factory->create(MilkdownEditorType::class, null, ['mention_display' => 'name', 'user_title_url' => '/api/users/names'])->createView()->vars['milkdown_options'];
+        self::assertIsArray($o);
+        self::assertSame('name', $o['mentionDisplay']);
+        self::assertSame('/api/users/names', $o['userTitleUrl']);
+
+        $this->expectException(InvalidOptionsException::class);
+        $this->factory->create(MilkdownEditorType::class, null, ['mention_display' => 'email']);
     }
 
     #[Test]

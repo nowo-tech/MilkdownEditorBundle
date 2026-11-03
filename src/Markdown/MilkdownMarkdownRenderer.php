@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Nowo\MilkdownEditorBundle\Markdown;
 
 use League\CommonMark\Environment\Environment;
+use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
+use League\CommonMark\Extension\Footnote\FootnoteExtension;
 use League\CommonMark\Extension\GithubFlavoredMarkdownExtension;
 use League\CommonMark\MarkdownConverter;
 use Nowo\MilkdownEditorBundle\Markdown\Directive\DirectiveRendererInterface;
@@ -13,6 +15,7 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\IconResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\PageResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\UserResolverInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Contracts\Service\ResetInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 use function count_chars;
@@ -27,7 +30,7 @@ use function strlen;
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  */
-final class MilkdownMarkdownRenderer implements MarkdownRendererInterface
+final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, ResetInterface
 {
     /**
      * Default `max_input_length` in bytes. With the default marker budget the worst input measured peaks at about
@@ -46,8 +49,10 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface
 
     private ?MarkdownConverter $converter = null;
 
+    private ?FootnoteSalt $footnoteSalt = null;
+
     /**
-     * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, max_nesting_level?: int, max_input_length?: int, max_inline_markers?: int, max_references?: int, mark_colors?: list<string>} $options The `nowo_milkdown_editor.markdown` configuration
+     * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, footnotes?: bool, max_footnote_refs?: int, mention_display?: string, max_nesting_level?: int, max_input_length?: int, max_inline_markers?: int, max_references?: int, mark_colors?: list<string>} $options The `nowo_milkdown_editor.markdown` configuration
      * @param PageResolverInterface $pages Page link resolver (per viewer)
      * @param UserResolverInterface $users Mention resolver
      * @param IconResolverInterface $icons Icon allowlist and sprite
@@ -79,7 +84,18 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface
             return '<p>' . nl2br(DialectRenderer::e($markdown), false) . '</p>';
         }
 
-        return $this->converter()->convert($markdown)->getContent();
+        $converter = $this->converter();
+        $this->footnoteSalt?->prepare($markdown);
+
+        return $converter->convert($markdown)->getContent();
+    }
+
+    /**
+     * Forgets the per-request footnote render counters (`kernel.reset`).
+     */
+    public function reset(): void
+    {
+        $this->footnoteSalt?->reset();
     }
 
     /**
@@ -106,11 +122,29 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface
             'html_input'         => $this->options['html_input'] ?? 'escape',
             'allow_unsafe_links' => $this->options['allow_unsafe_links'] ?? false,
             'max_nesting_level'  => $this->options['max_nesting_level'] ?? 50,
+            // Prefixed ids: a footnote can never clobber a host element id or a heading anchor.
+            'footnote' => [
+                'backref_class'      => 'nowo-md-footnote-backref',
+                'container_add_hr'   => true,
+                'container_class'    => 'nowo-md-footnotes',
+                'ref_class'          => 'nowo-md-footnote-ref',
+                'ref_id_prefix'      => 'nowo-md-fnref-',
+                'footnote_class'     => 'nowo-md-footnote',
+                'footnote_id_prefix' => 'nowo-md-fn-',
+            ],
         ]);
         $environment->addExtension(new CommonMarkCoreExtension());
         $environment->addExtension(new GithubFlavoredMarkdownExtension());
+        if ($this->options['footnotes'] ?? true) {
+            $environment->addExtension(new FootnoteExtension());
+            // Before the footnote listeners (40 … 10): case-insensitive labels and the reference cap (CZ-L1).
+            $environment->addEventListener(DocumentParsedEvent::class, [new FootnoteGuard($this->options['max_footnote_refs'] ?? FootnoteGuard::DEFAULT_MAX_FOOTNOTE_REFS), 'onDocumentParsed'], 50);
+            // After orphans become text (30), before numbering (20): per-document salt of the footnote ids (CZ-I7).
+            $this->footnoteSalt = new FootnoteSalt();
+            $environment->addEventListener(DocumentParsedEvent::class, [$this->footnoteSalt, 'onDocumentParsed'], 25);
+        }
         $environment->addExtension(new MilkdownDialectExtension(
-            new DialectRenderer($this->icons, $this->directiveRenderers, $this->options['mark_colors'] ?? ['yellow'], $this->translator),
+            new DialectRenderer($this->icons, $this->directiveRenderers, $this->options['mark_colors'] ?? ['yellow'], $this->translator, $this->options['mention_display'] ?? 'handle'),
             new DocumentProcessor(
                 $this->pages,
                 $this->users,

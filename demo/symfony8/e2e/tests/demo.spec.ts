@@ -116,6 +116,10 @@ test.describe('Milkdown editor demo', () => {
     await expect(page.locator('[data-preview] .nowo-md-ref--hidden')).toHaveText('Content not visible');
     await expect(page.locator('[data-preview] a.nowo-md-ref')).toHaveText('Architecture › setup');
     await expect(page.locator('[data-preview] svg.nowo-md-icon')).toHaveCount(1);
+    await expect(page.locator('[data-preview] .nowo-md-footnotes li[id^="nowo-md-fn-"][id$="-euler"]')).toContainText("Euler's identity.");
+    const ref = page.locator('[data-preview] sup[id^="nowo-md-fnref-"][id$="-euler"] a');
+    const target = await page.locator('[data-preview] .nowo-md-footnotes li[id$="-euler"]').getAttribute('id');
+    await expect(ref).toHaveAttribute('href', `#${target}`);
     await page.getByRole('button', { name: 'Save' }).click();
     expect(await page.locator('.demo-source').textContent()).toBe(first);
   });

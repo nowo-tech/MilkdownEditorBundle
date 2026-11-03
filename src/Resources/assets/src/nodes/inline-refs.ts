@@ -97,6 +97,24 @@ export const mentionSchema = $nodeSchema('mention', () => ({
   },
 }));
 
+/**
+ * Mention chip showing the person's name (`mention_display: name`, 1.2.1): `@handle` until the name is known, the
+ * handle kept in `data-mention` and the title. Only used when the field asks for names.
+ */
+export const mentionNameView = $view(mentionSchema.node, (ctx) => (node) => {
+  const runtime = ctx.get(runtimeCtx.key);
+  const handle = String(node.attrs.handle);
+  const dom = document.createElement('span');
+  dom.className = 'nowo-milkdown-mention';
+  dom.dataset.mention = handle;
+  dom.title = `@${handle}`;
+  dom.textContent = `@${handle}`;
+  void runtime.resolveUser(handle).then((name) => {
+    if (name) dom.textContent = name;
+  });
+  return { dom, ignoreMutation: () => true };
+});
+
 export const tablerIconSchema = $nodeSchema('tablerIcon', () => ({
   group: 'inline',
   inline: true,
