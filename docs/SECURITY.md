@@ -98,6 +98,11 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
   each read-side formula renders in its own `try` / `catch`, so one failure (marked `data-math-error`) never stops the
   others. The auditor's crash inputs (`\bgroup`, `\begingroup`, `_\bgroup` and `\def` chains, 160 levels) no
   longer crash the reader page or the editor.
+- **Context menu (1.3):** labels are text (`textContent`); *Open link* passes the href through `safeUrl()` and opens
+  it with `noopener,noreferrer`; *Paste* goes through ProseMirror's paste pipeline (HTML parsed into the schema, never
+  inserted raw); *Paste as plain text* never parses Markdown; host items receive a narrow context (selection, text,
+  block type, `insertText`), not the ProseMirror view. The Clipboard API asks the browser for permission; without it
+  the paste items are disabled.
 - Crepe's image-block feature (rewrites alt text, loads remote images) and the emoji plugin (CDN images) are not used.
 
 ## Content Security Policy

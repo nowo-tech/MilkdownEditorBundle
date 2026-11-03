@@ -72,6 +72,22 @@ final class MilkdownEditorType extends AbstractType
     ];
 
     /**
+     * UI strings sent only when their feature is enabled (1.3+), so fields without the feature keep the same widget
+     * JSON as before.
+     *
+     * @var array<string, list<string>>
+     */
+    public const FEATURE_MESSAGE_KEYS = [
+        'context_menu' => [
+            'menu.label', 'menu.cut', 'menu.copy', 'menu.paste', 'menu.paste_plain', 'menu.paste_hint',
+            'menu.link_open', 'menu.link_copy', 'menu.link_remove',
+            'menu.row_above', 'menu.row_below', 'menu.column_left', 'menu.column_right', 'menu.delete_row',
+            'menu.delete_column', 'menu.delete_table',
+            'menu.turn_into', 'menu.duplicate', 'menu.move_up', 'menu.move_down', 'menu.delete',
+        ],
+    ];
+
+    /**
      * @param ProfileRegistry $profiles Named profiles
      * @param CspNonceProviderInterface|null $nonceProvider Nonce of the current response (when `csp_nonce` is null)
      * @param TranslatorInterface|null $translator Translates the editor UI strings
@@ -109,6 +125,8 @@ final class MilkdownEditorType extends AbstractType
         $nonce  = $options['csp_nonce'] ?? $this->nonceProvider?->getNonce();
         $label  = is_string($view->vars['label'] ?? null) ? $view->vars['label'] : null;
         $locale = null;
+        /** @var list<string> $features */
+        $features = $options['features'];
 
         $view->vars['milkdown_nonce']   = $nonce;
         $view->vars['milkdown_theme']   = $options['theme'];
@@ -130,7 +148,7 @@ final class MilkdownEditorType extends AbstractType
                 'accept'    => $options['upload_accept'],
             ],
             'collaboration' => $options['collaboration'],
-            'messages'      => (object) $this->messages(),
+            'messages'      => (object) $this->messages($features),
         ];
         // 1.2.1: only when set, so fields with the defaults keep the same widget JSON.
         if ($options['mention_display'] === 'name') {
@@ -332,15 +350,21 @@ final class MilkdownEditorType extends AbstractType
     /**
      * Every editor UI string, translated (English defaults live in the TypeScript bundle when no translator).
      *
+     * @param list<string> $features Enabled features (their extra strings are added)
+     *
      * @return array<string, string>
      */
-    private function messages(): array
+    private function messages(array $features): array
     {
         if (!$this->translator instanceof TranslatorInterface) {
             return [];
         }
+        $keys = self::MESSAGE_KEYS;
+        foreach ($features as $feature) {
+            $keys = [...$keys, ...(self::FEATURE_MESSAGE_KEYS[$feature] ?? [])];
+        }
         $out = [];
-        foreach (self::MESSAGE_KEYS as $key) {
+        foreach ($keys as $key) {
             $text = $this->translator->trans($key, [], self::DOMAIN);
             if ($text !== $key) {
                 $out[$key] = $text;

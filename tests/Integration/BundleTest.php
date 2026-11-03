@@ -18,6 +18,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\Translation\LocaleAwareInterface;
 use Twig\Environment;
 
+use function count;
+
 use const ENT_HTML5;
 use const ENT_QUOTES;
 use const JSON_THROW_ON_ERROR;
@@ -121,6 +123,23 @@ final class BundleTest extends TestCase
         self::assertSame('Contenido no visible', ((array) $options['messages'])['ref.hidden']);
         self::assertSame('Escribe', $options['placeholder']);
         self::assertSame('Cuerpo', $options['label']);
+        self::assertArrayNotHasKey('menu.cut', (array) $options['messages']);
+    }
+
+    #[Test]
+    public function featureStringsAreSentOnlyWithTheirFeature(): void
+    {
+        $container = $this->container();
+        $this->service($container, 'translator', LocaleAwareInterface::class)->setLocale('es');
+        $view = $this->service($container, FormFactoryInterface::class, FormFactoryInterface::class)
+            ->create(MilkdownEditorType::class, null, ['features' => ['toolbar', 'context_menu']])
+            ->createView();
+        /** @var array{messages: object, features: list<string>} $options */
+        $options  = $view->vars['milkdown_options'];
+        $messages = (array) $options['messages'];
+        self::assertSame(['toolbar', 'context_menu'], $options['features']);
+        self::assertSame('Cortar', $messages['menu.cut']);
+        self::assertCount(count(MilkdownEditorType::MESSAGE_KEYS) + count(MilkdownEditorType::FEATURE_MESSAGE_KEYS['context_menu']), $messages);
     }
 
     #[Test]

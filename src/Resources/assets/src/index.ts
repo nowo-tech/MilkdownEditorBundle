@@ -9,6 +9,7 @@ import './styles/milkdown-editor.css';
 import { createEditor, type MilkdownEditorHandle } from './editor';
 import { renderRichContent } from './preview/render';
 import { setAssetBase } from './assets';
+import { registerContextMenuItem } from './context-menu-registry';
 
 // Directory of this module (string form: Vite would turn `new URL('./', import.meta.url)` into an inlined asset).
 setAssetBase(import.meta.url.replace(/[^/]*$/, ''));
@@ -116,9 +117,9 @@ export function start(doc: Document = document): void {
   observer.observe(doc.documentElement, { childList: true, subtree: true });
 }
 
-export { createEditor, renderRichContent };
+export { createEditor, renderRichContent, registerContextMenuItem };
 
-const api = { mount, unmount, mountAll, instance, renderRichContent, createStimulusController, start };
+const api = { mount, unmount, mountAll, instance, renderRichContent, createStimulusController, start, contextMenu: { register: registerContextMenuItem } };
 declare global {
   interface Window {
     NowoMilkdownEditor?: typeof api;

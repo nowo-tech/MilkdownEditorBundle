@@ -21,6 +21,7 @@ enum Feature: string
     case Placeholder = 'placeholder';
     case Cursor      = 'cursor';
     case SlashMenu   = 'slash_menu';
+    case ContextMenu = 'context_menu';
 
     /**
      * Features enabled when a profile does not list its own.

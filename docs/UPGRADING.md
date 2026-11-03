@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
+- [1.3.0](#130)
 - [1.2.1](#121)
 - [1.1.0](#110)
 - [1.0.0](#100)
@@ -20,6 +21,12 @@
 Public API covered by Semantic Versioning: the configuration tree, profile keys, form options, Twig filter / function
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
+
+## 1.3.0
+
+- **Context menu (opt-in).** Nothing changes until a profile or field lists `context_menu` in `features`. With it,
+  right clicks inside the editor open the bundle's menu (Shift + right click still opens the browser menu). Hosts
+  with a CSP need nothing new (CSSOM positioning only). If you override translations, add the `menu.*` keys.
 
 ## 1.2.1
 

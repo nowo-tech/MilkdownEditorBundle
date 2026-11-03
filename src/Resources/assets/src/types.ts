@@ -16,7 +16,8 @@ export type Feature =
   | 'mermaid'
   | 'placeholder'
   | 'cursor'
-  | 'slash_menu';
+  | 'slash_menu'
+  | 'context_menu';
 
 export const FEATURES: readonly Feature[] = [
   'toolbar',
@@ -29,6 +30,7 @@ export const FEATURES: readonly Feature[] = [
   'placeholder',
   'cursor',
   'slash_menu',
+  'context_menu',
 ];
 
 /** Suggestion triggers of the FR-075 dialect: `@` mentions, `[[` page links, `:` icons and emoji. */

@@ -134,6 +134,8 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   const builder = new CrepeBuilder({ root: surface, defaultValue: options.collaboration ? '' : initial });
   const editor = builder.editor;
   const collabModule = options.collaboration ? await import('./collab/index') : null;
+  // 1.3: the context menu is a lazy chunk, loaded only when the field enables it.
+  const contextMenuModule = options.features.includes('context_menu') ? await import('./plugins/context-menu') : null;
   editor
     .config((ctx) => {
       ctx.set(runtimeCtx.key, runtime);
@@ -154,6 +156,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     .use(keyboardPlugin);
   if (options.mentionDisplay === 'name') editor.use(mentionNameView);
   if (collabModule) editor.use(collabModule.collab);
+  if (contextMenuModule) editor.use(contextMenuModule.contextMenuPlugin);
   await addFeatures(builder, options, runtime);
 
   builder.on((api) =>
