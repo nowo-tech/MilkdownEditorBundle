@@ -13,6 +13,11 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Documentation
+
+- `docs/ROADMAP.md`: feature roadmap towards Notion / Outline parity (context menu, block menu with colour, comments,
+  templates, media, database block, writing tools), parity matrix, open decisions.
+
 ## [1.2.0] - 2026-11-02
 
 collaboration client: state log, compaction, reset notice with capped reload, corrupt report

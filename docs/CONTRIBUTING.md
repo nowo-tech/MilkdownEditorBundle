@@ -109,7 +109,7 @@ See [Release](RELEASE.md) for maintainer steps.
 
 ## Documentation
 
-- Integrator docs: `docs/INSTALLATION.md`, `docs/CONFIGURATION.md`, `docs/USAGE.md`, `docs/ARCHITECTURE.md`
+- Integrator docs: `docs/INSTALLATION.md`, `docs/CONFIGURATION.md`, `docs/USAGE.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`
 - Product spec and `REQ-*` traceability: `docs/SPEC-DRIVEN-DEVELOPMENT.md`
 
 ## License
