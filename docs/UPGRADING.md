@@ -3,7 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
-- [Unreleased (1.5.0)](#unreleased-150)
+- [1.5.0](#150)
 - [1.4.0](#140)
 - [1.3.1](#131)
 - [1.3.0](#130)
@@ -25,7 +25,7 @@ Public API covered by Semantic Versioning: the configuration tree, profile keys,
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
 
-## Unreleased (1.5.0)
+## 1.5.0
 
 - **New opt-in features:** `markdown_clipboard` and `insert_menu` (which needs `context_menu`). Fields without them
   keep the same widget JSON, menus and paste behaviour.

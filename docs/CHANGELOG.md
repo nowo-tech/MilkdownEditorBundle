@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format foll
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.5.0] - 2026-11-03](#150---2026-11-03)
 - [[1.4.0] - 2026-11-03](#140---2026-11-03)
 - [[1.3.1] - 2026-11-03](#131---2026-11-03)
 - [[1.3.0] - 2026-11-03](#130---2026-11-03)
@@ -17,7 +18,9 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
-Markdown clipboard and the Insert group (opt-in), "Copy as Markdown" for read pages
+## [1.5.0] - 2026-11-03
+
+Markdown clipboard and the Insert group (opt-in), "Copy as Markdown" for read pages.
 
 ### Added
 
