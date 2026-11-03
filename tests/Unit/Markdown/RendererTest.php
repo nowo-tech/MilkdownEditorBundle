@@ -30,6 +30,7 @@ use Stringable;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 use function is_string;
+use function strlen;
 
 final class RendererTest extends TestCase
 {
@@ -40,7 +41,7 @@ final class RendererTest extends TestCase
     private array $pageCalls = [];
 
     /**
-     * @param array{html_input?: string, allow_remote_images?: bool, math?: bool, footnotes?: bool, mention_display?: string, max_input_length?: int, max_inline_markers?: int, max_references?: int} $options
+     * @param array{html_input?: string, allow_remote_images?: bool, math?: bool, footnotes?: bool, max_footnote_refs?: int, mention_display?: string, max_input_length?: int, max_inline_markers?: int, max_references?: int} $options
      * @param list<DirectiveRendererInterface> $directives
      */
     private function renderer(array $options = [], array $directives = [], ?PageResolverInterface $pages = null, ?UserResolverInterface $users = null, ?AbstractLogger $logger = null, ?TranslatorInterface $translator = null): MilkdownMarkdownRenderer
@@ -179,17 +180,47 @@ final class RendererTest extends TestCase
     }
 
     #[Test]
-    public function footnotesRenderWithPrefixedIds(): void
+    public function footnotesRenderWithPrefixedSaltedIds(): void
     {
         $html = $this->renderer()->render("Text[^1] and @alice[^n].\n\n[^1]: A *note* with [[wiki:" . self::ID . "]].\n[^n]: <b>raw</b>\n");
-        self::assertStringContainsString('<sup id="nowo-md-fnref-1"><a class="nowo-md-footnote-ref" href="#nowo-md-fn-1" role="doc-noteref">1</a></sup>', $html);
+        self::assertMatchesRegularExpression('#<sup id="nowo-md-fnref-([0-9a-f]{6})-1"><a class="nowo-md-footnote-ref" href="\#nowo-md-fn-\1-1" role="doc-noteref">1</a></sup>#', $html);
         self::assertStringContainsString('<div class="nowo-md-footnotes" role="doc-endnotes"><hr />', $html);
-        self::assertStringContainsString('<li class="nowo-md-footnote" id="nowo-md-fn-1" role="doc-endnote">', $html);
+        self::assertMatchesRegularExpression('#<li class="nowo-md-footnote" id="nowo-md-fn-[0-9a-f]{6}-1" role="doc-endnote">#', $html);
         self::assertStringContainsString('<em>note</em>', $html);
         self::assertStringContainsString('href="/wiki/install"', $html);
         self::assertStringContainsString('&lt;b&gt;raw&lt;/b&gt;', $html);
-        self::assertStringContainsString('class="nowo-md-footnote-backref"', $html);
+        self::assertMatchesRegularExpression('#class="nowo-md-footnote-backref" rev="footnote" href="\#nowo-md-fnref-[0-9a-f]{6}-1"#', $html);
         self::assertStringNotContainsString('[^1]', $html);
+
+        // Two renders (a page and a comment) never share ids; documents without footnotes are untouched.
+        preg_match('/id="(nowo-md-fn-[^"]+)"/', $html, $a);
+        preg_match('/id="(nowo-md-fn-[^"]+)"/', $this->renderer()->render("A[^1]\n\n[^1]: B"), $b);
+        self::assertNotSame($a[1] ?? '', $b[1] ?? '');
+        self::assertSame('<p>plain</p>', trim($this->renderer()->render('plain')));
+    }
+
+    #[Test]
+    public function footnoteLabelsAreCaseInsensitive(): void
+    {
+        $html = $this->renderer()->render("A[^Body] B[^body]\n\n[^Body]: First.\n\n[^body]: Second.");
+        preg_match_all('/ id="([^"]+)"/', $html, $ids);
+        self::assertSame($ids[1], array_unique($ids[1]), 'no duplicate ids');
+        self::assertStringContainsString('First.', $html);
+        self::assertStringNotContainsString('Second.', $html, 'one label: the first definition wins');
+    }
+
+    #[Test]
+    public function tooManyFootnoteReferencesStayText(): void
+    {
+        $markdown = str_repeat('x[^a] ', 4) . "\n\n[^a]: Note.";
+        self::assertStringContainsString('nowo-md-footnotes', $this->renderer(['max_footnote_refs' => 4])->render($markdown));
+        $capped = $this->renderer(['max_footnote_refs' => 3])->render($markdown);
+        self::assertStringNotContainsString('nowo-md-footnote', $capped);
+        self::assertStringContainsString('x[^a] x[^a]', $capped);
+        self::assertStringNotContainsString('Note.', $capped);
+        // The audit PoC shape: 4 900 references to one note stay small with the default cap.
+        $poc = str_repeat('[^a]', 4900) . "\n\n[^a]: n";
+        self::assertLessThan(3 * strlen($poc), strlen($this->renderer()->render($poc)));
     }
 
     #[Test]

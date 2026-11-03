@@ -6,6 +6,7 @@ namespace Nowo\MilkdownEditorBundle\DependencyInjection;
 
 use Nowo\MilkdownEditorBundle\Feature;
 use Nowo\MilkdownEditorBundle\Markdown\DocumentProcessor;
+use Nowo\MilkdownEditorBundle\Markdown\FootnoteGuard;
 use Nowo\MilkdownEditorBundle\Markdown\MilkdownMarkdownRenderer;
 use Nowo\MilkdownEditorBundle\Theme;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
@@ -131,6 +132,7 @@ final class Configuration implements ConfigurationInterface
                 ->booleanNode('math')->info('Parse $inline$ and $$block$$ math (rendered client-side with KaTeX).')->defaultTrue()->end()
                 ->enumNode('mention_display')->info('Rendered mentions show the @handle (default) or the resolved name, the handle kept in data-handle and title (1.2.1).')->values(['handle', 'name'])->defaultValue('handle')->end()
                 ->booleanNode('footnotes')->info('Render GFM footnotes ([^1] references and [^1]: definitions), as the editor writes them.')->defaultTrue()->end()
+                ->integerNode('max_footnote_refs')->info('More footnote references in one document render as literal [^label] text (each one expands to two links).')->min(1)->defaultValue(FootnoteGuard::DEFAULT_MAX_FOOTNOTE_REFS)->end()
                 ->integerNode('max_nesting_level')->min(1)->max(1000)->defaultValue(50)->end()
                 ->integerNode('max_input_length')
                     ->info('Longer input (bytes) is rendered as escaped plain text; also the default max length of MilkdownEditorType.')

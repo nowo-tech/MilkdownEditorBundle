@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\MilkdownEditorBundle\Markdown;
 
 use League\CommonMark\Environment\Environment;
+use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\Extension\Footnote\FootnoteExtension;
 use League\CommonMark\Extension\GithubFlavoredMarkdownExtension;
@@ -16,8 +17,12 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\UserResolverInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+use function bin2hex;
 use function count_chars;
 use function ord;
+use function preg_replace;
+use function random_bytes;
+use function str_contains;
 use function str_split;
 use function strlen;
 
@@ -48,7 +53,7 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface
     private ?MarkdownConverter $converter = null;
 
     /**
-     * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, footnotes?: bool, mention_display?: string, max_nesting_level?: int, max_input_length?: int, max_inline_markers?: int, max_references?: int, mark_colors?: list<string>} $options The `nowo_milkdown_editor.markdown` configuration
+     * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, footnotes?: bool, max_footnote_refs?: int, mention_display?: string, max_nesting_level?: int, max_input_length?: int, max_inline_markers?: int, max_references?: int, mark_colors?: list<string>} $options The `nowo_milkdown_editor.markdown` configuration
      * @param PageResolverInterface $pages Page link resolver (per viewer)
      * @param UserResolverInterface $users Mention resolver
      * @param IconResolverInterface $icons Icon allowlist and sprite
@@ -80,7 +85,13 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface
             return '<p>' . nl2br(DialectRenderer::e($markdown), false) . '</p>';
         }
 
-        return $this->converter()->convert($markdown)->getContent();
+        $html = $this->converter()->convert($markdown)->getContent();
+
+        // Footnote ids get a per-render salt (1.2.1): a page and its comments, or two documents on one page, never share
+        // `nowo-md-fn-1`. Raw HTML is escaped, so only the renderer's own id / href attributes match.
+        return str_contains($html, 'nowo-md-fn')
+            ? (string) preg_replace('/(id="|href="#)nowo-md-fn(ref)?-/', '$1nowo-md-fn$2-' . bin2hex(random_bytes(3)) . '-', $html)
+            : $html;
     }
 
     /**
@@ -122,6 +133,8 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface
         $environment->addExtension(new GithubFlavoredMarkdownExtension());
         if ($this->options['footnotes'] ?? true) {
             $environment->addExtension(new FootnoteExtension());
+            // Before the footnote listeners (40 … 10): case-insensitive labels and the reference cap (CZ-L1).
+            $environment->addEventListener(DocumentParsedEvent::class, [new FootnoteGuard($this->options['max_footnote_refs'] ?? FootnoteGuard::DEFAULT_MAX_FOOTNOTE_REFS), 'onDocumentParsed'], 50);
         }
         $environment->addExtension(new MilkdownDialectExtension(
             new DialectRenderer($this->icons, $this->directiveRenderers, $this->options['mark_colors'] ?? ['yellow'], $this->translator, $this->options['mention_display'] ?? 'handle'),

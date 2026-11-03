@@ -56,8 +56,10 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
   reach each resolver; later ones render as not visible / plain text.
   With `mention_display: name` the resolved name is escaped like every other value (editor: `textContent`); the user
   title endpoint must return only people the viewer may see, like the `@` candidates.
-  Footnote ids are prefixed (`nowo-md-fn-*`, `nowo-md-fnref-*`) so a label cannot clobber a host element id, and their
-  characters count in `max_inline_markers` like other delimiters (`[`, `]`).
+  Footnote ids are prefixed and salted per render (`nowo-md-fn-<salt>-<label>`), so a label cannot clobber a host
+  element id and two documents on one page never share an id; labels are case-insensitive (as in GFM), so no two notes
+  share a lower-cased id. Each reference expands to two links, so more than `max_footnote_refs` (200) references
+  render as literal text (audit CZ-L1: 4 900 references to one note had grown 24.5 KB into 1.12 MB).
   `MilkdownEditorType` adds a matching `Length` constraint (bytes) when symfony/validator is installed, so such input
   is rejected when it is saved.
 - Every value in dialect HTML is escaped; resolver URLs keep relative and http(s) forms only; icon, directive and

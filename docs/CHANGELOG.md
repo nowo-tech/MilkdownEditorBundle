@@ -20,7 +20,9 @@ All notable changes to this project are documented in this file. The format foll
   so `text[^1]` became a link labelled `^1` pointing at the note's first word, and the note itself disappeared. The
   renderer now enables league/commonmark's `FootnoteExtension` with prefixed ids (`nowo-md-fn-*`, `nowo-md-fnref-*`) and classes
   (`nowo-md-footnotes`, `nowo-md-footnote-ref`, `nowo-md-footnote-backref`). New option
-  `nowo_milkdown_editor.markdown.footnotes` (default `true`; `false` keeps the 1.2.0 output). See
+  `nowo_milkdown_editor.markdown.footnotes` (default `true`; `false` keeps the 1.2.0 output). Ids are salted per
+  render (`nowo-md-fn-<salt>-<label>`), labels are case-insensitive as in GFM, and more than
+  `markdown.max_footnote_refs` (200) references render as literal text (audit CZ-L1, output amplification). See
   [UPGRADING](UPGRADING.md#121).
 
 ### Added

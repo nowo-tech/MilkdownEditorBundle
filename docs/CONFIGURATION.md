@@ -33,7 +33,8 @@ nowo_milkdown_editor:
         allow_unsafe_links: false       # javascript:, vbscript:, file:, data: links are dropped
         allow_remote_images: false      # images from other hosts become links
         math: true                      # $inline$ and $$block$$ math
-        footnotes: true                 # GFM footnotes [^1] / [^1]: … (ids prefixed nowo-md-fn-)
+        footnotes: true                 # GFM footnotes [^1] / [^1]: … (ids nowo-md-fn-<salt>-<label>)
+        max_footnote_refs: 200          # more footnote references render as literal [^label] text (1.2.1)
         mention_display: handle         # handle | name: rendered mentions show @handle or the resolved name (1.2.1)
         max_nesting_level: 50
         max_input_length: 100000        # bytes; longer input renders as escaped text (also the form's max_length)
@@ -109,6 +110,7 @@ delimiter-dense input). Two limits keep a hostile document within PHP's default 
 | `max_input_length` | `100000` bytes | Rendered as escaped plain text; `MilkdownEditorType` rejects it on save (`Length`, bytes) |
 | `max_inline_markers` | `10000` delimiters + line feeds | Rendered as escaped plain text |
 | `max_references` | `500` | Later page links render *Content not visible*, later mentions plain `@handle` |
+| `max_footnote_refs` | `200` | Every footnote reference renders as literal `[^label]` text and the notes are dropped (each reference adds two links, ~50× output) |
 
 With the defaults the worst input measured peaks at about 39 MB (process total) and 1.2 s (PHP 8.4); see
 [SECURITY.md](SECURITY.md#parser-cost). For longer documents raise both limits together with `memory_limit`
