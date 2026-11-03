@@ -70,6 +70,7 @@ final class ConfigurationTest extends TestCase
         yield 'math without code mirror' => [['profiles' => ['default' => ['features' => ['math']]]]];
         yield 'mermaid without code mirror' => [['profiles' => ['default' => ['features' => ['mermaid']]]]];
         yield 'block drag without block actions' => [['profiles' => ['default' => ['features' => ['block_drag']]]]];
+        yield 'insert menu without context menu' => [['profiles' => ['default' => ['features' => ['insert_menu']]]]];
         yield 'bad theme' => [['profiles' => ['default' => ['theme' => 'blue']]]];
         yield 'bad min height' => [['profiles' => ['default' => ['min_height' => '10%']]]];
         yield 'non-string min height' => [['profiles' => ['default' => ['min_height' => 10]]]];

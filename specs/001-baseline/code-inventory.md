@@ -2,7 +2,7 @@
 
 **Package**: `nowo-tech/milkdown-editor-bundle`  
 **Last audited**: 2026-11-01  
-**Production units**: **89/89**  
+**Production units**: **91/91**  
 **Audit command**: `find src -type f \( -name '*.php' -o -name '*.twig' -o -name '*.yaml' -o -name '*.ts' -o -name '*.css' \) -not -path 'src/Resources/assets/tests/*' -not -path 'src/Resources/public/*' | wc -l`
 
 ## Scope notes
@@ -21,10 +21,10 @@
 | Twig & form theme | 2 |
 | Translations | 7 |
 | Browser: dialect | 3 |
-| Browser: nodes & plugins | 11 |
+| Browser: nodes & plugins | 13 |
 | Browser: previews, collaboration & features | 6 |
 | Browser: editor core | 15 |
-| **Total** | **89** |
+| **Total** | **91** |
 
 ## Bundle, configuration & DI
 
@@ -128,6 +128,8 @@
 | `src/Resources/assets/src/plugins/block-actions.ts` | Browser: nodes & plugins — block-actions.ts (handle, block menu, keys, drag) | FR-BLOCK-001 (spec 003) |
 | `src/Resources/assets/src/commands/colors.ts` | Browser: nodes & plugins — colors.ts (inline and block colours) | FR-COLOR-001 (spec 003) |
 | `src/Resources/assets/src/commands/blocks.ts` | Browser: nodes & plugins — blocks.ts (block commands) | FR-MENU-001 (spec 002) |
+| `src/Resources/assets/src/commands/markdown-clipboard.ts` | Browser: nodes & plugins — markdown-clipboard.ts (smart paste, Paste / Copy as Markdown) | FR-CLIP-001, FR-CLIP-002 (spec 004) |
+| `src/Resources/assets/src/commands/insert.ts` | Browser: nodes & plugins — insert.ts (Insert group of the context menu) | FR-INSERT-001 (spec 004) |
 
 ## Browser: previews, collaboration & features
 

@@ -58,7 +58,10 @@ export async function seriousViolations(page: Page, include = 'main'): Promise<{
 
 /** Puts the caret at the end of the wiki editor's last paragraph ("Euler: …"). */
 export async function caretAtEnd(page: Page): Promise<void> {
-  await page.locator('.nowo-milkdown .ProseMirror p', { hasText: 'Euler:' }).click({ position: { x: 5, y: 5 } });
+  const euler = page.locator('.nowo-milkdown .ProseMirror p', { hasText: 'Euler:' });
+  // The inline math of the paragraph renders from a lazy chunk; a click before it lands would be undone.
+  await expect(euler.locator('.katex').first()).toBeVisible({ timeout: 15000 });
+  await euler.click({ position: { x: 5, y: 5 } });
   await page.keyboard.press('End');
 }
 

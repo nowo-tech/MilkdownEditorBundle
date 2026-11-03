@@ -63,7 +63,7 @@ test.describe('Milkdown editor demo', () => {
     await paragraph.click({ button: 'right', position: { x: 5, y: 5 } });
     const menu = page.getByRole('menu', { name: 'Editor actions' });
     await expect(menu).toBeVisible();
-    await expect(menu.getByRole('menuitem', { name: 'Copy' })).toBeVisible();
+    await expect(menu.getByRole('menuitem', { name: 'Copy', exact: true })).toBeVisible();
     expect(await seriousViolations(page)).toEqual([]);
     await page.keyboard.press('Escape');
     await expect(menu).toBeHidden();
@@ -85,6 +85,61 @@ test.describe('Milkdown editor demo', () => {
     await paragraph.or(page.locator('.nowo-milkdown .ProseMirror h2', { hasText: 'Euler:' })).first().click({ button: 'right', modifiers: ['Shift'] });
     await expect(menu).toBeHidden();
     expect(await violations(page)).toEqual([]);
+    expect(log.errors).toEqual([]);
+  });
+
+  test('Markdown clipboard and Insert: smart paste, Paste / Copy as Markdown, Insert group (axe), read-view copy', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const log = await watch(page);
+    await openDemo(page, '?devtools=0');
+    // The end of the document, synced to the editor state by typing (a synthetic paste reads the state's selection).
+    await editable(page).focus();
+    await page.keyboard.press('Control+End');
+    await page.keyboard.type('x');
+    await page.keyboard.press('Backspace');
+    // Smart paste: a code editor's HTML only wraps the text, which is Markdown.
+    await editable(page).evaluate((el) => {
+      const data = new DataTransfer();
+      data.setData('text/html', '<pre><code># Pasted heading\n\n- one</code></pre>');
+      data.setData('text/plain', '# Pasted heading\n\n- one');
+      el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+    });
+    await expect(page.locator('.nowo-milkdown .ProseMirror h1', { hasText: 'Pasted heading' })).toBeVisible();
+    // Paste as Markdown from the keyboard.
+    await page.evaluate(() => navigator.clipboard.writeText('## From the clipboard'));
+    await page.keyboard.press('Control+End');
+    await page.keyboard.press('Control+Alt+V');
+    await expect(page.locator('.nowo-milkdown .ProseMirror h2', { hasText: 'From the clipboard' })).toBeVisible();
+    // Copy as Markdown: select the heading text and copy it.
+    await page.locator('.nowo-milkdown .ProseMirror h2', { hasText: 'From the clipboard' }).click();
+    await page.keyboard.press('End');
+    await page.keyboard.press('Shift+Home');
+    // The selection reaches the editor state (the selection toolbar shows it) before the shortcut.
+    await expect(page.locator('.milkdown-toolbar[data-show="true"]')).toHaveCount(1);
+    await page.keyboard.press('Control+Alt+Shift+C');
+    await expect(page.locator('.nowo-milkdown__status').first()).toHaveText('Copied as Markdown');
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('## From the clipboard\n');
+    // Insert group of the context menu: a new block after the current one.
+    await page.locator('.nowo-milkdown .ProseMirror h2', { hasText: 'From the clipboard' }).click({ button: 'right' });
+    const menu = page.getByRole('menu', { name: 'Editor actions' });
+    await expect(menu.getByRole('menuitem', { name: 'Copy as Markdown' })).toBeVisible();
+    await menu.getByRole('menuitem', { name: 'Insert' }).focus();
+    await page.keyboard.press('ArrowRight');
+    const insert = page.getByRole('menu', { name: 'Insert' });
+    await expect(insert.getByRole('menuitem', { name: 'Image or file…' })).toBeVisible();
+    expect(await seriousViolations(page)).toEqual([]);
+    await insert.getByRole('menuitem', { name: 'Heading 3' }).click();
+    await page.keyboard.type('Inserted');
+    await expect(page.locator('.nowo-milkdown .ProseMirror h3', { hasText: 'Inserted' })).toBeVisible();
+    await expect(page.locator('.nowo-milkdown .ProseMirror h2', { hasText: 'From the clipboard' })).toBeVisible();
+    // The read view copies the saved source.
+    await page.getByRole('button', { name: 'Save' }).click();
+    const copy = page.locator('[data-nowo-milkdown-copy-markdown]');
+    await expect(copy).toHaveText('Copy as Markdown');
+    await copy.click();
+    await expect(page.locator('.nowo-milkdown-copy__status')).toHaveText('Copied as Markdown');
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('### Inserted');
+    expect(await seriousViolations(page, '.demo-preview')).toEqual([]);
     expect(log.errors).toEqual([]);
   });
 

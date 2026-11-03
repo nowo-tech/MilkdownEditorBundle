@@ -156,6 +156,41 @@ final class BundleTest extends TestCase
     }
 
     #[Test]
+    public function theClipboardAndInsertStringsComeWithTheirFeatures(): void
+    {
+        $container = $this->container();
+        $this->service($container, 'translator', LocaleAwareInterface::class)->setLocale('es');
+        $view = $this->service($container, FormFactoryInterface::class, FormFactoryInterface::class)
+            ->create(MilkdownEditorType::class, null, ['features' => ['context_menu', 'markdown_clipboard', 'insert_menu']])
+            ->createView();
+        /** @var array{messages: object} $options */
+        $options  = $view->vars['milkdown_options'];
+        $messages = (array) $options['messages'];
+        self::assertSame('Copiar como Markdown', $messages['menu.copy_markdown']);
+        self::assertSame('Insertar', $messages['menu.insert']);
+        self::assertCount(count(MilkdownEditorType::MESSAGE_KEYS) + count(MilkdownEditorType::FEATURE_MESSAGE_KEYS['context_menu'])
+            + count(MilkdownEditorType::FEATURE_MESSAGE_KEYS['markdown_clipboard']) + count(MilkdownEditorType::FEATURE_MESSAGE_KEYS['insert_menu']), $messages);
+    }
+
+    #[Test]
+    public function theCopyAsMarkdownButtonCarriesTheEscapedSource(): void
+    {
+        $container = $this->container();
+        $this->service($container, 'translator', LocaleAwareInterface::class)->setLocale('es');
+        $twig = $this->service($container, 'twig', Environment::class);
+
+        self::assertSame(
+            '<span class="nowo-milkdown-copy" data-nowo-milkdown-copy><button type="button" class="nowo-milkdown-copy__button" data-nowo-milkdown-copy-markdown'
+            . ' data-copied="Copiado como Markdown" data-failed="No se ha podido copiar al portapapeles">Copiar como Markdown</button>'
+            . '<template># T &lt;/template&gt;&lt;script&gt;x&lt;/script&gt; &amp; &quot;q&quot;</template><span class="nowo-milkdown-copy__status" role="status"></span></span>',
+            $twig->createTemplate('{{ nowo_milkdown_copy_markdown(md) }}')->render(['md' => '# T </template><script>x</script> & "q"']),
+        );
+        self::assertStringContainsString('class="nowo-milkdown-copy__button btn btn-sm" data-nowo-milkdown-copy-markdown', $twig->createTemplate("{{ nowo_milkdown_copy_markdown('x', {class: 'btn btn-sm', label: 'Copy <md>'}) }}")->render());
+        self::assertStringContainsString('>Copy &lt;md&gt;</button>', $twig->createTemplate("{{ nowo_milkdown_copy_markdown('x', {label: 'Copy <md>'}) }}")->render());
+        self::assertSame('', $twig->createTemplate('{{ nowo_milkdown_copy_markdown(null) }}{{ nowo_milkdown_copy_markdown(\'\') }}')->render());
+    }
+
+    #[Test]
     public function itExposesTheRendererFilterAndServices(): void
     {
         $container = $this->container();

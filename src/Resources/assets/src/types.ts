@@ -20,7 +20,9 @@ export type Feature =
   | 'context_menu'
   | 'block_actions'
   | 'block_drag'
-  | 'colors';
+  | 'colors'
+  | 'markdown_clipboard'
+  | 'insert_menu';
 
 export const FEATURES: readonly Feature[] = [
   'toolbar',
@@ -37,6 +39,8 @@ export const FEATURES: readonly Feature[] = [
   'block_actions',
   'block_drag',
   'colors',
+  'markdown_clipboard',
+  'insert_menu',
 ];
 
 /** Suggestion triggers of the FR-075 dialect: `@` mentions, `[[` page links, `:` icons and emoji. */

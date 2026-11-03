@@ -12,6 +12,7 @@
 - [Rendering Mermaid and math on read pages](#rendering-mermaid-and-math-on-read-pages)
 - [JavaScript API and Stimulus](#javascript-api-and-stimulus)
 - [Context menu](#context-menu)
+- [Markdown clipboard](#markdown-clipboard)
 - [Block actions and colours](#block-actions-and-colours)
 - [Keyboard and accessibility](#keyboard-and-accessibility)
 - [Forms in Twig](#forms-in-twig)
@@ -275,6 +276,29 @@ const remove = window.NowoMilkdownEditor.contextMenu.register({
 Or change the menu per editor with the cancellable `nowo-milkdown:contextmenu` event (bubbles from the widget root):
 `event.detail.groups` is the list of item groups (`{id, label, shortcut?, disabled?, items?, run?}`) and
 `event.detail.context` the same context as above; `event.preventDefault()` cancels the menu.
+
+## Markdown clipboard
+
+Add `markdown_clipboard` to a field's `features` (1.5).
+
+- **Smart paste.** Text copied from a code editor, a terminal or a plain text field reaches the clipboard with HTML
+  that only wraps the text (`pre`, `code`, `div`, `p`, `br`, `span`). When that text looks like Markdown (headings,
+  lists, `**`, links, fences, tables, quotes), it is parsed as Markdown of the dialect instead of pasted as a code-ish
+  paragraph. Copies from web pages and documents (real formatting, links, lists in the HTML) keep the sanitising HTML
+  path. Nothing is parsed inside a code block. A single paragraph joins the text at the caret; anything else is
+  inserted as blocks.
+- **Paste as Markdown** (**Ctrl / ⌘ + Alt + V**, and in the context menu) parses the clipboard text as Markdown
+  whatever it looks like. It needs the browser's clipboard permission (`readText`).
+- **Copy as Markdown** (**Ctrl / ⌘ + Alt + Shift + C**, and in the context menu, also for readers) writes the selection
+  as Markdown of the dialect, as plain text, and says so in the live region.
+- **Read pages.** `{{ nowo_milkdown_copy_markdown(page.markdown) }}` prints a "Copy as Markdown" button (options:
+  `label`, `class`, e.g. `{class: 'btn btn-outline-secondary btn-sm'}`). It needs `nowo_milkdown_editor_assets()` on
+  the page. The source travels in the page HTML: print it only for viewers who may read the page, and pass the
+  Markdown they may read (page links carry ids, not titles).
+
+The *Insert* group (`insert_menu`, with `context_menu`) adds *Image or file…* (when the field has uploads), *Icon or
+emoji* (with icons or `:` suggestions) and the `/` blocks of the field. A new block goes after the current one; an
+empty paragraph is reused.
 
 ## Block actions and colours
 

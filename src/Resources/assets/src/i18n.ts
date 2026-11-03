@@ -116,6 +116,12 @@ export const DEFAULT_MESSAGES: Messages = {
   'color.purple': 'Purple',
   'color.pink': 'Pink',
   'color.red': 'Red',
+  'menu.paste_markdown': 'Paste as Markdown',
+  'menu.copy_markdown': 'Copy as Markdown',
+  'menu.insert': 'Insert',
+  'menu.insert_file': 'Image or file…',
+  'clipboard.copied_markdown': 'Copied as Markdown',
+  'clipboard.copy_failed': 'Could not copy to the clipboard',
 };
 
 /** Returns the message for `key`, with `{placeholders}` replaced. */

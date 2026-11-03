@@ -12,6 +12,7 @@ import { editorViewCtx, editorViewOptionsCtx } from '@milkdown/kit/core';
 import { uploadConfig } from '@milkdown/kit/plugin/upload';
 import { replaceAll } from '@milkdown/kit/utils';
 import type { Schema } from '@milkdown/kit/prose/model';
+import type { EditorView } from '@milkdown/kit/prose/view';
 import { addFeatures } from './features';
 import { createPageResolver } from './link-titles';
 import { createUserResolver } from './user-names';
@@ -23,7 +24,8 @@ import { editableAttributes, watchControls } from './plugins/a11y';
 import { keyboardPlugin } from './plugins/keyboard';
 import { suggestPlugin } from './plugins/suggest';
 import { defaultRuntime, runtimeCtx, t, type Runtime } from './runtime';
-import { buildTriggers } from './triggers';
+import { buildTriggers, slashItems } from './triggers';
+import { insertItems, type InsertItem } from './commands/insert';
 import { createUploader } from './upload';
 import type { EditorOptions } from './types';
 import type { MercureProvider } from './collab/mercure-provider';
@@ -140,6 +142,8 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   const contextMenuModule = options.features.includes('context_menu') ? await import('./plugins/context-menu') : null;
   const blockActionsModule = options.features.includes('block_actions') ? await import('./plugins/block-actions') : null;
   const colorsModule = options.features.includes('colors') ? await import('./commands/colors') : null;
+  // 1.5: smart paste and Paste / Copy as Markdown.
+  const clipboardModule = options.features.includes('markdown_clipboard') ? await import('./commands/markdown-clipboard') : null;
   editor
     .config((ctx) => {
       ctx.set(runtimeCtx.key, runtime);
@@ -150,6 +154,16 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
       if (options.upload) {
         const uploader = createUploader(options.upload, announce);
         ctx.update(uploadConfig.key, (prev) => ({ ...prev, uploader: (files: FileList, schema: Schema) => uploader(files, schema) }));
+      }
+      if (clipboardModule) {
+        // A view prop runs before Milkdown's clipboard plugin (which would take the HTML path).
+        const smart = clipboardModule.smartPaste(clipboardModule.markdownIo(ctx));
+        ctx.update(editorViewOptionsCtx, (prev) => ({
+          ...prev,
+          handlePaste: (view, event, slice) => smart(view, event) || (prev.handlePaste?.(view, event, slice) ?? false),
+          // DN-L1: every other paste path drops unsafe link and image targets the same way.
+          transformPasted: (slice, view, plain) => clipboardModule.cleanPasted(prev.transformPasted ? prev.transformPasted(slice, view, plain) : slice),
+        }));
       }
     })
     .use(runtimeCtx)
@@ -163,6 +177,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   if (contextMenuModule) editor.use(contextMenuModule.contextMenuPlugin);
   if (blockActionsModule) editor.use(blockActionsModule.blockActionsPlugin(options.features.includes('block_drag')));
   if (colorsModule) editor.use(colorsModule.colorMenuPlugin);
+  if (clipboardModule) editor.use(clipboardModule.markdownClipboardPlugin((key, error) => announce(key, {}, error)));
   await addFeatures(builder, options, runtime);
 
   builder.on((api) =>
@@ -187,38 +202,49 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   label?.addEventListener('click', focus);
   const unwatch = watchControls(surface, runtime);
 
+  /** Opens the file picker and inserts the uploaded files at the caret. */
+  const pickFiles = (upload: NonNullable<EditorOptions['upload']>): void => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    if (upload.accept.length) input.accept = upload.accept.join(',');
+    input.addEventListener('change', () => {
+      if (!input.files?.length) return;
+      const uploader = createUploader(upload, announce);
+      void editor.action(async (ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const nodes = await uploader(input.files!, view.state.schema);
+        let tr = view.state.tr;
+        for (const node of nodes) tr = tr.replaceSelectionWith(node, false);
+        if (nodes.length) view.dispatch(tr.scrollIntoView());
+        view.focus();
+      });
+    });
+    input.click();
+  };
+  /** Types `:` at the caret (a space first after a word), which opens the icon suggestions. */
+  const startIcon = (view: EditorView): void => {
+    const { $from } = view.state.selection;
+    const before = $from.parent.textBetween(0, $from.parentOffset, undefined, '￼');
+    view.dispatch(view.state.tr.insertText(before === '' || /\s$/.test(before) ? ':' : ' :'));
+    view.focus();
+  };
+  const iconsOffered = Boolean(options.suggestions[':'] || options.icons.length > 0);
+
   if (options.upload && !options.readonly) {
     const upload = options.upload;
-    actionButton(bar, t(runtime, 'upload.button'), () => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.multiple = true;
-      if (upload.accept.length) input.accept = upload.accept.join(',');
-      input.addEventListener('change', () => {
-        if (!input.files?.length) return;
-        const uploader = createUploader(upload, announce);
-        void editor.action(async (ctx) => {
-          const view = ctx.get(editorViewCtx);
-          const nodes = await uploader(input.files!, view.state.schema);
-          let tr = view.state.tr;
-          for (const node of nodes) tr = tr.replaceSelectionWith(node, false);
-          if (nodes.length) view.dispatch(tr.scrollIntoView());
-          view.focus();
-        });
-      });
-      input.click();
-    });
+    actionButton(bar, t(runtime, 'upload.button'), () => pickFiles(upload));
   }
-  if ((options.suggestions[':'] || options.icons.length > 0) && !options.readonly) {
-    actionButton(bar, t(runtime, 'icon.button'), () =>
-      editor.action((ctx) => {
-        const view = ctx.get(editorViewCtx);
-        const { $from } = view.state.selection;
-        const before = $from.parent.textBetween(0, $from.parentOffset, undefined, '￼');
-        view.dispatch(view.state.tr.insertText(before === '' || /\s$/.test(before) ? ':' : ' :'));
-        view.focus();
-      }),
-    );
+  if (iconsOffered && !options.readonly) {
+    actionButton(bar, t(runtime, 'icon.button'), () => editor.action((ctx) => startIcon(ctx.get(editorViewCtx))));
+  }
+  // 1.5 `insert_menu`: the *Insert* group of the context menu (file, icon, the `/` blocks of the field).
+  if (options.features.includes('insert_menu') && !options.readonly) {
+    const upload = options.upload;
+    const actions: InsertItem[] = [];
+    if (upload) actions.push({ id: 'file', label: t(runtime, 'menu.insert_file'), run: () => pickFiles(upload) });
+    if (iconsOffered) actions.push({ id: 'icon', label: t(runtime, 'slash.icon'), run: startIcon });
+    editor.action((ctx) => runtime.insert.push(...insertItems(slashItems(ctx, options, runtime), actions)));
   }
   if (!bar.childElementCount) bar.remove();
 

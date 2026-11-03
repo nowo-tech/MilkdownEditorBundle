@@ -4,6 +4,7 @@
 import { $ctx } from '@milkdown/kit/utils';
 import { DEFAULT_MESSAGES, translate } from './i18n';
 import type { Messages } from './types';
+import type { InsertItem } from './commands/insert';
 
 export type PageInfo = { id: string; title: string; url: string; visible: boolean };
 export type PageResolver = (id: string) => Promise<PageInfo>;
@@ -23,6 +24,8 @@ export type Runtime = {
   nonce: string;
   /** Dark rendering of previews (Mermaid theme). */
   dark: () => boolean;
+  /** 1.5 `insert_menu`: the *Insert* group of the context menu, filled once the editor is created. */
+  insert: InsertItem[];
 };
 
 export const defaultRuntime = (): Runtime => ({
@@ -35,6 +38,7 @@ export const defaultRuntime = (): Runtime => ({
   colors: [],
   nonce: '',
   dark: () => false,
+  insert: [],
 });
 
 export const runtimeCtx = $ctx<Runtime, 'nowoMilkdownRuntime'>(defaultRuntime(), 'nowoMilkdownRuntime');
