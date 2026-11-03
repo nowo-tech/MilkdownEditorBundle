@@ -2,7 +2,7 @@
 
 **Package**: `nowo-tech/milkdown-editor-bundle`  
 **Last audited**: 2026-11-01  
-**Production units**: **88/88**  
+**Production units**: **89/89**  
 **Audit command**: `find src -type f \( -name '*.php' -o -name '*.twig' -o -name '*.yaml' -o -name '*.ts' -o -name '*.css' \) -not -path 'src/Resources/assets/tests/*' -not -path 'src/Resources/public/*' | wc -l`
 
 ## Scope notes
@@ -17,14 +17,14 @@
 | --- | ---: |
 | Bundle, configuration & DI | 8 |
 | Form type & CSP | 4 |
-| PHP Markdown renderer | 32 |
+| PHP Markdown renderer | 33 |
 | Twig & form theme | 2 |
 | Translations | 7 |
 | Browser: dialect | 3 |
 | Browser: nodes & plugins | 11 |
 | Browser: previews, collaboration & features | 6 |
 | Browser: editor core | 15 |
-| **Total** | **88** |
+| **Total** | **89** |
 
 ## Bundle, configuration & DI
 
@@ -55,6 +55,7 @@
 | `src/Markdown/DialectRenderer.php` | PHP Markdown renderer — DialectRenderer.php | FR-MD-001 |
 | `src/Markdown/Directive/DirectiveAttributes.php` | PHP Markdown renderer — DirectiveAttributes.php | FR-MD-001, FR-MD-003 |
 | `src/Markdown/Directive/DirectiveRendererInterface.php` | PHP Markdown renderer — DirectiveRendererInterface.php | FR-MD-003 |
+| `src/Markdown/TaskMarkerRenderer.php` | PHP Markdown renderer — named task-list checkboxes (1.3.1) | FR-MD-001 |
 | `src/Markdown/FootnoteSalt.php` | PHP Markdown renderer — per-document footnote id salt (1.2.1, CZ-I7) | FR-MD-001 |
 | `src/Markdown/FootnoteGuard.php` | PHP Markdown renderer — footnote label case and reference cap (1.2.1, CZ-L1) | FR-MD-001 |
 | `src/Markdown/DocumentProcessor.php` | PHP Markdown renderer — DocumentProcessor.php | FR-MD-001, FR-MD-002, FR-MD-003 |
