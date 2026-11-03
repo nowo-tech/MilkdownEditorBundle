@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
+- [Unreleased (1.5.0)](#unreleased-150)
 - [1.4.0](#140)
 - [1.3.1](#131)
 - [1.3.0](#130)
@@ -23,6 +24,16 @@
 Public API covered by Semantic Versioning: the configuration tree, profile keys, form options, Twig filter / function
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
+
+## Unreleased (1.5.0)
+
+- **New opt-in features:** `markdown_clipboard` and `insert_menu` (which needs `context_menu`). Fields without them
+  keep the same widget JSON, menus and paste behaviour.
+- With `markdown_clipboard`, **Ctrl / ⌘ + Alt + V** pastes as Markdown and **Ctrl / ⌘ + Alt + Shift + C** copies as
+  Markdown. If your page binds these keys, choose between the two.
+- **`nowo_milkdown_copy_markdown()`** is new. Print it only on pages the viewer may read, with the Markdown they may
+  read: the source is in the page HTML.
+- If you override translations, add the six new keys.
 
 ## 1.4.0
 

@@ -26,6 +26,8 @@ export function normaliseFeatures(value: unknown): Feature[] {
   }
   // Dragging uses the block handle (1.4).
   if (!set.has('block_actions')) set.delete('block_drag');
+  // The Insert group lives in the context menu (1.5).
+  if (!set.has('context_menu')) set.delete('insert_menu');
   return FEATURES.filter((f) => set.has(f));
 }
 

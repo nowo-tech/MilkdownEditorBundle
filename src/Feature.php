@@ -25,6 +25,10 @@ enum Feature: string
     case BlockActions = 'block_actions';
     case BlockDrag    = 'block_drag';
     case Colors       = 'colors';
+    /** 1.5: smart paste of Markdown, Paste / Copy as Markdown (Ctrl / ⌘ + Alt + V / C). */
+    case MarkdownClipboard = 'markdown_clipboard';
+    /** 1.5: the Insert group of the context menu (needs `context_menu`). */
+    case InsertMenu = 'insert_menu';
 
     /**
      * Features enabled when a profile does not list its own.

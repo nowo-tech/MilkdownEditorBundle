@@ -94,6 +94,8 @@ final class MilkdownEditorType extends AbstractType
             'color.gray', 'color.brown', 'color.orange', 'color.yellow', 'color.green', 'color.blue', 'color.purple',
             'color.pink', 'color.red',
         ],
+        'markdown_clipboard' => ['menu.paste_markdown', 'menu.copy_markdown', 'clipboard.copied_markdown', 'clipboard.copy_failed'],
+        'insert_menu'        => ['menu.insert', 'menu.insert_file'],
     ];
 
     /**
@@ -309,6 +311,9 @@ final class MilkdownEditorType extends AbstractType
         }
         if (isset($features[Feature::BlockDrag->value]) && !isset($features[Feature::BlockActions->value])) {
             throw new InvalidOptionsException('The "block_drag" feature drags the block handle and needs "block_actions".');
+        }
+        if (isset($features[Feature::InsertMenu->value]) && !isset($features[Feature::ContextMenu->value])) {
+            throw new InvalidOptionsException('The "insert_menu" feature is a group of the context menu and needs "context_menu".');
         }
 
         return array_keys($features);

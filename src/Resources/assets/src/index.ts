@@ -93,6 +93,43 @@ export function createStimulusController<T extends ControllerBase>(Base: T) {
 }
 
 let observer: MutationObserver | null = null;
+const copyBound = new WeakSet<Document>();
+
+/**
+ * Copies the source of a read-view "Copy as Markdown" button (`nowo_milkdown_copy_markdown()`, 1.5): the Markdown in
+ * its `<template>`, written as plain text; the result is said in the button's status region.
+ *
+ * @param button - The `[data-nowo-milkdown-copy-markdown]` button
+ * @returns Whether the clipboard took the text
+ */
+export async function copySource(button: HTMLElement): Promise<boolean> {
+  const root = button.closest('[data-nowo-milkdown-copy]');
+  const source = root?.querySelector('template')?.content.textContent ?? '';
+  let ok: boolean;
+  try {
+    await navigator.clipboard.writeText(source);
+    ok = true;
+  } catch {
+    ok = false;
+  }
+  const status = root?.querySelector('[role="status"]');
+  if (status) status.textContent = (ok ? button.dataset.copied : button.dataset.failed) ?? '';
+  return ok;
+}
+
+/**
+ * Binds the read-view "Copy as Markdown" buttons of a document (delegated, once).
+ *
+ * @param doc - The document
+ */
+export function bindCopyButtons(doc: Document = document): void {
+  if (copyBound.has(doc)) return;
+  copyBound.add(doc);
+  doc.addEventListener('click', (event) => {
+    const button = (event.target as Element | null)?.closest?.<HTMLElement>('[data-nowo-milkdown-copy-markdown]');
+    if (button) void copySource(button);
+  });
+}
 
 /**
  * Starts auto-mounting (called once when the module loads in a browser).
@@ -101,6 +138,7 @@ let observer: MutationObserver | null = null;
  */
 export function start(doc: Document = document): void {
   const run = (): void => void mountAll(doc);
+  bindCopyButtons(doc);
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', run, { once: true });
   else run();
   doc.addEventListener('turbo:load', run);

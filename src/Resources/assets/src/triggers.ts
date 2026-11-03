@@ -143,7 +143,7 @@ export function buildTriggers(ctx: Ctx, deps: Deps): SuggestTrigger[] {
   return triggers;
 }
 
-type Block = { item: SuggestItem; run: (view: EditorView) => void };
+export type Block = { item: SuggestItem; run: (view: EditorView) => void };
 
 /** The `/` menu: block types (headings, lists, table, code, callout, Mermaid, math…) and the other triggers. */
 export function slashItems(ctx: Ctx, options: EditorOptions, runtime: Runtime): Block[] {

@@ -95,6 +95,8 @@ the `Nowo\MilkdownEditorBundle\ProfileRegistry` service.
 | `block_drag` | Drag the block handle to move a block (needs `block_actions`; keyboard moves stay) (1.4) | lazy |
 | `colors` | Text and background colours: *Color* in the block menu, the context menu and the toolbar (1.4, see [USAGE](USAGE.md#block-actions-and-colours)) | lazy |
 | `context_menu` | Right-click / Shift+F10 / ContextMenu-key menu: clipboard, *Turn into*, table, link and block actions, host items (1.3, see [USAGE](USAGE.md#context-menu)) | lazy |
+| `markdown_clipboard` | Smart paste of Markdown; *Paste as Markdown* (**Ctrl / ⌘ + Alt + V**) and *Copy as Markdown* (**Ctrl / ⌘ + Alt + Shift + C**), also in the context menu (1.5, see [USAGE](USAGE.md#markdown-clipboard)) | lazy |
+| `insert_menu` | *Insert* group of the context menu: file, icon and the `/` blocks of the field (needs `context_menu`; 1.5) | entry |
 
 Lists, task lists, blockquotes, headings, links, images and the dialect nodes are always available.
 

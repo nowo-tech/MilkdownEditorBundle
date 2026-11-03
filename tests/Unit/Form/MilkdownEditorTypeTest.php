@@ -136,6 +136,7 @@ final class MilkdownEditorTypeTest extends TypeTestCase
         yield 'non-string feature' => [['features' => [1]], 'Unknown Milkdown editor feature "int"'];
         yield 'math without code mirror' => [['features' => ['math']], 'needs "code_mirror"'];
         yield 'block drag without block actions' => [['features' => ['block_drag']], 'needs "block_actions"'];
+        yield 'insert menu without context menu' => [['features' => ['insert_menu']], 'needs "context_menu"'];
         yield 'bad min height' => [['min_height' => 'big'], 'CSS length'];
         yield 'bad icon' => [['icons' => ['Bad Name']], 'Invalid icon name'];
         yield 'unknown trigger' => [['suggestions' => ['#' => '/x']], 'Unknown suggestion trigger "#"'];

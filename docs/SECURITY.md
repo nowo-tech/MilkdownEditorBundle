@@ -108,6 +108,10 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
   no inline style and no raw CSS value is ever taken from Markdown, so colours add nothing to the CSP or XSS surface.
   The block handle and menus use CSSOM positioning only. Dragging hands ProseMirror a slice of the document itself.
 - Crepe's image-block feature (rewrites alt text, loads remote images) and the emoji plugin (CDN images) are not used.
+- **Markdown clipboard (1.5):** smart paste inspects the clipboard HTML with `DOMParser` (inert: no script runs, no
+  node of it is inserted) and parses only the plain text, through the dialect parser; the render sanitises it like
+  typed text. *Copy as Markdown* writes plain text only. `nowo_milkdown_copy_markdown()` escapes the source into a
+  `<template>` (inert); the host must print it only for viewers who may read the page, with Markdown they may read.
 
 ## Content Security Policy
 

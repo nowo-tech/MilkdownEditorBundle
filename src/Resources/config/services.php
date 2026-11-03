@@ -73,6 +73,6 @@ return static function (ContainerConfigurator $container): void {
         ->tag('form.type');
 
     $services->set(MilkdownEditorTwig::class)
-        ->args([service(MarkdownRendererInterface::class), service('assets.packages'), service(CspNonceProviderInterface::class)->nullOnInvalid()])
+        ->args([service(MarkdownRendererInterface::class), service('assets.packages'), service(CspNonceProviderInterface::class)->nullOnInvalid(), service('translator')->nullOnInvalid()])
         ->autoconfigure();
 };

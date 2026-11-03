@@ -19,6 +19,8 @@ import { tabContext } from './keyboard';
 import { colorItems } from '../commands/colors';
 import { safeUrl } from '../link-titles';
 import { hostItems, type ContextMenuContext } from '../context-menu-registry';
+import { copyMarkdown, markdownIo, pasteMarkdown, type MarkdownIo } from '../commands/markdown-clipboard';
+import { prepareInsertPoint } from '../commands/insert';
 
 export { registerContextMenuItem, type ContextMenuContext, type HostContextMenuItem } from '../context-menu-registry';
 
@@ -60,6 +62,8 @@ export class ContextMenuView {
   constructor(
     private readonly view: EditorView,
     private readonly runtime: Runtime,
+    /** 1.5 `markdown_clipboard`: the parser / serializer behind *Paste* / *Copy as Markdown* (null: no such items). */
+    private readonly io: MarkdownIo | null = null,
   ) {
     const host = (view.dom.closest('.nowo-milkdown') as HTMLElement | null) ?? document.body;
     this.menu = new Menu(host, t(runtime, 'menu.label'), (restore) => {
@@ -129,8 +133,37 @@ export class ContextMenuView {
       clip.push(item('paste', () => void this.paste(), { shortcut: 'Control+V', disabled: !cb.read, hint: t(runtime, 'menu.paste_hint') }));
       clip.push(item('paste_plain', () => void this.pastePlain(), { shortcut: 'Control+Shift+V', disabled: !cb.readText, hint: t(runtime, 'menu.paste_hint') }));
     }
+    const io = this.io;
+    if (io) {
+      if (editable) clip.push(item('paste_markdown', () => void pasteMarkdown(view, io, cb), { shortcut: 'Control+Alt+V', disabled: !cb.readText, hint: t(runtime, 'menu.paste_hint') }));
+      clip.push(
+        item('copy_markdown', () => void copyMarkdown(state, io, cb).then((ok) => this.announce(ok ? 'clipboard.copied_markdown' : 'clipboard.copy_failed')), {
+          shortcut: 'Control+Alt+Shift+C',
+          disabled: empty || !cb.writeText,
+        }),
+      );
+    }
 
     const groups: MenuGroups = [clip];
+    // 1.5 `insert_menu`: file, icon and the `/` blocks, each at a new block after the current one.
+    if (editable && runtime.insert.length) {
+      groups.push([
+        {
+          id: 'insert',
+          label: t(runtime, 'menu.insert'),
+          items: runtime.insert.map((entry) => ({
+            id: `insert_${entry.id}`,
+            label: entry.label,
+            run: () =>
+              runner(() => {
+                prepareInsertPoint(view);
+                entry.run(view);
+                return true;
+              }),
+          })),
+        },
+      ]);
+    }
     if (editable) {
       const link = state.schema.marks.link ? markRange(state, state.selection.head, state.schema.marks.link) : null;
       if (link) {
@@ -220,6 +253,12 @@ export class ContextMenuView {
     if (command === 'cut' && view.editable) view.dispatch(view.state.tr.deleteSelection().scrollIntoView());
   }
 
+  /** Says a message in the widget's live region. */
+  private announce(key: string): void {
+    const status = this.view.dom.closest('.nowo-milkdown')?.querySelector('.nowo-milkdown__status');
+    if (status) status.textContent = t(this.runtime, key);
+  }
+
   async paste(): Promise<void> {
     const { view } = this;
     const items = (await clipboard().read?.()) ?? [];
@@ -249,6 +288,9 @@ export const contextMenuPlugin = $prose(
   (ctx) =>
     new Plugin({
       key: contextMenuKey,
-      view: (view) => new ContextMenuView(view, ctx.get(runtimeCtx.key)),
+      view: (view) => {
+        const runtime = ctx.get(runtimeCtx.key);
+        return new ContextMenuView(view, runtime, runtime.features.has('markdown_clipboard') ? markdownIo(ctx) : null);
+      },
     }),
 );
