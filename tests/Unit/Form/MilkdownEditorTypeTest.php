@@ -147,6 +147,23 @@ final class MilkdownEditorTypeTest extends TypeTestCase
         yield 'collaboration awareness delay not an int' => [['collaboration' => ['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'awareness_delay_ms' => '500']], 'collaboration.awareness_delay_ms'];
         yield 'collaboration negative delay' => [['collaboration' => ['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'update_delay_ms' => -1]], 'from 0 to 2000.'];
         yield 'bad theme' => [['theme' => 'blue'], 'theme'];
+        yield 'version view with comments' => [['features' => ['version_view', 'comments']], 'never carries "comments"'];
+        yield 'version unknown key' => [['version' => ['when' => 'x']], 'Unknown "version" option key "when"'];
+        yield 'version bad label' => [['version' => ['label' => 3]], 'string "label"'];
+        yield 'version bad restore' => [['version' => ['restore' => 'no']], 'boolean "restore"'];
+        yield 'comments unknown key' => [['comments' => ['endpoint' => '/c']], 'Unknown "comments" option key "endpoint"'];
+        yield 'comments protocol-relative url' => [['comments' => ['url' => '//evil.example/c']], 'comments.url'];
+        yield 'comments backslash url' => [['comments' => ['url' => '/\\evil.example/c']], 'comments.url'];
+        yield 'comments javascript url' => [['comments' => ['url' => 'javascript:alert(1)']], 'comments.url'];
+        yield 'comments non-string url' => [['comments' => ['url' => 5]], 'comments.url'];
+        yield 'comments bad panel' => [['comments' => ['url' => '/c', 'panel' => 'popup']], 'comments.panel'];
+        yield 'comments panel without url' => [['comments' => ['panel' => 'sidebar']], 'needs "comments.url"'];
+        yield 'comments topic without url' => [['comments' => ['topic' => 't']], 'comments.topic'];
+        yield 'comments bad token' => [['comments' => ['csrf_token' => 1]], 'comments.csrf_token'];
+        yield 'comments container without host panel' => [['comments' => ['url' => '/c', 'container' => '#x']], 'comments.container'];
+        yield 'comments empty container' => [['comments' => ['url' => '/c', 'panel' => 'container', 'container' => '']], 'comments.container'];
+        yield 'comments host panel without url' => [['comments' => ['panel' => 'container']], 'needs "comments.url"'];
+        yield 'comments bad can_create' => [['comments' => ['can_create' => 'yes']], 'comments.can_create'];
     }
 
     /**
@@ -159,6 +176,55 @@ final class MilkdownEditorTypeTest extends TypeTestCase
         $this->expectException(InvalidOptionsException::class);
         $this->expectExceptionMessage($message);
         $this->factory->create(MilkdownEditorType::class, null, $options);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     *
+     * @return array<string, mixed>
+     */
+    private function widget(array $options): array
+    {
+        /** @var array<string, mixed> $json */
+        $json = $this->factory->create(MilkdownEditorType::class, null, $options)->createView()->vars['milkdown_options'];
+
+        return $json;
+    }
+
+    #[Test]
+    public function commentsAreOptInAndNormalised(): void
+    {
+        $off = $this->widget(['comments' => ['url' => '/c']]);
+        self::assertArrayNotHasKey('comments', $off);
+
+        $hooks = $this->widget(['features' => ['comments']]);
+        self::assertSame(['url' => null, 'csrfToken' => null, 'canCreate' => true, 'panel' => 'none', 'container' => null, 'topic' => null], $hooks['comments']);
+
+        $full = $this->widget([
+            'features' => ['comments'],
+            'comments' => ['url' => 'https://wiki.example/p/1/comments', 'csrf_token' => 'tok', 'can_create' => false, 'topic' => 'p/1/comments'],
+        ]);
+        self::assertSame(['url' => 'https://wiki.example/p/1/comments', 'csrfToken' => 'tok', 'canCreate' => false, 'panel' => 'margin', 'container' => null, 'topic' => 'p/1/comments'], $full['comments']);
+        self::assertSame('sidebar', MilkdownEditorType::normaliseComments(['url' => '/c', 'panel' => 'sidebar'])['panel']);
+        self::assertSame('#wiki-comments', MilkdownEditorType::normaliseComments(['url' => '/c', 'panel' => 'container', 'container' => '#wiki-comments'])['container']);
+    }
+
+    #[Test]
+    public function versionViewIsReadOnlyWithoutCollaborationOrUploads(): void
+    {
+        $o = $this->widget([
+            'features'      => ['version_view'],
+            'version'       => ['label' => '3 May 2026, 10:04 — Ana', 'restore' => false],
+            'upload_url'    => '/upload',
+            'collaboration' => ['url' => '/c', 'hub_url' => '/h', 'topic' => 't'],
+        ]);
+        self::assertTrue($o['readonly']);
+        self::assertNull($o['collaboration']);
+        self::assertNull($o['upload']);
+        self::assertSame(['label' => '3 May 2026, 10:04 — Ana', 'restore' => false, 'copy' => true], $o['version']);
+        $plain = $this->widget(['features' => ['version_view']]);
+        self::assertSame(['label' => '', 'restore' => true, 'copy' => true], $plain['version']);
+        self::assertArrayNotHasKey('version', $this->widget(['version' => ['label' => 'x']]));
     }
 
     #[Test]

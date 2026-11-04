@@ -22,6 +22,8 @@ export type Runtime = {
   /** Colours offered by the colour menus (1.4: `markdown.mark_colors`); empty: the whole palette. */
   colors: readonly string[];
   nonce: string;
+  /** 1.6 `comments`: starts a comment on the selection (null without the feature or the create right). */
+  comment: (() => void) | null;
   /** Dark rendering of previews (Mermaid theme). */
   dark: () => boolean;
   /** 1.5 `insert_menu`: the *Insert* group of the context menu, filled once the editor is created. */
@@ -37,6 +39,7 @@ export const defaultRuntime = (): Runtime => ({
   features: new Set<string>(),
   colors: [],
   nonce: '',
+  comment: null,
   dark: () => false,
   insert: [],
 });

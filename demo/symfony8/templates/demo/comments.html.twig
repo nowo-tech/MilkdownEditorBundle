@@ -1,0 +1,22 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'demo.comments.heading'|trans }}{% endblock %}
+
+{% block body %}
+    <h1>{{ 'demo.comments.heading'|trans }}</h1>
+    <p class="demo-lead">{{ 'demo.comments.lead'|trans }}</p>
+
+    {{ form_start(form) }}
+        {{ form_row(form.body) }}
+    {{ form_end(form, {render_rest: false}) }}
+
+    <section aria-labelledby="version-heading">
+        <h2 id="version-heading">{{ 'demo.comments.version'|trans }}</h2>
+        {{ nowo_milkdown_view(old, {label: 'demo.comments.version', features: ['toolbar', 'version_view'], theme: dark ? 'dark' : 'auto', version: {label: '2 November 2026, 10:04', copy: false}}) }}
+    </section>
+
+    <section aria-labelledby="diff-heading">
+        <h2 id="diff-heading">{{ 'demo.comments.diff'|trans }}</h2>
+        <div{% if dark %} data-theme="dark"{% endif %} class="nowo-md">{{ nowo_milkdown_diff(old, new) }}</div>
+    </section>
+{% endblock %}

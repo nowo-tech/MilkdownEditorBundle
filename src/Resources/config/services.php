@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Nowo\MilkdownEditorBundle\Csp\CspNonceProviderInterface;
 use Nowo\MilkdownEditorBundle\Csp\RequestAttributeCspNonceProvider;
+use Nowo\MilkdownEditorBundle\Diff\MarkdownDiffRenderer;
+use Nowo\MilkdownEditorBundle\Diff\MarkdownDiffRendererInterface;
 use Nowo\MilkdownEditorBundle\Form\MilkdownEditorType;
 use Nowo\MilkdownEditorBundle\Markdown\Directive\DirectiveRendererInterface;
 use Nowo\MilkdownEditorBundle\Markdown\MarkdownRendererInterface;
@@ -16,6 +18,7 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\PageResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\UserResolverInterface;
 use Nowo\MilkdownEditorBundle\ProfileRegistry;
 use Nowo\MilkdownEditorBundle\Twig\MilkdownEditorTwig;
+use Nowo\MilkdownEditorBundle\Twig\MilkdownViewTwig;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
@@ -64,6 +67,11 @@ return static function (ContainerConfigurator $container): void {
         ->tag('kernel.reset', ['method' => 'reset']);
     $services->alias(MarkdownRendererInterface::class, MilkdownMarkdownRenderer::class)->public();
 
+    // 1.6: rendered diff of two versions; the same renderer (per-viewer resolvers), nothing cached.
+    $services->set(MarkdownDiffRenderer::class)
+        ->args([service(MarkdownRendererInterface::class), service('translator')->nullOnInvalid()]);
+    $services->alias(MarkdownDiffRendererInterface::class, MarkdownDiffRenderer::class)->public();
+
     $services->set(MilkdownEditorType::class)
         ->args([
             service(ProfileRegistry::class),
@@ -74,5 +82,10 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set(MilkdownEditorTwig::class)
         ->args([service(MarkdownRendererInterface::class), service('assets.packages'), service(CspNonceProviderInterface::class)->nullOnInvalid(), service('translator')->nullOnInvalid()])
+        ->autoconfigure();
+
+    // 1.6: `nowo_milkdown_view()` / `nowo_milkdown_diff()` (only when symfony/form's factory is available).
+    $services->set(MilkdownViewTwig::class)
+        ->args([service(MarkdownDiffRendererInterface::class), service('form.factory')->nullOnInvalid()])
         ->autoconfigure();
 };

@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Nowo\MilkdownEditorBundle\Tests\Integration;
 
+use LogicException;
 use Nowo\MilkdownEditorBundle\Csp\CspNonceProviderInterface;
+use Nowo\MilkdownEditorBundle\Diff\MarkdownDiffRendererInterface;
 use Nowo\MilkdownEditorBundle\Form\MilkdownEditorType;
 use Nowo\MilkdownEditorBundle\Markdown\MarkdownRendererInterface;
 use Nowo\MilkdownEditorBundle\NowoMilkdownEditorBundle;
+use Nowo\MilkdownEditorBundle\Twig\MilkdownViewTwig;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Asset\Packages;
@@ -213,6 +216,46 @@ final class BundleTest extends TestCase
         self::assertStringNotContainsString('nonce', $twig->createTemplate('{{ nowo_milkdown_editor_assets() }}')->render());
         self::assertTrue($twig->getLoader()->exists('@NowoMilkdownEditorBundle/Form/milkdown_editor_theme.html.twig'));
         self::assertTrue($twig->getLoader()->exists('@NowoMilkdownEditorBundle/.keep.html.twig'));
+    }
+
+    #[Test]
+    public function itRendersReadOnlyViewsAndDiffs(): void
+    {
+        $container = $this->container(['markdown' => ['heading_ids' => true]]);
+        $twig      = $this->service($container, 'twig', Environment::class);
+        $html      = $twig->createTemplate("{{ nowo_milkdown_view(md, {features: ['comments'], comments: {url: '/c', can_create: true}}) }}{{ nowo_milkdown_view(null) }}")->render(['md' => '# Hi']);
+        self::assertSame(2, preg_match_all('/data-nowo-milkdown-options="([^"]+)"/', $html, $m));
+        self::assertSame(1, preg_match('/name="nowo_milkdown_view_[0-9a-f]{8}"/', $html));
+        self::assertStringContainsString('disabled="disabled"', $html);
+        /** @var array{readonly: bool, comments: array{url: string, panel: string}, messages: array<string, string>} $options */
+        $options = json_decode(html_entity_decode($m[1][0], ENT_QUOTES | ENT_HTML5), true, 512, JSON_THROW_ON_ERROR);
+        self::assertTrue($options['readonly']);
+        self::assertSame(['url' => '/c', 'csrfToken' => null, 'canCreate' => true, 'panel' => 'margin', 'container' => null, 'topic' => null], $options['comments']);
+        self::assertSame('Comment', $options['messages']['comments.action']);
+
+        $diff = $twig->createTemplate('{{ nowo_milkdown_diff(a, b) }}')->render(['a' => "# Hi\n\nold", 'b' => "# Hi\n\nnew"]);
+        self::assertStringContainsString('<h1 id="nowo-h-hi">Hi</h1>', $diff);
+        self::assertStringContainsString('data-change="changed"', $diff);
+        self::assertSame('1 changes', $this->service($container, MarkdownDiffRendererInterface::class, MarkdownDiffRendererInterface::class)->render('a', 'b')->changes . ' changes');
+        self::assertStringContainsString('<h1 id="nowo-h-hi">', $twig->createTemplate('{{ md|milkdown_markdown }}')->render(['md' => '# Hi']));
+    }
+
+    /** Audit DW-M1: the diff service honours the configured markdown.max_input_length. */
+    #[Test]
+    public function theDiffServiceUsesTheConfiguredMaxInputLength(): void
+    {
+        $container = $this->container(['markdown' => ['max_input_length' => 64]]);
+        $diff      = $this->service($container, MarkdownDiffRendererInterface::class, MarkdownDiffRendererInterface::class);
+        self::assertFalse($diff->render('short', 'shorter')->fallback);
+        self::assertTrue($diff->render(str_repeat('word ', 20), 'x')->fallback);
+    }
+
+    #[Test]
+    public function theViewFunctionNeedsForms(): void
+    {
+        $diff = $this->createStub(MarkdownDiffRendererInterface::class);
+        $this->expectException(LogicException::class);
+        (new MilkdownViewTwig($diff))->view($this->createStub(Environment::class), 'x');
     }
 
     #[Test]

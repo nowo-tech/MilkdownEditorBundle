@@ -22,7 +22,10 @@ export type Feature =
   | 'block_drag'
   | 'colors'
   | 'markdown_clipboard'
-  | 'insert_menu';
+  | 'insert_menu'
+  | 'comments'
+  | 'version_view'
+  | 'heading_ids';
 
 export const FEATURES: readonly Feature[] = [
   'toolbar',
@@ -41,6 +44,9 @@ export const FEATURES: readonly Feature[] = [
   'colors',
   'markdown_clipboard',
   'insert_menu',
+  'comments',
+  'version_view',
+  'heading_ids',
 ];
 
 /** Suggestion triggers of the FR-075 dialect: `@` mentions, `[[` page links, `:` icons and emoji. */
@@ -77,6 +83,23 @@ export type CollaborationOptions = {
 
 export type Theme = 'light' | 'dark' | 'auto';
 
+/** `version_view` banner (1.6): label text, and whether *Restore* / *Copy to new page* exist. */
+export type VersionOptions = { label: string; restore: boolean; copy: boolean };
+
+/** `comments` options (1.6, contract section 1). */
+export type CommentsOptions = {
+  /** Base of the host endpoints of the thread component; null: hooks only. */
+  url: string | null;
+  csrfToken: string | null;
+  canCreate: boolean;
+  /** `container` (1.6, drawer): the component renders into `container` (or `comments.mount(el)`), with no chrome of its own. */
+  panel: 'margin' | 'sidebar' | 'container' | 'none';
+  /** CSS selector of the host container for `panel: 'container'`. */
+  container: string | null;
+  /** Private Mercure topic with thread ids (live updates), or null. */
+  topic: string | null;
+};
+
 /** Translated UI strings; every key has an English default in {@link DEFAULT_MESSAGES}. */
 export type Messages = Record<string, string>;
 
@@ -100,6 +123,10 @@ export type EditorOptions = {
   mentionDisplay: 'handle' | 'name';
   /** `GET url?handles=a,b` → `[{handle, name}]` for `mentionDisplay: 'name'` (1.2.1). */
   userTitleUrl: string | null;
+  /** `comments` options (1.6); null when the feature is off. */
+  comments: CommentsOptions | null;
+  /** `version_view` banner (1.6); null when the feature is off. */
+  version: VersionOptions | null;
   nonce: string;
   messages: Messages;
 };

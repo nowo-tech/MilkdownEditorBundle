@@ -18,7 +18,11 @@ describe('i18n', () => {
   });
 
   it('has exactly the keys of the PHP catalogue', () => {
-    const yaml = readFileSync(resolve(process.cwd(), 'src/Resources/translations/NowoMilkdownEditorBundle.en.yaml'), 'utf8');
+    // `diff.*` labels are rendered by the PHP diff only (1.6).
+    const yaml = readFileSync(resolve(process.cwd(), 'src/Resources/translations/NowoMilkdownEditorBundle.en.yaml'), 'utf8')
+      .split('\n')
+      .filter((l) => !l.startsWith('diff.'))
+      .join('\n');
     const keys = yaml.split('\n').filter((l) => /^[a-z]/.test(l)).map((l) => l.slice(0, l.indexOf(':')));
     expect(Object.keys(DEFAULT_MESSAGES).sort()).toEqual(keys.sort());
     for (const line of yaml.split('\n').filter((l) => /^[a-z]/.test(l))) {

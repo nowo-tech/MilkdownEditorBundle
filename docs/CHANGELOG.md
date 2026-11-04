@@ -19,6 +19,54 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+Comments, version view, rendered diff and heading ids (all opt-in).
+
+### Added
+
+- **Inline comments** (`comments`, opt-in; host contract v1.2 with WikiBundle 1.16):
+  - comment on a selection from the toolbar, the context menu or **Ctrl / ⌘ + Alt + M**
+    (`nowo-milkdown:comment-create`, cancelable, with a v1 anchor: text quote, offsets, block hint and Yjs relative
+    positions while co-editing);
+  - highlights as decorations (never in the Markdown), resolved threads hidden until shown, orphan detection
+    (`comment-orphaned`), anchor refresh (`comment-anchors-changed`), next / previous comment
+    (**Ctrl / ⌘ + Alt + PageDown / PageUp**, announced), **Enter** opens, **Escape** leaves;
+  - `handle.comments` API (`set`, `upsert`, `remove`, `status`, `selectionAnchor`, `start`, `focus`, `next`,
+    `previous`, `showResolved`, `snapshot`, `refresh`, `open`);
+  - drawer integration (`panel: container` + `container` or `comments.mount()`, `comments-open-requested`,
+    `comments.reveal()` with a flash, `comments.count()` / `comments-count` for a tab badge; no chrome, layout or
+    Escape handling of its own);
+  - an optional, accessible thread component (`comments.url`, `panel: margin | sidebar | container`): replies, reactions,
+    resolve / reopen, edit / delete own, *Show resolved*, page-level comments, live updates by thread id over Mercure;
+  - comment avatars (`author.avatarUrl`, `resolvedBy.avatarUrl`; avatar contract v1.1): only `https://` without
+    userinfo or a same-origin `/` path (no `http:`, `data:`, `blob:`, `//`, backslashes, controls, over 2048 bytes),
+    a lazy `<img alt="" referrerpolicy="same-origin">` over the initial in `.nowo-milkdown-avatar`, falling back to
+    the initial on error (failed URLs are not requested again on that page);
+  - `Nowo\MilkdownEditorBundle\Comment\CommentAnchor` to validate anchors on the host (shared test vectors with the
+    editor).
+- **`version_view`** (opt-in): a read-only view of an old version with a banner; *Restore* / *Copy to a new page*
+  emit events, `version.restore: false` / `version.copy: false` remove them.
+- **`nowo_milkdown_view(markdown, options)`**: the editor widget, read-only, outside a form (comment-only readers,
+  versions).
+- **Rendered diff:** `nowo_milkdown_diff(old, new)` and the public `MarkdownDiffRendererInterface` service
+  (`MarkdownDiff {html, changes, fallback}`): block LCS, word-level changes, stable documented markup, visually
+  hidden *Inserted / Deleted* labels, an escaped line-diff fallback for large or very different versions.
+- **Heading ids** (`heading_ids` feature, `markdown.heading_ids` renderer option): `nowo-h-<slug>`, the same slugs in
+  the editor and in PHP.
+
+### Changed
+
+- Editor heading ids are always prefixed `nowo-h-` (Milkdown used the bare heading text), so a heading can no longer
+  take over a host element id such as a comments drawer (1.6.0 audit DW-M2).
+
+### Security
+
+- 1.6.0 audit (Appendix DW), fixed before release: the rendered diff has a work budget for the whole render (DW-M1);
+  `comments.container` and `comments.mount()` never use an element inside an editor, read view or contenteditable
+  region (DW-M2); the quote search finds blocks by binary search (DW-L1); the PHP `CommentAnchor` rejects a Yjs
+  position with a trailing line feed, as the editor does (DW-L2); `open(id)` and `refresh(ids)` accept host ids only,
+  many live ids in one window refetch the list once, and the `handle.comments` API is a no-op after `destroy()`
+  (DW-I3–I5). Avatar URLs also reject quotes, `<`, `>`, backticks, IPv6 literals and invalid ports (UiKit audit DZ).
+
 ## [1.5.1] - 2026-11-04
 
 Collaboration request rate (patch).

@@ -29,6 +29,12 @@ enum Feature: string
     case MarkdownClipboard = 'markdown_clipboard';
     /** 1.5: the Insert group of the context menu (needs `context_menu`). */
     case InsertMenu = 'insert_menu';
+    /** 1.6: inline comment anchors, highlights, events and the optional thread component. */
+    case Comments = 'comments';
+    /** 1.6: read-only view of an old version with a banner (never with `comments`). */
+    case VersionView = 'version_view';
+    /** 1.6: prefixed heading ids (`nowo-h-<slug>`), the same slugs as `markdown.heading_ids`. */
+    case HeadingIds = 'heading_ids';
 
     /**
      * Features enabled when a profile does not list its own.

@@ -144,6 +144,11 @@ export class ContextMenuView {
       );
     }
 
+    // 1.6 `comments`: also in read-only mounts (commenters without the edit right).
+    if (runtime.comment && !empty) {
+      const comment = runtime.comment;
+      clip.push({ id: 'comment', label: t(runtime, 'comments.action'), shortcut: 'Control+Alt+M', run: () => comment() });
+    }
     const groups: MenuGroups = [clip];
     // 1.5 `insert_menu`: file, icon and the `/` blocks, each at a new block after the current one.
     if (editable && runtime.insert.length) {
