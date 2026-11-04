@@ -136,7 +136,8 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
   through `safeUrl()`, `nowo-md-*` classes, `title`, `datetime`, `lang`); scripts, styles, SVG, iframes and event
   handlers are dropped, other elements become their text, and links get `rel="noopener noreferrer nofollow"`. Names
   are text, colours `#rrggbb`, avatars through `safeAvatarUrl()` (only `https://` without userinfo or a same-origin `/`
-  path; `http:`, `data:` of any kind, `blob:`, `//`, backslashes, controls and URLs over 2048 bytes are dropped; the
+  path; `http:`, `data:` of any kind, `blob:`, `//`, backslashes, quotes, `<`, `>`, backticks, controls (a trailing line
+  feed included), IPv6 literals, invalid ports and URLs over 2048 UTF-8 bytes are dropped; the
   `<img>` has `alt=""`, `referrerpolicy="same-origin"`, no `crossorigin`, and falls back to the initial on error; the
   host's `img-src` applies), reactions short non-ASCII
   strings. Buttons follow the host's `can` flags, which the host re-checks on every write. Live updates carry ids
@@ -145,9 +146,16 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
   and *Copy* only emit events. `nowo_milkdown_diff()` renders both versions with the normal renderer (per-viewer
   resolvers, no cache across calls); deleted words are copied from the renderer's escaped output into `<del>`, and
   tags come from the new version only, so the markup stays well-formed; inputs over `max_input_length`, more than
-  2000 blocks or 500 changed blocks fall back to an escaped line diff, and LCS tables are capped at 10⁶ cells.
-- **Heading ids (1.6).** Opt-in ids are prefixed `nowo-h-` (no DOM clobbering of host ids or globals). Note that
-  Milkdown itself gives editor headings unprefixed ids (pre-existing; the editor DOM only).
+  2000 blocks or 500 changed blocks fall back to an escaped line diff, LCS tables are capped at 10⁶ cells, and one
+  render has a total budget of 10⁶ word-level cells (about 0.3 s): once spent, the remaining changed blocks are shown
+  whole as removed + added, so revisions written to be expensive cannot hold a PHP worker for long.
+- **Heading ids (1.6).** Every editor heading id is prefixed `nowo-h-` (before 1.6 Milkdown used the bare heading
+  text, which a heading could use to take over a host element id); the read-side ids (`markdown.heading_ids`) are
+  prefixed too, so headings never clobber host ids or globals. Ids are unique per document only: two editors on one
+  page, or both sides of a diff, can repeat one.
+- **Comment panel container (1.6).** `comments.container` resolves to the first match **outside** any editor, read
+  view (`.nowo-md`) or contenteditable region, and `comments.mount()` refuses such elements, so page content can
+  neither receive the panel nor get its text saved into the Markdown.
 
 ## Content Security Policy
 

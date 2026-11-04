@@ -406,8 +406,11 @@ $builder->add('body', MilkdownEditorType::class, [
   `resolvedBy.avatarUrl`) must be `https://` URLs without userinfo or same-origin paths starting with one `/`; anything
   else shows the initial. The picture (`.nowo-milkdown-avatar__image`, lazy, `referrerpolicy="same-origin"`) lies over
   the initial (`.nowo-milkdown-avatar`) and is removed if it fails to load. Serve inline images from your own URL
-  (no `data:`), and list the origins your avatar URLs redirect to in `img-src`.
+  (no `data:`), and list the origins your avatar URLs redirect to in `img-src`. Never pass a user-entered URL: every
+  viewer's browser fetches it.
 - **In a host drawer** (`panel: 'container'`, `container: '#wiki-comments'`, or `handle.comments.mount(el)` later): the
+  selector takes the first match outside any editor, read view or contenteditable region (a heading or user content
+  with the same id is skipped; `mount()` returns false for such an element and after `destroy()`), and the
   threads render into your element with no landmark, heading, layout or Escape handling of their own. Listen to
   `nowo-milkdown:comments-open-requested` (`{id}`, `null` for a new comment) to open the drawer before the thread is
   focused, and to `nowo-milkdown:comments-count` (`{open, resolved, orphaned, page, total}`, also
@@ -459,7 +462,9 @@ text in the diff, and heading ids are only unique per block.
 `markdown.heading_ids: true` (renderer) and the `heading_ids` feature (editor) give headings the same ids:
 `nowo-h-` + a slug (lower case, runs of anything but letters, marks and digits become `-`, at most 80 characters,
 `section` when empty; repeats get `-2`, `-3`, …). The prefix keeps a heading from clobbering a host element id or a
-global. Only text and inline code count (mentions, page links, icons and raw HTML do not).
+global. Only text and inline code count (mentions, page links, icons and raw HTML do not). Since 1.6 the editor
+prefixes its heading ids even without the feature (Milkdown's default was the bare text; repeats then get `-#2`).
+Ids are unique per document: two editors on one page, or both sides of a diff, can repeat an id.
 
 ## Keyboard and accessibility
 

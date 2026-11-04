@@ -18,7 +18,8 @@ const failed = new Set<string>();
 /**
  * Avatar URL policy. Accepts only `https://` URLs with a host and without userinfo, or a same-origin path starting
  * with exactly one `/`. Rejects every other scheme (`http:`, `javascript:`, `data:` including images, `blob:`, …),
- * protocol-relative `//` URLs, relative paths, backslashes, ASCII controls and spaces, and more than 2048 bytes.
+ * protocol-relative `//` URLs, relative paths, backslashes, quotes, `<`, `>`, backticks, ASCII controls and spaces
+ * (a trailing line feed included), IPv6 literals, invalid ports, and more than 2048 UTF-8 bytes.
  * `safeUrl()` stays the policy for links.
  *
  * @param input - Untrusted value from a host answer
@@ -27,12 +28,14 @@ const failed = new Set<string>();
 export function safeAvatarUrl(input: unknown): string | null {
   if (typeof input !== 'string' || input === '') return null;
   if (new TextEncoder().encode(input).length > MAX_AVATAR_URL_BYTES) return null;
+  // Controls, spaces, backslashes, quotes, angle brackets and backticks (a valid URL has them percent-encoded).
   // eslint-disable-next-line no-control-regex -- controls and spaces are exactly what is rejected here
-  if (/[\x00-\x20\x7f\\]/.test(input)) return null;
+  if (/[\x00-\x20\x7f\\"'<>`]/.test(input)) return null;
   if (input.startsWith('/')) return input.startsWith('//') ? null : input;
-  // A non-empty authority without userinfo, read from the raw string (the URL parser would repair `https:///x`).
+  // A non-empty authority without userinfo, read from the raw string (the URL parser would repair `https:///x`):
+  // a host name or IPv4 address (no IPv6 literal) and an optional port of 1–5 digits.
   const authority = /^https:\/\/([^/?#]+)/i.exec(input)?.[1];
-  if (!authority || authority.includes('@')) return null;
+  if (!authority || !/^[^@[\]:]+(?::\d{1,5})?$/.test(authority)) return null;
   let url: URL;
   try {
     url = new URL(input);

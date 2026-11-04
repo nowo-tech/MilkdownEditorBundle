@@ -14,6 +14,8 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+use function strlen;
+
 final class MarkdownDiffRendererTest extends TestCase
 {
     private function renderer(): MarkdownRendererInterface
@@ -114,6 +116,40 @@ final class MarkdownDiffRendererTest extends TestCase
         self::assertStringContainsString('data-change="removed"', $diff->html);
         self::assertStringContainsString('data-change="added"', $diff->html);
         self::assertStringNotContainsString('data-change="changed"', $diff->html);
+    }
+
+    /** Audit DW-M1 PoC: ~100 paragraphs of ~1 000 tokens whose words all differ, inside max_input_length. */
+    #[Test]
+    public function oneRenderHasAWorkBudgetAcrossAllChangedBlocks(): void
+    {
+        $doc = static fn (string $word): string => implode("\n\n", array_map(static fn (int $b): string => 'p' . $b . ' ' . implode(' ', array_fill(0, 495, $word)), range(0, 96))) . "\n";
+        $old = $doc('a');
+        $new = $doc('b');
+        self::assertLessThan(MilkdownMarkdownRenderer::DEFAULT_MAX_INPUT_LENGTH, strlen($new));
+        $start = microtime(true);
+        $diff  = (new MarkdownDiffRenderer($this->renderer()))->render($old, $new);
+        self::assertLessThan(1.0, microtime(true) - $start);
+        self::assertFalse($diff->fallback);
+        self::assertSame(97, $diff->changes);
+        // The first pair fits the budget (word level); the rest are shown whole as removed + added.
+        self::assertSame(1, substr_count($diff->html, 'data-change="changed"'));
+        self::assertSame(96, substr_count($diff->html, 'data-change="removed"'));
+        self::assertSame(96, substr_count($diff->html, 'data-change="added"'));
+        self::assertStringContainsString('p96 b b', $diff->html);
+
+        // Ordinary edits (one word per paragraph) keep the word-level view for every block.
+        $edited = (string) preg_replace('/^(p\d+) a/m', '$1 z', $old);
+        $normal = (new MarkdownDiffRenderer($this->renderer()))->render($old, $edited);
+        self::assertSame(97, substr_count($normal->html, 'data-change="changed"'));
+    }
+
+    #[Test]
+    public function cellsCountsTheTableWithoutPrefixAndSuffix(): void
+    {
+        self::assertSame(2, MarkdownDiffRenderer::cells(['a', 'x', 'y', 'b'], ['a', 'z', 'b']));
+        self::assertSame(0, MarkdownDiffRenderer::cells(['a'], ['a']));
+        $big = array_map(static fn (int $i): string => 'x' . $i, range(1, 1001));
+        self::assertSame(0, MarkdownDiffRenderer::cells($big, array_map(static fn (string $t): string => $t . 'y', $big)));
     }
 
     #[Test]

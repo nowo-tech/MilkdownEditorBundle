@@ -39,7 +39,7 @@ final readonly class CommentAnchor
     public const MAX_BLOCK_INDEX = 100_000;
     public const MAX_HEADING     = 200;
     public const MAX_BYTES       = 16384;
-    private const BASE64         = '/^[A-Za-z0-9+\/]{4,512}={0,2}$/';
+    private const BASE64         = '/^[A-Za-z0-9+\/]{4,512}={0,2}\z/'; // \z: no trailing newline (audit DW-L2)
 
     /**
      * @param string $exact Quoted text (canonical text, not Markdown)

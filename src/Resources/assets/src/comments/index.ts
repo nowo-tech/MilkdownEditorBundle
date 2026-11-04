@@ -47,7 +47,10 @@ export type CommentsApi = {
   reveal: (id: string) => boolean;
   /** Thread counts for a tab badge (also sent as `nowo-milkdown:comments-count`). */
   count: () => CommentCounts;
-  /** Moves the thread component into a host container (`panel: 'container'`); false without a component. */
+  /**
+   * Moves the thread component into a host container (`panel: 'container'`); false without a component, after
+   * destroy, or when the element is inside an editor, a read view or contenteditable.
+   */
   mount: (container: HTMLElement) => boolean;
 };
 
@@ -56,7 +59,8 @@ export type ThreadUi = {
   create: (detail: { anchor: CommentAnchor; text: string }) => void;
   open: (id: string) => void;
   refresh: (ids?: string[]) => Promise<void>;
-  mount: (container: HTMLElement) => void;
+  /** False when the element is inside an editor, a read view or contenteditable (it would be saved), or after destroy. */
+  mount: (container: HTMLElement) => boolean;
 };
 
 /**
@@ -98,25 +102,27 @@ export function useComments(editor: Editor, host: CommentsHost, ui: () => Thread
 }
 
 /**
- * The `handle.comments` API of a created editor.
+ * The `handle.comments` API of a created editor. After the editor is destroyed every call is a no-op that returns an
+ * empty value (`unknown`, `false`, `null`, zero counts) instead of throwing (audit DW-I5).
  *
  * @param editor - The created editor
  * @param host - Root, announcer, Yjs adapter and permissions
  * @param ui - The thread component hooks
+ * @param alive - False once the editor is destroyed
  * @returns The API
  */
-export function commentsApi(editor: Editor, host: CommentsHost, ui: () => ThreadUi | null): CommentsApi {
-  const withView = <T>(run: (view: EditorView) => T): T => editor.action((ctx) => run(ctx.get(editorViewCtx)));
+export function commentsApi(editor: Editor, host: CommentsHost, ui: () => ThreadUi | null, alive: () => boolean = () => true): CommentsApi {
+  const withView = <T>(fallback: T, run: (view: EditorView) => T): T => (alive() ? editor.action((ctx) => run(ctx.get(editorViewCtx))) : fallback);
   const threads = (view: EditorView): Map<string, ThreadRef> => commentsKey.getState(view.state)?.threads ?? new Map();
   return {
     // Threads are resolved at once, so `status()` and a panel rendered right after `set()` see their ranges.
     set: (list) =>
-      withView((view) => {
+      withView(undefined, (view) => {
         setMeta(view, { threads: parseThreads(list) });
         commentsView(view)?.resolveNow();
       }),
     upsert: (thread) =>
-      withView((view) => {
+      withView(undefined, (view) => {
         const valid = parseThread(thread);
         if (!valid) return;
         const next = new Map(threads(view));
@@ -125,24 +131,24 @@ export function commentsApi(editor: Editor, host: CommentsHost, ui: () => Thread
         commentsView(view)?.resolveNow();
       }),
     remove: (id) =>
-      withView((view) => {
+      withView(undefined, (view) => {
         const next = new Map(threads(view));
         if (next.delete(id)) setMeta(view, { threads: next });
       }),
-    status: (id) => withView((view) => commentsView(view)?.status(id) ?? 'unknown'),
+    status: (id) => withView<ThreadStatus>('unknown', (view) => commentsView(view)?.status(id) ?? 'unknown'),
     selectionAnchor: () =>
-      withView((view) => (host.canCreate ? rangeAnchor(view.state, view.state.selection.from, view.state.selection.to, host.yjs()) : null)),
+      withView<CommentAnchor | null>(null, (view) => (host.canCreate ? rangeAnchor(view.state, view.state.selection.from, view.state.selection.to, host.yjs()) : null)),
     start: () =>
-      withView((view) => {
+      withView(undefined, (view) => {
         const started = startComment(view, host);
         if (started && !started.cancelled) ui()?.create(started);
       }),
-    focus: (id) => withView((view) => focusThread(view, host, id)),
-    next: () => withView((view) => step(view, host, 1)),
-    previous: () => withView((view) => step(view, host, -1)),
-    showResolved: (on) => withView((view) => setMeta(view, { showResolved: on })),
+    focus: (id) => withView(false, (view) => focusThread(view, host, id)),
+    next: () => withView(false, (view) => step(view, host, 1)),
+    previous: () => withView(false, (view) => step(view, host, -1)),
+    showResolved: (on) => withView(undefined, (view) => setMeta(view, { showResolved: on })),
     snapshot: () =>
-      withView((view) => {
+      withView<{ id: string; anchor: CommentAnchor }[]>([], (view) => {
         const canonical = new CanonicalText(view.state.doc);
         const yjs = host.yjs();
         return ordered(view.state).flatMap(({ id, range }) => {
@@ -151,16 +157,16 @@ export function commentsApi(editor: Editor, host: CommentsHost, ui: () => Thread
         });
       }),
     refresh: async (ids) => {
-      await ui()?.refresh(ids);
+      if (alive()) await ui()?.refresh(ids);
     },
-    open: (id) => ui()?.open(id),
-    reveal: (id) => withView((view) => revealThread(view, id)),
-    count: () => withView((view) => counts(view.state)),
+    open: (id) => {
+      if (alive()) ui()?.open(id);
+    },
+    reveal: (id) => withView(false, (view) => revealThread(view, id)),
+    count: () => withView<CommentCounts>({ open: 0, resolved: 0, orphaned: 0, page: 0, total: 0 }, (view) => counts(view.state)),
     mount: (container) => {
-      const component = ui();
-      if (!component) return false;
-      component.mount(container);
-      return true;
+      const component = alive() ? ui() : null;
+      return component ? component.mount(container) : false;
     },
   };
 }

@@ -584,6 +584,29 @@
     "v",
     1
    ]
+  },
+  {
+   "name": "yjs with a trailing newline (audit DW-L2)",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": {
+     "start": "AAAA\n",
+     "end": "AAAA"
+    }
+   }
   }
  ]
 }

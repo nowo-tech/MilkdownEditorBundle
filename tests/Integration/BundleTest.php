@@ -240,6 +240,16 @@ final class BundleTest extends TestCase
         self::assertStringContainsString('<h1 id="nowo-h-hi">', $twig->createTemplate('{{ md|milkdown_markdown }}')->render(['md' => '# Hi']));
     }
 
+    /** Audit DW-M1: the diff service honours the configured markdown.max_input_length. */
+    #[Test]
+    public function theDiffServiceUsesTheConfiguredMaxInputLength(): void
+    {
+        $container = $this->container(['markdown' => ['max_input_length' => 64]]);
+        $diff      = $this->service($container, MarkdownDiffRendererInterface::class, MarkdownDiffRendererInterface::class);
+        self::assertFalse($diff->render('short', 'shorter')->fallback);
+        self::assertTrue($diff->render(str_repeat('word ', 20), 'x')->fallback);
+    }
+
     #[Test]
     public function theViewFunctionNeedsForms(): void
     {

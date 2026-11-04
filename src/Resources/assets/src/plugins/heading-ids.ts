@@ -6,38 +6,9 @@
 import { Plugin, PluginKey, type EditorState } from '@milkdown/kit/prose/state';
 import { Decoration, DecorationSet } from '@milkdown/kit/prose/view';
 import { $prose } from '@milkdown/kit/utils';
+import { HEADING_PREFIX, slugs } from './heading-slug';
 
-export const HEADING_PREFIX = 'nowo-h-';
-export const MAX_SLUG = 80;
-
-/**
- * The slug of a heading text (contract section 13).
- *
- * @param text - The heading's text
- * @returns The slug (`section` when nothing is left)
- */
-export function slug(text: string): string {
-  const base = text.toLowerCase().replace(/[^\p{L}\p{M}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '');
-  const cut = [...base].slice(0, MAX_SLUG).join('').replace(/^-+|-+$/g, '');
-  return cut === '' ? 'section' : cut;
-}
-
-/**
- * Unique slugs in document order (`-2`, `-3`, … for duplicates).
- *
- * @param texts - Heading texts
- * @returns The slugs
- */
-export function slugs(texts: string[]): string[] {
-  const used = new Set<string>();
-  return texts.map((text) => {
-    const base = slug(text);
-    let candidate = base;
-    for (let n = 2; used.has(candidate); n++) candidate = `${base}-${n}`;
-    used.add(candidate);
-    return candidate;
-  });
-}
+export { HEADING_PREFIX, MAX_SLUG, slug, slugs } from './heading-slug';
 
 /**
  * Heading ids of a document, by position.

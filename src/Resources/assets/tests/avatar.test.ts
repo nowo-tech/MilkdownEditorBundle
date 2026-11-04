@@ -11,6 +11,10 @@ const ACCEPTED: [string, string][] = [
   ['root path', '/'],
   ['path with a query', '/files/a?v=2'],
   ['exactly 2048 bytes', `/${'a'.repeat(MAX_AVATAR_URL_BYTES - 1)}`],
+  ['exactly 2048 bytes with two-byte characters', `/${'é'.repeat(1023)}a`],
+  ['IPv4 host', 'https://192.0.2.1/a.png'],
+  ['five-digit port', 'https://cdn.example.com:65535/a.png'],
+  ['percent-encoded quote', '/files/a%22b.png'],
 ];
 
 const REJECTED: [string, unknown][] = [
@@ -52,6 +56,23 @@ const REJECTED: [string, unknown][] = [
   ['null', null],
   ['number', 42],
   ['object', { href: '/a.png' }],
+  // UiKit audit DZ-L1 / DZ-L2 / DZ-I1: the shared provider.
+  ['trailing line feed (path)', '/files/a/s64\n'],
+  ['trailing line feed (https)', 'https://cdn.example/a\n'],
+  ['2048 bytes plus a line feed', `/${'a'.repeat(MAX_AVATAR_URL_BYTES - 1)}\n`],
+  ['CRLF', '/a\r\n'],
+  ['double quote', '/a"/onerror="alert(1)'],
+  ['single quote', "/a'b"],
+  ['less-than', '/a<b'],
+  ['greater-than', '/a>b'],
+  ['backtick', '/a`b'],
+  ['IPv6 literal', 'https://[::1]/a.png'],
+  ['IPv6 literal with port', 'https://[2001:db8::1]:8443/a.png'],
+  ['non-numeric port', 'https://h:abc/a.png'],
+  ['empty port', 'https://h:/a.png'],
+  ['six-digit port', 'https://h:443443/a.png'],
+  ['port out of range', 'https://h:99999/a.png'],
+  ['userinfo with port', 'https://a:443@evil.example/a.png'],
 ];
 
 describe('safeAvatarUrl (avatar contract §3.1)', () => {

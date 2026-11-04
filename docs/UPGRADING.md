@@ -31,7 +31,7 @@ interfaces and `window.NowoMilkdownEditor`.
 
 - **New opt-in features:** `comments`, `version_view` (never together with `comments`) and `heading_ids`; new form
   options `comments` and `version`; new renderer option `markdown.heading_ids` (default `false`). Fields and pages
-  without them keep the same widget JSON, DOM and HTML.
+  without them keep the same widget JSON, DOM and HTML, except editor heading ids (below).
 - **New Twig functions** `nowo_milkdown_view()` (needs symfony/form enabled) and `nowo_milkdown_diff()`, and the
   public services `MarkdownDiffRendererInterface` and `CommentAnchor` (a value class).
 - With `comments`, **Ctrl / ⌘ + Alt + M** and **Ctrl / ⌘ + Alt + PageDown / PageUp** are taken in the editor.
@@ -46,6 +46,9 @@ interfaces and `window.NowoMilkdownEditor`.
   Escape, open / close and focus restoration belong to the host.
 - Comment avatars (`author.avatarUrl`, `resolvedBy.avatarUrl`) accept only `https://` URLs without userinfo or
   same-origin paths starting with one `/`; `http:` and `data:` avatars show the initial.
+- Editor heading ids are now always `nowo-h-<slug>` (Milkdown used the bare heading text): update scripts or CSS
+  that targeted an editor heading by its old id. Do not give a comments container an id a heading could produce
+  either way.
 - Read-side heading ids are off by default; with `markdown.heading_ids: true` headings get `id="nowo-h-<slug>"`
   (sanitiser allow-lists that strip `id` must allow that prefix).
 

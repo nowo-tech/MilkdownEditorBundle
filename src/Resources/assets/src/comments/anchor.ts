@@ -143,10 +143,18 @@ export class CanonicalText {
     return this.text.length;
   }
 
-  /** Index of the top-level block holding a canonical offset. */
+  /** Index of the top-level block holding a canonical offset (binary search: blocks are in offset order). */
   blockAt(offset: number): number {
+    let lo = 0;
+    let hi = this.blocks.length - 1;
     let index = 0;
-    for (let i = 0; i < this.blocks.length; i++) if (this.blocks[i]!.offset <= offset) index = i;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (this.blocks[mid]!.offset <= offset) {
+        index = mid;
+        lo = mid + 1;
+      } else hi = mid - 1;
+    }
     return index;
   }
 }
@@ -204,14 +212,17 @@ export const MAX_MATCHES = 1000;
 export function findQuote(canonical: CanonicalText, anchor: CommentAnchor): { start: number; end: number } | null {
   const { text } = canonical;
   const { exact, prefix, suffix } = anchor.quote;
-  let best: { start: number; score: number; distance: number; block: boolean } | null = null;
+  let best: { start: number; score: number; distance: number; block: boolean | null } | null = null;
   let at = text.indexOf(exact);
   for (let n = 0; at !== -1 && n < MAX_MATCHES; n++) {
     const score = commonSuffix(text.slice(Math.max(0, at - prefix.length), at), prefix) + commonPrefix(text.slice(at + exact.length, at + exact.length + suffix.length), suffix);
     const distance = Math.abs(at - anchor.position.start);
-    const block = canonical.blockAt(at) === anchor.block.index;
-    if (!best || score > best.score || (score === best.score && (distance < best.distance || (distance === best.distance && block && !best.block)))) {
-      best = { start: at, score, distance, block };
+    // The block only breaks exact ties, so it is looked up only then (audit DW-L1).
+    if (!best || score > best.score || (score === best.score && distance < best.distance)) {
+      best = { start: at, score, distance, block: null };
+    } else if (score === best.score && distance === best.distance) {
+      best.block ??= canonical.blockAt(best.start) === anchor.block.index;
+      if (!best.block && canonical.blockAt(at) === anchor.block.index) best = { start: at, score, distance, block: true };
     }
     at = text.indexOf(exact, at + 1);
   }

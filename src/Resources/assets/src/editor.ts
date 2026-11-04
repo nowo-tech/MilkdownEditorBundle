@@ -9,6 +9,7 @@
  */
 import { CrepeBuilder } from '@milkdown/crepe/builder';
 import { editorViewCtx, editorViewOptionsCtx } from '@milkdown/kit/core';
+import { headingIdGenerator } from '@milkdown/kit/preset/commonmark';
 import { uploadConfig } from '@milkdown/kit/plugin/upload';
 import { replaceAll } from '@milkdown/kit/utils';
 import type { Schema } from '@milkdown/kit/prose/model';
@@ -27,6 +28,7 @@ import { defaultRuntime, runtimeCtx, t, type Runtime } from './runtime';
 import { buildTriggers, slashItems } from './triggers';
 import { insertItems, type InsertItem } from './commands/insert';
 import { createUploader } from './upload';
+import { HEADING_PREFIX, slug } from './plugins/heading-slug';
 import type { EditorOptions } from './types';
 import type { MercureProvider } from './collab/mercure-provider';
 import type { CommentsApi, CommentsHost, ThreadUi, YjsAnchors } from './comments/index';
@@ -177,6 +179,9 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   editor
     .config((ctx) => {
       ctx.set(runtimeCtx.key, runtime);
+      // Editor heading ids are always prefixed (`nowo-h-<slug>`): Milkdown's default id is the bare heading text, which
+      // a heading could use to take over a host element id, e.g. the comments drawer (audit DW-M2).
+      ctx.set(headingIdGenerator.key, (node) => HEADING_PREFIX + slug(node.textContent));
       ctx.update(editorViewOptionsCtx, (prev) => ({
         ...prev,
         attributes: { ...editableAttributes(options.label || t(runtime, 'editor.label'), label?.id ?? null, options.readonly), id: `nowo-milkdown-${++sequence}` },
@@ -335,7 +340,8 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     };
   }
 
-  const comments = commentsModule && commentsHost ? commentsModule.commentsApi(editor, commentsHost, () => threadUi) : undefined;
+  let destroyed = false;
+  const comments = commentsModule && commentsHost ? commentsModule.commentsApi(editor, commentsHost, () => threadUi, () => !destroyed) : undefined;
   if (comments && commentsHost?.canCreate) runtime.comment = comments.start;
   // 1.6: the optional thread component (its own chunk), only with host endpoints and a panel.
   let stopThreads = (): void => undefined;
@@ -368,6 +374,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     setMarkdown: (markdown: string) => editor.action(replaceAll(normaliseNewlines(markdown))),
     focus,
     destroy: async () => {
+      destroyed = true;
       stopThreads();
       unwatch();
       stopCollaboration();

@@ -33,8 +33,9 @@ describe('heading ids (1.6, shared vectors with PHP)', () => {
     handle.setMarkdown('# Other\n');
     expect(dom().querySelector('h1')!.id).toBe('nowo-h-other');
     await handle.destroy();
-    handle = await editor('# Intro\n', { features: [] });
-    // Off: Milkdown's own (unprefixed) heading id stays as before.
-    expect(dom().querySelector('h1')!.id).not.toMatch(/^nowo-h-/);
+    handle = await editor('# Comments drawer\n\n# Comments drawer\n', { features: [] });
+    // Off: Milkdown's own heading ids, now always prefixed (audit DW-M2: a heading never takes a host id).
+    expect([...dom().querySelectorAll('h1')].map((h) => h.id)).toEqual(['nowo-h-comments-drawer', 'nowo-h-comments-drawer-#2']);
+    expect(handle.getMarkdown()).not.toContain('nowo-h-');
   });
 });

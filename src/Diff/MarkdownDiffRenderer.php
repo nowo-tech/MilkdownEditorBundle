@@ -59,6 +59,12 @@ final readonly class MarkdownDiffRenderer implements MarkdownDiffRendererInterfa
     public const MAX_TOKENS = 4000;
     /** Cells of one LCS table (memory bound); beyond it the middle part is shown as removed + added. */
     public const MAX_CELLS = 1_000_000;
+    /**
+     * Cells of all word-level LCS tables of one render (CPU bound, about 0.3 s per million cells): once spent, the
+     * remaining changed blocks are shown whole as removed + added, which costs no table (audit DW-M1). Ordinary
+     * edits use a few cells per block (common prefixes and suffixes are skipped before the table is built).
+     */
+    public const MAX_TOTAL_CELLS = 1_000_000;
 
     /**
      * @param MarkdownRendererInterface $renderer The bundle's renderer (per-viewer resolvers)
@@ -93,13 +99,14 @@ final readonly class MarkdownDiffRenderer implements MarkdownDiffRendererInterfa
             return $this->lines($old, $new);
         }
 
-        $html = '';
+        $html   = '';
+        $budget = self::MAX_TOTAL_CELLS;
         foreach ($ops as [$op, $left, $right]) {
             $html .= match ($op) {
                 '='     => $this->renderer->render($right),
                 '+'     => $this->block('added', '<ins class="nowo-md-diff-ins">' . $this->renderer->render($right) . '</ins>'),
                 '-'     => $this->block('removed', '<del class="nowo-md-diff-del">' . $this->renderer->render($left) . '</del>'),
-                default => $this->changed($left, $right),
+                default => $this->changed($left, $right, $budget),
             };
         }
 
@@ -178,19 +185,11 @@ final readonly class MarkdownDiffRenderer implements MarkdownDiffRendererInterfa
      */
     public static function lcs(array $a, array $b): array
     {
-        $n = count($a);
-        $m = count($b);
-        // Common prefix and suffix first: most edits touch a small part of a document.
-        $start = 0;
-        while ($start < $n && $start < $m && $a[$start] === $b[$start]) {
-            ++$start;
-        }
-        $end = 0;
-        while ($end < $n - $start && $end < $m - $start && $a[$n - 1 - $end] === $b[$m - 1 - $end]) {
-            ++$end;
-        }
-        $rows = $n - $start - $end;
-        $cols = $m - $start - $end;
+        $n             = count($a);
+        $m             = count($b);
+        [$start, $end] = self::common($a, $b);
+        $rows          = $n - $start - $end;
+        $cols          = $m - $start - $end;
         if ($rows * $cols > self::MAX_CELLS) {
             $ops = [];
             for ($k = 0; $k < $start; ++$k) {
@@ -234,6 +233,45 @@ final readonly class MarkdownDiffRenderer implements MarkdownDiffRendererInterfa
         }
 
         return $ops;
+    }
+
+    /**
+     * Cells of the table `lcs()` builds for these sequences (common prefix and suffix excluded; 0 above MAX_CELLS,
+     * where no table is built).
+     *
+     * @param list<string> $a Old tokens
+     * @param list<string> $b New tokens
+     */
+    public static function cells(array $a, array $b): int
+    {
+        [$start, $end] = self::common($a, $b);
+        $cells         = (count($a) - $start - $end) * (count($b) - $start - $end);
+
+        return $cells > self::MAX_CELLS ? 0 : $cells;
+    }
+
+    /**
+     * Lengths of the common prefix and suffix (most edits touch a small part of a document).
+     *
+     * @param list<string> $a Old tokens
+     * @param list<string> $b New tokens
+     *
+     * @return array{int, int}
+     */
+    private static function common(array $a, array $b): array
+    {
+        $n     = count($a);
+        $m     = count($b);
+        $start = 0;
+        while ($start < $n && $start < $m && $a[$start] === $b[$start]) {
+            ++$start;
+        }
+        $end = 0;
+        while ($end < $n - $start && $end < $m - $start && $a[$n - 1 - $end] === $b[$m - 1 - $end]) {
+            ++$end;
+        }
+
+        return [$start, $end];
     }
 
     /**
@@ -292,18 +330,27 @@ final readonly class MarkdownDiffRenderer implements MarkdownDiffRendererInterfa
         return $out;
     }
 
-    /** A changed block: word-level diff of the rendered HTML (tags from the new side only). */
-    private function changed(string $old, string $new): string
+    /**
+     * A changed block: word-level diff of the rendered HTML (tags from the new side only).
+     *
+     * @param int $budget LCS cells left for this render; the table built here is taken from it
+     */
+    private function changed(string $old, string $new, int &$budget): string
     {
         $left  = self::tokens($this->renderer->render($old));
         $right = self::tokens($this->renderer->render($new));
-        if (count($left) > self::MAX_TOKENS || count($right) > self::MAX_TOKENS) {
+        $cells = count($left) > self::MAX_TOKENS || count($right) > self::MAX_TOKENS ? 0 : self::cells($left, $right);
+        if ($cells > $budget) {
+            $budget = 0; // spent: every later changed block is shown whole (cheap, no table)
+        }
+        if ($budget === 0 || count($left) > self::MAX_TOKENS || count($right) > self::MAX_TOKENS) {
             return $this->block('removed', '<del class="nowo-md-diff-del">' . implode('', $left) . '</del>')
                 . $this->block('added', '<ins class="nowo-md-diff-ins">' . implode('', $right) . '</ins>');
         }
         // Runs of inserted / deleted words; equal tokens and new-side tags are literal ('').
         /** @var list<array{string, string}> $parts */
         $parts = [];
+        $budget -= $cells;
         foreach (self::lcs($left, $right) as [$op, $i, $j]) {
             $token = $op === '-' ? $left[$i] : $right[$j];
             $tag   = str_starts_with($token, '<');

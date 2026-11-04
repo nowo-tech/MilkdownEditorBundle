@@ -53,6 +53,20 @@ Comments, version view, rendered diff and heading ids (all opt-in).
 - **Heading ids** (`heading_ids` feature, `markdown.heading_ids` renderer option): `nowo-h-<slug>`, the same slugs in
   the editor and in PHP.
 
+### Changed
+
+- Editor heading ids are always prefixed `nowo-h-` (Milkdown used the bare heading text), so a heading can no longer
+  take over a host element id such as a comments drawer (1.6.0 audit DW-M2).
+
+### Security
+
+- 1.6.0 audit (Appendix DW), fixed before release: the rendered diff has a work budget for the whole render (DW-M1);
+  `comments.container` and `comments.mount()` never use an element inside an editor, read view or contenteditable
+  region (DW-M2); the quote search finds blocks by binary search (DW-L1); the PHP `CommentAnchor` rejects a Yjs
+  position with a trailing line feed, as the editor does (DW-L2); `open(id)` and `refresh(ids)` accept host ids only,
+  many live ids in one window refetch the list once, and the `handle.comments` API is a no-op after `destroy()`
+  (DW-I3–I5). Avatar URLs also reject quotes, `<`, `>`, backticks, IPv6 literals and invalid ports (UiKit audit DZ).
+
 ## [1.5.1] - 2026-11-04
 
 Collaboration request rate (patch).

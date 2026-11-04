@@ -41,6 +41,39 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className: string, te
   return e;
 };
 
+/** Places the component must never be rendered into: editors, read views and editable regions (audit DW-M2). */
+const EDITOR_REGIONS = '.nowo-milkdown, .nowo-md, [data-nowo-milkdown-options], [contenteditable]';
+
+/**
+ * Whether an element may hold the component: outside this editor's root, and not inside any editor, read view or
+ * contenteditable region (a heading id or a planted element there would otherwise receive it, and an editable
+ * document would save its text).
+ *
+ * @param element - Candidate container
+ * @param root - The widget root
+ */
+export function usableContainer(element: Element, root: HTMLElement): boolean {
+  return element.isConnected && !root.contains(element) && !element.closest(EDITOR_REGIONS);
+}
+
+/**
+ * The host container for `panel: 'container'`: the first match of the selector, in document order, that is a
+ * usable container (`usableContainer()`), so a heading or element earlier in the page with the same id never wins.
+ *
+ * @param selector - `comments.container`
+ * @param root - The widget root
+ * @returns The element, or null (no usable match, or an invalid selector)
+ */
+export function hostContainer(selector: string, root: HTMLElement): HTMLElement | null {
+  let matches: HTMLElement[];
+  try {
+    matches = [...document.querySelectorAll<HTMLElement>(selector)];
+  } catch {
+    return null;
+  }
+  return matches.find((element) => usableContainer(element, root)) ?? null;
+}
+
 /** The thread component. */
 export class ThreadPanel {
   readonly element: HTMLElement;
@@ -75,8 +108,10 @@ export class ThreadPanel {
    *
    * @param container - The host element
    */
-  mount(container: HTMLElement): void {
+  mount(container: HTMLElement): boolean {
+    if (this.destroyed || !usableContainer(container, this.deps.root)) return false;
     container.append(this.element);
+    return true;
   }
 
   /** Asks the host to show the component (open its drawer) before it is focused or scrolled to. */
@@ -119,13 +154,8 @@ export class ThreadPanel {
     }
     this.element = aside;
     if (host) {
-      const target = ((): HTMLElement | null => {
-        try {
-          return options.container ? document.querySelector<HTMLElement>(options.container) : null;
-        } catch {
-          return null; // an invalid selector: the host mounts the component with comments.mount()
-        }
-      })();
+      // No match (or an invalid selector): the host mounts the component later with comments.mount().
+      const target = options.container ? hostContainer(options.container, deps.root) : null;
       target?.append(aside);
     } else {
       deps.root.classList.add('nowo-milkdown--with-comments');
@@ -171,6 +201,8 @@ export class ThreadPanel {
    * component first (`comments-open-requested`), then the thread is scrolled into view and focused.
    */
   open(id: string): void {
+    // The id goes into a selector below: only host ids (contract section 4) are accepted (audit DW-I3).
+    if (this.destroyed || !ID_PATTERN.test(id)) return;
     this.requestOpen(id);
     this.open_ = id;
     this.render();
@@ -186,7 +218,7 @@ export class ThreadPanel {
   /** Refetches threads (live updates, `comments.refresh()`): ids, or the whole list. */
   async refresh(ids?: string[]): Promise<void> {
     if (!ids) return this.load();
-    for (const id of ids) {
+    for (const id of ids.filter((value) => typeof value === 'string' && ID_PATTERN.test(value))) {
       const r = await this.client.get(id);
       if (this.destroyed) return;
       if (!r.ok) {
@@ -303,7 +335,8 @@ export class ThreadPanel {
           this.liveTimer = null;
           const batch = [...this.liveIds];
           this.liveIds.clear();
-          void this.refresh(batch);
+          // Many ids in one window (several messages): one list request instead of a GET per thread (audit DW-I4).
+          void this.refresh(batch.length > LIVE_MAX_IDS ? undefined : batch);
         }, LIVE_DELAY);
       }
     });
