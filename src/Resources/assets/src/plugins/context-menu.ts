@@ -15,7 +15,7 @@ import { addColumnAfter, addColumnBefore, addRowAfter, addRowBefore, deleteColum
 import { runtimeCtx, t, type Runtime } from '../runtime';
 import { Menu, type MenuGroups, type MenuItem } from '../ui/menu';
 import { TURN_INTO, currentBlock, deleteBlock, duplicateBlock, insertPlainText, moveBlock, selectionRunner, turnInto } from '../commands/blocks';
-import { tabContext } from './keyboard';
+import { flushSelection, tabContext } from './keyboard';
 import { colorItems } from '../commands/colors';
 import { safeUrl } from '../link-titles';
 import { hostItems, type ContextMenuContext } from '../context-menu-registry';
@@ -55,6 +55,7 @@ export class ContextMenuView {
     if (!isMenuKey || event.defaultPrevented) return;
     if ((event.target as HTMLElement | null)?.closest?.('.cm-editor')) return;
     event.preventDefault();
+    flushSelection(this.view); // 1.7: a caret just moved with End / arrows (not yet in the state) is where the menu acts
     const coords = this.view.coordsAtPos(this.view.state.selection.head);
     this.open(coords.left, coords.bottom);
   };
@@ -69,6 +70,7 @@ export class ContextMenuView {
     this.menu = new Menu(host, t(runtime, 'menu.label'), (restore) => {
       if (restore) view.focus();
     });
+    this.menu.icons = runtime.menuIcons;
     view.dom.addEventListener('contextmenu', this.onContextMenu);
     view.dom.addEventListener('keydown', this.onKeyDown);
   }
@@ -161,7 +163,8 @@ export class ContextMenuView {
             label: entry.label,
             run: () =>
               runner(() => {
-                prepareInsertPoint(view);
+                // 1.7: inline entries (the icon) go at the caret; blocks get their own paragraph.
+                if (!entry.inline) prepareInsertPoint(view);
                 entry.run(view);
                 return true;
               }),

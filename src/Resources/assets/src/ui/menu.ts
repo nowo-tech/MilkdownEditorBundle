@@ -6,7 +6,9 @@
  * it, Left or Escape in a submenu returns to its item, Escape on the root menu and Tab close everything and give
  * focus back to the caller, printable characters jump to the next item starting with them (type-ahead). Disabled
  * items stay focusable (`aria-disabled`) and show their hint. Built with DOM APIs only (no `innerHTML`).
+ * With {@link Menu.icons} (1.7 `menu_icons`) every item gets an `aria-hidden` glyph before its label.
  */
+import { glyph, glyphFor } from './icons';
 
 export type MenuItem = {
   id: string;
@@ -22,6 +24,11 @@ export type MenuItem = {
   separatorBefore?: boolean;
   /** Class of a decorative swatch shown before the label (e.g. `nowo-milkdown-color--red`). */
   swatch?: string;
+  /**
+   * Decorative glyph before the label (1.7, `menu_icons`): a name of the bundled glyphs; by default the glyph of the
+   * item's id (see `ITEM_GLYPHS`). Never part of the accessible name.
+   */
+  icon?: string;
   /** `aria-checked` for a radio-like item (the current colour); renders `menuitemradio`. */
   checked?: boolean;
   run?: () => void;
@@ -45,6 +52,9 @@ export class Menu {
   private buttons: HTMLButtonElement[] = [];
   private items: MenuItem[] = [];
   private child: Menu | null = null;
+  /** 1.7 `menu_icons`: glyphs before the labels (submenus inherit it). */
+  icons = false;
+  private iconColumn = false;
   private typed = '';
   private typedAt = 0;
   private readonly onOutside = (event: Event): void => {
@@ -107,6 +117,9 @@ export class Menu {
     this.element.replaceChildren();
     this.items = [];
     this.buttons = [];
+    // A glyph column only when some item has a glyph (a colour submenu shows swatches instead).
+    this.iconColumn = this.icons && groups.some((g) => g.some((i) => !i.swatch && (i.icon !== undefined || glyphFor(i.id) !== undefined)));
+    this.element.classList.toggle('nowo-milkdown-menu--icons', this.iconColumn);
     for (const group of groups.filter((g) => g.length)) {
       if (this.items.length) {
         const sep = document.createElement('div');
@@ -143,6 +156,15 @@ export class Menu {
       swatch.setAttribute('aria-hidden', 'true');
       swatch.textContent = 'A';
       button.append(swatch);
+    }
+    if (this.iconColumn && !item.swatch) {
+      const name = item.icon ?? glyphFor(item.id);
+      const art = (name && glyph(name, 'nowo-milkdown-menu__icon')) || document.createElement('span');
+      if (art instanceof HTMLSpanElement) {
+        art.className = 'nowo-milkdown-menu__icon';
+        art.setAttribute('aria-hidden', 'true');
+      }
+      button.append(art);
     }
     const label = document.createElement('span');
     label.className = 'nowo-milkdown-menu__label';
@@ -284,6 +306,7 @@ export class Menu {
     const item = this.items[index]!;
     const button = this.buttons[index]!;
     const child = new Menu(this.host, item.label, () => undefined, this);
+    child.icons = this.icons;
     this.child = child;
     button.setAttribute('aria-expanded', 'true');
     button.setAttribute('aria-controls', child.element.id);

@@ -1,6 +1,7 @@
 import { cpSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
+import { tablerIcons } from './vite.icons';
 
 /**
  * ES-module library for `assets:install` (REQ-ASSETS-001 / REQ-ASSETS-004).
@@ -20,7 +21,8 @@ const katexFiles = () => ({
 });
 
 export default defineConfig({
-  plugins: [katexFiles()],
+  // 1.7: the Tabler catalog chunk and the sprite shards under icons/.
+  plugins: [katexFiles(), tablerIcons(resolve(__dirname, 'src/Resources/public'))],
   // Library mode keeps `process.env.NODE_ENV` (Vue, used by Crepe): the browser has no `process`.
   define: { 'process.env.NODE_ENV': JSON.stringify('production') },
   build: {

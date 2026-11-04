@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
+- [To 1.7.0 (unreleased)](#to-170-unreleased)
 - [To 1.6.0](#to-160)
 - [To 1.5.1](#to-151)
 - [1.5.0](#150)
@@ -27,6 +28,24 @@ Public API covered by Semantic Versioning: the configuration tree, profile keys,
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
 
+## To 1.7.0 (unreleased)
+
+- No BC break. Run `assets:install` (new `icons/` directory with the Tabler sprite shards and their licence).
+- **Menus and the action bar show icons by default.** They are decorative (`aria-hidden`), so accessible names, item
+  `textContent`, keys and the widget JSON options of default fields are unchanged (only `messages` gains the new
+  strings); turn them off with `menu_icons: false` /
+  `toolbar_icons: false` (profile or field) if your CSS styles these menus tightly.
+- *Icon or emoji* is now **Icon…** (`slash.icon`, Spanish *Icono…*) and opens the icon picker when the field has
+  `icons` or `icon_catalog`. Tests that select the item by name must use the new label; override the translation to
+  keep the old one.
+- The catalog's search data is a **lazy, opt-in** chunk of about **79 kB gzip** (5,203 names, Tabler tags and
+  categories in a compact dictionary form), loaded only with `icon_catalog` on the first picker or `:` use; it never
+  adds to the up-front JavaScript (+6.4 kB gzip over 1.6.0 for the glyphs, menus and the emoji rule).
+- `icon_catalog` (editor) and `markdown.icon_catalog` (renderer) are **opt-in**: with them, any `:tabler-NAME:` of the
+  Tabler outline set renders as an icon (it was text unless allowlisted). Enable both together.
+- Callouts may carry `icon="…"`; renderers of other tools show the attribute as text, as for every directive attribute.
+  Plain-text extraction that reads the Markdown (search indexes) should drop directive lines and attributes; extraction
+  from the rendered HTML (`strip_tags`) only sees the body.
 ## To 1.6.0
 
 From **1.5.1**:

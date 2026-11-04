@@ -15,6 +15,7 @@ import { runtimeCtx, t, type Runtime } from '../runtime';
 import { Menu, type MenuGroups, type MenuItem } from '../ui/menu';
 import { TURN_INTO, deleteBlock, duplicateBlock, moveBlock, selectionRunner, turnInto } from '../commands/blocks';
 import { colorItems } from '../commands/colors';
+import { flushSelection } from './keyboard';
 
 export const blockActionsKey = new PluginKey('nowo-milkdown-block-actions');
 const views = new WeakMap<EditorView, BlockActionsView>();
@@ -88,6 +89,7 @@ export class BlockActionsView {
       this.button.setAttribute('aria-expanded', 'false');
       if (restore) view.focus();
     });
+    this.menu.icons = runtime.menuIcons;
     view.dom.addEventListener('mousemove', this.onMove);
     view.dom.addEventListener('keydown', this.onKey, true);
   }
@@ -134,6 +136,7 @@ export class BlockActionsView {
     if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key === '/') {
       event.preventDefault();
       event.stopPropagation();
+      flushSelection(this.view);
       const coords = this.view.coordsAtPos(this.view.state.selection.from);
       this.open(coords.left, coords.bottom);
       return;

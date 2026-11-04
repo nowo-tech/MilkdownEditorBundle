@@ -26,11 +26,19 @@ export function tabContext(state: EditorState): 'table' | 'list' | 'none' {
   return 'none';
 }
 
+/**
+ * Reads a DOM selection the editor has not seen yet into its state (1.7). The browser moves the caret for arrows, End,
+ * Home or a click and tells ProseMirror later, on `selectionchange`; a key pressed in between (Shift+F10, Enter, Tab)
+ * would act on the old caret. ProseMirror's own `flush()` compares with the last DOM selection it saw, keeps node
+ * and cell selections, and does nothing when nothing changed.
+ */
+export function flushSelection(view: EditorView): void {
+  (view as unknown as { domObserver?: { flush?: () => void } }).domObserver?.flush?.();
+}
+
 /** Handles Tab; returns true when the editor used the key (the caller then prevents the default). */
 export function handleTab(view: EditorView, event: KeyboardEvent): boolean {
-  // A click just before Tab may not have reached the editor state yet: ProseMirror flushes pending DOM changes and
-  // selection the same way before running its own key handlers.
-  (view as unknown as { domObserver?: { forceFlush?: () => void } }).domObserver?.forceFlush?.();
+  flushSelection(view);
   const { state } = view;
   const where = tabContext(state);
   let command: Command | null = null;
@@ -48,6 +56,8 @@ export const keyboardPlugin = $prose(
       key: keyboardKey,
       view: (view) => {
         const onKey = (event: KeyboardEvent): void => {
+          // Before any key handler: the caret the browser moved is the one the key acts on (not during IME input).
+          if (!event.isComposing && event.keyCode !== 229) flushSelection(view);
           if (event.key !== 'Tab' || event.ctrlKey || event.metaKey || event.altKey || event.defaultPrevented) return;
           if (isSuggestOpen(view)) return;
           if ((event.target as HTMLElement | null)?.closest?.('.cm-editor')) return;

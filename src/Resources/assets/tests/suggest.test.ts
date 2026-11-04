@@ -111,7 +111,7 @@ describe('suggestion hook', () => {
     type(handle, ':bu');
     await settle();
     const labels = [...listbox(handle).querySelectorAll('[role="option"]')].map((o) => o.textContent);
-    expect(labels).toEqual(['bug', 'bulb', '🐛bug', '💡bulb']);
+    expect(labels).toEqual(['bug', 'bulb', '🐛bug', '💡bulb', 'Browse all icons…']);
     keydown(view(handle).dom, 'Enter');
     expect(handle.getMarkdown().trimEnd()).toBe(':tabler-bug:');
     type(handle, ':rock');
@@ -125,7 +125,7 @@ describe('suggestion hook', () => {
     handle = await editor('', { icons: ['bug'], suggestions: { ':': '/icons' } });
     type(handle, ':t');
     await settle();
-    expect([...listbox(handle).querySelectorAll('[role="option"]')].map((o) => o.textContent)).toEqual(['bug', '🎉tada']);
+    expect([...listbox(handle).querySelectorAll('[role="option"]')].map((o) => o.textContent)).toEqual(['bug', '🎉tada', 'Browse all icons…']);
   });
 
   it('/ opens the block menu and runs the command', async () => {
@@ -159,7 +159,10 @@ describe('suggestion hook', () => {
     expect(await run('text')).toBe('');
     expect(await run('page_link')).toBe('\\[\\[\n');
     expect(await run('mention')).toBe('@\n');
-    expect(await run('icon')).toBe(':\n');
+    // 1.7: with icons, *Icon…* opens the picker at the caret.
+    expect(await run('icon')).toBe('');
+    await tick(100);
+    expect(document.querySelector('.nowo-milkdown-picker[role="dialog"]')).not.toBeNull();
   });
 
   it('candidates drops invalid rows and non-arrays', async () => {

@@ -43,6 +43,10 @@ final class ConfigurationTest extends TestCase
         self::assertSame(100000, $c['markdown']['max_input_length']);
         self::assertSame(10000, $c['markdown']['max_inline_markers']);
         self::assertSame(500, $c['markdown']['max_references']);
+        // 1.7: decorative icons on, catalog off.
+        $profile = $c['profiles']['default'];
+        self::assertSame([false, true, true], [$profile['icon_catalog'] ?? null, $profile['toolbar_icons'] ?? null, $profile['menu_icons'] ?? null]);
+        self::assertFalse($c['markdown']['icon_catalog'] ?? null);
     }
 
     #[Test]

@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use League\CommonMark\Node\Node;
 use League\CommonMark\Renderer\ChildNodeRendererInterface;
 use League\CommonMark\Renderer\NodeRendererInterface;
+use Nowo\MilkdownEditorBundle\DependencyInjection\Configuration;
 use Nowo\MilkdownEditorBundle\Form\MilkdownEditorType;
 use Nowo\MilkdownEditorBundle\Markdown\Directive\DirectiveRendererInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Node\ContainerDirective;
@@ -24,6 +25,7 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\ResolvedUser;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 use function in_array;
+use function strlen;
 
 use const ENT_HTML5;
 use const ENT_QUOTES;
@@ -174,11 +176,50 @@ final readonly class DialectRenderer implements NodeRendererInterface
         $a = $node->attributes;
 
         return match ($node->name) {
-            'callout' => '<div class="nowo-md-callout nowo-md-callout--' . (in_array($a['type'] ?? '', self::CALLOUT_TYPES, true) ? $a['type'] : 'info') . '" role="note">' . $content . '</div>',
+            'callout' => $this->callout($a, $content),
             'details' => '<details class="nowo-md-details"><summary>' . self::e($a['summary'] ?? ($node->label !== '' ? $node->label : '…')) . '</summary>' . $content . '</details>',
             'align'   => '<div class="nowo-md-align nowo-md-align--' . (in_array($a['align'] ?? '', self::ALIGNMENTS, true) ? $a['align'] : 'left') . $this->blockColors($a) . '">' . $content . '</div>',
             default   => '<div class="nowo-md-directive" data-directive="' . self::e($node->name) . '">' . $content . '</div>',
         };
+    }
+
+    /**
+     * A callout; with a resolvable `icon=` (1.7: a Tabler name, or an emoji) the icon comes first, decorative, and the
+     * content is wrapped in `.nowo-md-callout__body`. The emoji is drawn by CSS from `data-emoji` so the element has no
+     * text (excerpts and plain-text extraction keep only the body).
+     *
+     * @param array<string, string> $a
+     */
+    private function callout(array $a, string $content): string
+    {
+        $class = 'nowo-md-callout nowo-md-callout--' . (in_array($a['type'] ?? '', self::CALLOUT_TYPES, true) ? $a['type'] : 'info');
+        $value = $a['icon'] ?? '';
+        $icon  = '';
+        if (strlen($value) > EmojiRule::MAX_BYTES) {
+            $value = ''; // bounded before any pattern (audit DY-L1)
+        }
+        if (preg_match(Configuration::ICON_PATTERN, $value) === 1) {
+            $sprite = $this->icons->spriteUrl($value);
+            if ($sprite !== null && self::safeUrl($sprite) !== '') {
+                $icon = '<svg class="nowo-md-icon nowo-md-callout__icon" aria-hidden="true" focusable="false"><use href="' . self::e($sprite . '#tabler-' . $value) . '"></use></svg>';
+            }
+        } elseif (self::isEmoji($value)) {
+            $icon = '<span class="nowo-md-callout__icon nowo-md-callout__emoji" data-emoji="' . self::e($value) . '" aria-hidden="true"></span>';
+        }
+        if ($icon === '') {
+            return '<div class="' . $class . '" role="note">' . $content . '</div>';
+        }
+
+        return '<div class="' . $class . ' nowo-md-callout--icon" role="note">' . $icon . '<div class="nowo-md-callout__body">' . $content . '</div></div>';
+    }
+
+    /**
+     * An emoji value of a callout icon (see {@see EmojiRule}: linear, at most 64 bytes and 8 code points). The editor
+     * uses the same rule.
+     */
+    public static function isEmoji(string $value): bool
+    {
+        return EmojiRule::matches($value);
     }
 
     /** A colour name from the allow-list (`markdown.mark_colors`), or null. */

@@ -214,6 +214,9 @@ are marked *default pending user confirmation*.
   `nowo_milkdown_view()` and heading ids (`heading_ids`, `markdown.heading_ids`) — 1.6 (the roadmap's "1.4 Comments and
   history" row). Host contract agreed with WikiBundle 1.15 / 1.16 (contract v1.2). Presence avatars / follow user
   moved to 1.6.x.
+- [x] Icons (owner request): decorative icons in menus, `/` and the action bar (`menu_icons`, `toolbar_icons`, on), the
+  Tabler outline catalog (`icon_catalog`, opt-in) with a searchable icon picker, and the **callout icon picker**
+  (`:::callout{icon=…}`, Tabler or emoji) — 1.7, PR #17
 
 ## Feature assessments
 
@@ -622,7 +625,7 @@ already assessed above; this list gives them a milestone.
 | AI assistance hooks (host endpoint, diff accept / reject) | Notion AI-style rewrite / summarise, no keys in the browser | M | 1.8 |
 | Mobile editing: touch-sized block button, bottom-sheet menus, virtual-keyboard-safe toolbars | Usable on phones | M | 1.5 |
 | Print styles of read pages | Clean printing / PDF via the browser | S | 1.5 |
-| Callout and toggle polish: callout icon picker, toggle headings (`:::details` with a heading summary) | Closer to Notion blocks | S | 1.5 |
+| Callout and toggle polish: ~~callout icon picker~~ (done in 1.7, Tabler or emoji), toggle headings (`:::details` with a heading summary) | Closer to Notion blocks | S | 1.5 |
 | Markdown import of Notion / Outline pastes (callouts, toggles) | Smooth migration | S | 1.7 |
 | Comments on a whole block or an image (block anchors, no text quote) | Notion comments on images, embeds and databases | S | 1.6.x |
 | `@` mentions and emoji picker in the comment composer | Notion / Outline composer parity | S | 1.6.1 |

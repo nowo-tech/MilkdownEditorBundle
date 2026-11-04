@@ -15,6 +15,7 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\IconResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\NullPageResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\NullUserResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\PageResolverInterface;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\TablerCatalog;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\UserResolverInterface;
 use Nowo\MilkdownEditorBundle\ProfileRegistry;
 use Nowo\MilkdownEditorBundle\Twig\MilkdownEditorTwig;
@@ -48,7 +49,8 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(PageResolverInterface::class, NullPageResolver::class);
     $services->set(NullUserResolver::class);
     $services->alias(UserResolverInterface::class, NullUserResolver::class);
-    $services->set(AllowlistIconResolver::class)->args([null, []]);
+    $services->set(TablerCatalog::class)->args([service('assets.packages')->nullOnInvalid()]);
+    $services->set(AllowlistIconResolver::class)->args([null, [], null]);
     $services->alias(IconResolverInterface::class, AllowlistIconResolver::class);
 
     $services->set(MilkdownMarkdownRenderer::class)

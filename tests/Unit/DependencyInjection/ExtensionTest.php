@@ -9,11 +9,13 @@ use Nowo\MilkdownEditorBundle\DependencyInjection\NowoMilkdownEditorExtension;
 use Nowo\MilkdownEditorBundle\Form\MilkdownEditorType;
 use Nowo\MilkdownEditorBundle\Markdown\MilkdownMarkdownRenderer;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\AllowlistIconResolver;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\TablerCatalog;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
+use Symfony\Component\DependencyInjection\Reference;
 
 use function dirname;
 
@@ -31,6 +33,15 @@ final class ExtensionTest extends TestCase
         self::assertSame('/s.svg', $container->getDefinition(AllowlistIconResolver::class)->getArgument('$spriteUrl'));
         self::assertIsArray($container->getDefinition(MilkdownMarkdownRenderer::class)->getArgument('$options'));
         self::assertSame(5000, $container->getDefinition(MilkdownEditorType::class)->getArgument('$maxInputLength'));
+        self::assertNull($container->getDefinition(AllowlistIconResolver::class)->getArgument('$catalog'));
+        self::assertTrue($container->hasDefinition(TablerCatalog::class));
+
+        // 1.7: markdown.icon_catalog gives the resolver the bundled catalog.
+        $catalog = new ContainerBuilder();
+        $extension->load([['markdown' => ['icon_catalog' => true]]], $catalog);
+        $reference = $catalog->getDefinition(AllowlistIconResolver::class)->getArgument('$catalog');
+        self::assertInstanceOf(Reference::class, $reference);
+        self::assertSame(TablerCatalog::class, (string) $reference);
     }
 
     #[Test]

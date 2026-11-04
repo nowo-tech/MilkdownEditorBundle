@@ -129,14 +129,16 @@ describe('createEditor', () => {
     expect(root.querySelector('.nowo-milkdown__actions')).toBeNull();
   });
 
-  it('the icon button inserts the trigger and the upload button opens a picker', async () => {
+  it('the icon button opens the icon picker (1.7) and the upload button opens a file picker', async () => {
     handle = await editor('word', { icons: ['bug'], upload: { url: '/up', accept: ['image/*'] } });
     const buttons = handle.root.querySelectorAll<HTMLButtonElement>('.nowo-milkdown__action');
     expect([...buttons].map((b) => b.textContent)).toEqual(['Insert file', 'Insert icon']);
     const v = view(handle);
     v.dispatch(v.state.tr.setSelection(TextSelection.create(v.state.doc, v.state.doc.content.size - 1)));
     buttons[1]!.click();
-    expect(v.state.doc.textContent).toBe('word :');
+    for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 20));
+    expect(document.querySelector('.nowo-milkdown-picker[role="dialog"]')).not.toBeNull();
+    expect(v.state.doc.textContent).toBe('word');
     const click = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => undefined);
     buttons[0]!.click();
     expect(click).toHaveBeenCalled();

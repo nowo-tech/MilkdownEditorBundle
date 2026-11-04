@@ -8,11 +8,13 @@ use Nowo\MilkdownEditorBundle\Diff\MarkdownDiffRenderer;
 use Nowo\MilkdownEditorBundle\Form\MilkdownEditorType;
 use Nowo\MilkdownEditorBundle\Markdown\MilkdownMarkdownRenderer;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\AllowlistIconResolver;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\TablerCatalog;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
+use Symfony\Component\DependencyInjection\Reference;
 
 /**
  * Loads `nowo_milkdown_editor`, registers the asset package and the form theme.
@@ -55,7 +57,7 @@ final class NowoMilkdownEditorExtension extends Extension implements PrependExte
      */
     public function load(array $configs, ContainerBuilder $container): void
     {
-        /** @var array{default_profile: string, profiles: array<string, array<string, mixed>>, markdown: array<string, mixed>&array{icon_sprite_url: ?string, icons: list<string>, max_input_length: int, mark_colors: list<string>}} $config */
+        /** @var array{default_profile: string, profiles: array<string, array<string, mixed>>, markdown: array<string, mixed>&array{icon_sprite_url: ?string, icons: list<string>, icon_catalog: bool, max_input_length: int, mark_colors: list<string>}} $config */
         $config = $this->processConfiguration(new Configuration(), $configs);
 
         $container->setParameter(Configuration::ALIAS . '.default_profile', $config['default_profile']);
@@ -66,7 +68,8 @@ final class NowoMilkdownEditorExtension extends Extension implements PrependExte
 
         $container->getDefinition(AllowlistIconResolver::class)
             ->setArgument('$spriteUrl', $config['markdown']['icon_sprite_url'])
-            ->setArgument('$icons', $config['markdown']['icons']);
+            ->setArgument('$icons', $config['markdown']['icons'])
+            ->setArgument('$catalog', $config['markdown']['icon_catalog'] ? new Reference(TablerCatalog::class) : null);
         $container->getDefinition(MilkdownMarkdownRenderer::class)
             ->setArgument('$options', $config['markdown']);
         $container->getDefinition(MarkdownDiffRenderer::class)

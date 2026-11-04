@@ -9,6 +9,7 @@ import {
   ALIGNMENTS,
   CALLOUT_TYPES,
   alignment,
+  calloutIcon,
   calloutType,
   cleanAttributes,
   decodeAttributes,
@@ -19,7 +20,9 @@ import {
   textColor,
 } from '../dialect/directives';
 import type { MdNode } from '../dialect/remark-dialect';
-import { runtimeCtx, t, type Runtime } from '../runtime';
+import { iconSvg, pickerAvailable, runtimeCtx, t, type Runtime } from '../runtime';
+import { glyph } from '../ui/icons';
+import { catalogEntries, lazyIcons } from '../icons/open';
 
 const nameOf = (node: MdNode): string => (typeof node.name === 'string' && isDirectiveName(node.name) ? node.name : 'div');
 const isLabel = (node: MdNode | undefined): boolean => node?.type === 'paragraph' && node.data?.directiveLabel === true;
@@ -162,13 +165,90 @@ function select(label: string, values: readonly string[], current: string, text:
   return wrap;
 }
 
-function setAttribute(view: EditorView, getPos: () => number | undefined, key: string, value: string): void {
+function setAttribute(view: EditorView, getPos: () => number | undefined, key: string, value: string | null): void {
   const pos = getPos();
   if (pos === undefined || pos >= view.state.doc.content.size) return;
   const node = view.state.doc.nodeAt(pos);
   if (!node) return;
-  const attributes = { ...decodeAttributes(node.attrs.attributes), [key]: value };
+  const attributes = { ...decodeAttributes(node.attrs.attributes), [key]: value ?? '' };
+  if (value === null) delete attributes[key];
   view.dispatch(view.state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, attributes: encodeAttributes(attributes) }));
+}
+
+/**
+ * The callout's icon button (1.7): shows the icon (a Tabler icon or an emoji, decorative) and opens the picker with
+ * *Icons* / *Emoji* tabs and *No icon*; the choice is stored as `icon="…"` (removed for *No icon*).
+ */
+export function calloutIconButton(runtime: Runtime, attributes: Record<string, string>, view: EditorView, getPos: () => number | undefined): HTMLButtonElement {
+  const icon = calloutIcon(attributes);
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'nowo-milkdown-directive__icon';
+  button.setAttribute('aria-haspopup', 'dialog');
+  button.setAttribute('aria-label', icon ? t(runtime, 'directive.callout_icon', { name: icon.kind === 'tabler' ? icon.name : icon.value }) : t(runtime, 'directive.callout_icon_none'));
+  button.disabled = !view.editable;
+  let art: Element | null;
+  if (icon?.kind === 'emoji') {
+    art = document.createElement('span');
+    art.className = 'nowo-milkdown-directive__emoji';
+    art.textContent = icon.value;
+  } else if (icon) {
+    const name = icon.name;
+    const asName = (): HTMLSpanElement => {
+      const span = document.createElement('span');
+      span.className = 'nowo-milkdown-directive__icon-name';
+      span.setAttribute('aria-hidden', 'true');
+      span.textContent = name;
+      return span;
+    };
+    art = iconSvg(runtime, name) ?? asName();
+    // A catalog name (not the host's allowlist) is checked against the catalog, as inline icons are (audit DY-I4).
+    if (art instanceof SVGElement && (!runtime.icons.has(name) || !runtime.spriteUrl)) {
+      const svg = art;
+      const fallback = (): void => svg.replaceWith(asName());
+      void lazyIcons
+        .catalog()
+        .then((m) => {
+          if (!m.hasIcon(name)) fallback();
+        })
+        .catch(fallback);
+    }
+  } else {
+    art = glyph('mood-plus');
+  }
+  art?.setAttribute('aria-hidden', 'true');
+  if (art) button.append(art);
+  button.addEventListener('click', () => {
+    if (!view.editable) return;
+    const rect = button.getBoundingClientRect();
+    const host = (view.dom.closest('.nowo-milkdown') as HTMLElement | null) ?? document.body;
+    const refocus = (): void => {
+      const pos = getPos();
+      const dom = pos === undefined ? null : (view.nodeDOM(pos) as HTMLElement | null);
+      (dom?.querySelector<HTMLButtonElement>('.nowo-milkdown-directive__icon') ?? button).focus();
+    };
+    void lazyIcons.picker().then(({ open }) =>
+      open({
+        host,
+        runtime,
+        x: rect.left,
+        y: rect.bottom + 4,
+        current: attributes.icon ?? null,
+        emoji: true,
+        icons: pickerAvailable(runtime),
+        allowNone: true,
+        entries: () => catalogEntries(runtime),
+        onPick: (value) => {
+          setAttribute(view, getPos, 'icon', value);
+          refocus();
+        },
+        onClose: (restore) => {
+          if (restore) refocus();
+        },
+      }),
+    );
+  });
+  return button;
 }
 
 /** Header controls of a container: type of a callout, summary of a details block, alignment. */
@@ -180,6 +260,7 @@ export function buildHeader(runtime: Runtime, node: PmNode, view: EditorView, ge
   const name = node.attrs.name as string;
   if (name === 'callout') {
     header.append(
+      calloutIconButton(runtime, attributes, view, getPos),
       select(t(runtime, 'directive.callout_type'), CALLOUT_TYPES, calloutType(attributes), (v) => t(runtime, `directive.callout.${v}`), (v) =>
         setAttribute(view, getPos, 'type', v),
       ),

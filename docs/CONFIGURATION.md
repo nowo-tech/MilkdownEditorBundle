@@ -8,6 +8,7 @@
 - [Markdown renderer](#markdown-renderer)
   - [Renderer limits](#renderer-limits)
 - [Form options](#form-options)
+- [Icons](#icons)
 - [Theme tokens](#theme-tokens)
 - [Locales](#locales)
 
@@ -26,6 +27,9 @@ nowo_milkdown_editor:
             min_height: 12rem           # CSS length: px, rem, em or vh
             icon_sprite_url: ~          # SVG sprite with <symbol id="tabler-NAME"> (null: icons stay text)
             icons: []                   # allowlisted icon names offered by the `:` trigger
+            icon_catalog: false         # 1.7: the bundled Tabler outline catalog (5,203 icons, MIT) in the picker and `:`
+            toolbar_icons: true         # 1.7: decorative icons in the action bar buttons
+            menu_icons: true            # 1.7: decorative icons in the context, block and `/` menus
             upload_max_size: 10485760   # bytes, checked in the browser before uploading (0: no limit)
             upload_accept: []           # MIME types, `type/*` or `.ext` (empty: any)
             mention_display: handle     # handle | name: mention chips show @handle or the name (1.2.1)
@@ -44,6 +48,7 @@ nowo_milkdown_editor:
         max_references: 500             # distinct page ids / handles sent to each resolver per document
         icon_sprite_url: ~
         icons: []
+        icon_catalog: false             # 1.7: also render any Tabler outline icon (and callout icon) from the bundled shards
         mark_colors: [yellow, green, blue, red, purple, gray, brown, orange, pink]  # 1.4: + brown, orange, pink
 ```
 
@@ -142,6 +147,9 @@ With the defaults the worst input measured peaks at about 39 MB (process total) 
 | `user_title_url` | `?string` | `null` | `GET url?handles=a,b` → `[{handle, name}]`, used with `mention_display: name` (1.2.1) |
 | `icon_sprite_url` | `?string` | profile | |
 | `icons` | `list<string>` | profile | Allowlisted names |
+| `icon_catalog` | `bool` | profile (`false`) | 1.7: the bundled Tabler outline catalog (see [Icons](#icons)) |
+| `toolbar_icons` | `bool` | profile (`true`) | 1.7: icons before the action bar labels |
+| `menu_icons` | `bool` | profile (`true`) | 1.7: icons before menu and `/` labels |
 | `upload_url` | `?string` | `null` | POST target (multipart `file`) |
 | `upload_csrf_token` | `?string` | `null` | Sent as `X-CSRF-Token` |
 | `upload_max_size` | `int` | profile | Bytes |
@@ -155,12 +163,35 @@ With the defaults the worst input measured peaks at about 39 MB (process total) 
 `disabled: true` makes the editor read-only. `nowo_milkdown_view(markdown, options)` (1.6) renders the same widget
 read-only outside a form.
 
+## Icons
+
+Three independent icon settings (1.7):
+
+- **`menu_icons` / `toolbar_icons`** (default on): a decorative glyph before each label of the context menu, the block
+  menu, the `/` menu and the action bar. The glyphs are part of the editor module (inline SVG, about 3 kB gzip),
+  `aria-hidden="true"`, coloured with `currentColor` (menus: `--nowo-milkdown-icon-color`, default the muted token),
+  sized by `--nowo-milkdown-icon-size` (default `1.125em`). Crepe's selection toolbar and top bar already use icons.
+- **`icons` + `icon_sprite_url`**: your own allowlist and sprite (`<symbol id="tabler-NAME">`), as before.
+- **`icon_catalog`** (default off) and **`markdown.icon_catalog`**: every icon of the Tabler outline set shipped with the
+  bundle. The editor searches the names and Tabler keywords in a lazy chunk (about 79 kB gzip, loaded on the first
+  picker or `:` use); icons render from `/bundles/nowomilkdowneditor/icons/tabler-<first character>.svg` (26 shards,
+  about 250 kB gzip in total, the largest 55 kB; a page only fetches the shards of the icons it shows). Allowlisted
+  names keep your sprite. Enable both keys so the read pages render what the editor shows.
+  SVG `<use>` only loads same-origin files: serve the bundle assets (`assets:install`) from the page's origin, not
+  from a CDN `base_urls` of the `nowo_milkdown_editor` package, or catalog icons stay invisible (they fail closed).
+  Like the other bundle assets, send the shards with `Content-Type: image/svg+xml` and
+  `X-Content-Type-Options: nosniff` (they contain only `svg`, `symbol` and `path`).
+
+With `icons` or `icon_catalog` the **icon picker** is available (see [USAGE](USAGE.md#icons-and-the-icon-picker)).
+
+Tabler Icons © Paweł Kuna, MIT: the licence is published next to the shards (`icons/LICENSE-tabler.txt`).
+
 ## Theme tokens
 
 The widget reads `--nowo-milkdown-*` custom properties (defined on `.nowo-milkdown` and `.nowo-md`): `text`, `muted`,
 `background`, `surface`, `border`, `accent`, `accent-text`, `accent-soft`, `focus`, `selection`, `info`, `success`,
 `warning`, `danger`, `radius`, `radius-control`, `shadow`, `mark-*`, `code-*`, `font`, `font-code`, `font-size`,
-`min-height`. Dark values apply with `data-theme="dark"` on the widget, or with `theme: auto` under a
+`min-height`, and since 1.7 the optional `icon-size` and `icon-color`. Dark values apply with `data-theme="dark"` on the widget, or with `theme: auto` under a
 `[data-theme="dark"]` ancestor or a dark colour scheme. Override them in your stylesheet:
 
 ```css

@@ -14,6 +14,7 @@ import { Plugin, PluginKey, type EditorState } from '@milkdown/kit/prose/state';
 import type { EditorView } from '@milkdown/kit/prose/view';
 import type { Ctx } from '@milkdown/kit/ctx';
 import { iconSvg, runtimeCtx, t, type Runtime } from '../runtime';
+import { glyph } from '../ui/icons';
 
 export type SuggestItem = {
   id: string;
@@ -23,6 +24,8 @@ export type SuggestItem = {
   emoji?: string;
   /** Allowlisted Tabler icon shown before the label. */
   icon?: string;
+  /** 1.7: bundled UI glyph shown before the label (`/` blocks, *Browse all icons…*; decorative). */
+  glyph?: string;
 };
 
 export type Range = { from: number; to: number };
@@ -199,7 +202,7 @@ export class SuggestView {
         glyph.setAttribute('aria-hidden', 'true');
         li.append(glyph);
       }
-      const svg = item.icon ? iconSvg(this.runtime, item.icon) : null;
+      const svg = item.icon ? iconSvg(this.runtime, item.icon) : item.glyph ? glyph(item.glyph, 'nowo-milkdown-suggest__glyph') : null;
       if (svg) li.append(svg);
       const label = document.createElement('span');
       label.className = 'nowo-milkdown-suggest__label';

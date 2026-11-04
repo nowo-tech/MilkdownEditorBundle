@@ -78,6 +78,9 @@ final readonly class MarkdownDiffRenderer implements MarkdownDiffRendererInterfa
     ) {
     }
 
+    /**
+     * Renders the diff of two Markdown versions (see {@see MarkdownDiffRendererInterface::render()}).
+     */
     public function render(string $old, string $new): MarkdownDiff
     {
         $old = str_replace(["\r\n", "\r"], "\n", $old);

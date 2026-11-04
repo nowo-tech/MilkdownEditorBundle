@@ -24,7 +24,10 @@ import { taskListView } from './nodes/task-list';
 import { editableAttributes, watchControls } from './plugins/a11y';
 import { keyboardPlugin } from './plugins/keyboard';
 import { suggestPlugin } from './plugins/suggest';
-import { defaultRuntime, runtimeCtx, t, type Runtime } from './runtime';
+import { defaultRuntime, pickerAvailable, runtimeCtx, t, type Runtime } from './runtime';
+import { glyph } from './ui/icons';
+import { assetUrl } from './assets';
+import { openPickerAtCaret } from './icons/open';
 import { buildTriggers, slashItems } from './triggers';
 import { insertItems, type InsertItem } from './commands/insert';
 import { createUploader } from './upload';
@@ -115,11 +118,14 @@ function chrome(root: HTMLElement, runtime: Runtime) {
   return { bar, surface, status, announce };
 }
 
-function actionButton(bar: HTMLElement, label: string, onClick: () => void): HTMLButtonElement {
+function actionButton(bar: HTMLElement, label: string, onClick: () => void, icon: string | null = null): HTMLButtonElement {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'nowo-milkdown__action';
-  button.textContent = label;
+  // 1.7 `toolbar_icons`: a decorative glyph before the label (the label stays the accessible name).
+  const art = icon ? glyph(icon, 'nowo-milkdown__action-icon') : null;
+  if (art) button.append(art);
+  button.append(label);
   button.addEventListener('click', onClick);
   bar.append(button);
   return button;
@@ -143,6 +149,8 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     messages: options.messages,
     spriteUrl: options.iconSpriteUrl,
     icons: new Set(options.icons),
+    catalogUrl: options.iconCatalog ? assetUrl('icons/') : null,
+    menuIcons: options.menuIcons,
     resolvePage: pages.resolve,
     resolveUser: users.resolve,
     features: new Set(options.features),
@@ -259,28 +267,35 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     });
     input.click();
   };
-  /** Types `:` at the caret (a space first after a word), which opens the icon suggestions. */
+  /**
+   * *Insert icon* / *Icon…*: the picker at the caret (1.7, inline, never a new block) when the field has icons or the
+   * catalog; otherwise types `:` at the caret (a space first after a word), which opens the icon suggestions.
+   */
   const startIcon = (view: EditorView): void => {
+    if (pickerAvailable(runtime)) {
+      void openPickerAtCaret(view, runtime);
+      return;
+    }
     const { $from } = view.state.selection;
     const before = $from.parent.textBetween(0, $from.parentOffset, undefined, '￼');
     view.dispatch(view.state.tr.insertText(before === '' || /\s$/.test(before) ? ':' : ' :'));
     view.focus();
   };
-  const iconsOffered = Boolean(options.suggestions[':'] || options.icons.length > 0);
+  const iconsOffered = Boolean(options.suggestions[':'] || pickerAvailable(runtime));
 
   if (options.upload && !options.readonly) {
     const upload = options.upload;
-    actionButton(bar, t(runtime, 'upload.button'), () => pickFiles(upload));
+    actionButton(bar, t(runtime, 'upload.button'), () => pickFiles(upload), options.toolbarIcons ? 'file-upload' : null);
   }
   if (iconsOffered && !options.readonly) {
-    actionButton(bar, t(runtime, 'icon.button'), () => editor.action((ctx) => startIcon(ctx.get(editorViewCtx))));
+    actionButton(bar, t(runtime, 'icon.button'), () => editor.action((ctx) => startIcon(ctx.get(editorViewCtx))), options.toolbarIcons ? 'icons' : null);
   }
   // 1.5 `insert_menu`: the *Insert* group of the context menu (file, icon, the `/` blocks of the field).
   if (options.features.includes('insert_menu') && !options.readonly) {
     const upload = options.upload;
     const actions: InsertItem[] = [];
     if (upload) actions.push({ id: 'file', label: t(runtime, 'menu.insert_file'), run: () => pickFiles(upload) });
-    if (iconsOffered) actions.push({ id: 'icon', label: t(runtime, 'slash.icon'), run: startIcon });
+    if (iconsOffered) actions.push({ id: 'icon', label: t(runtime, 'slash.icon'), run: startIcon, inline: true });
     editor.action((ctx) => runtime.insert.push(...insertItems(slashItems(ctx, options, runtime), actions)));
   }
   if (!bar.childElementCount) bar.remove();
