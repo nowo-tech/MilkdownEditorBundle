@@ -211,7 +211,7 @@ are marked *default pending user confirmation*.
   flip at the right edge, transient copy status, icon variants of `nowo_milkdown_copy_markdown()` — 1.5.1 patch
 - [x] Icons (owner request): decorative icons in menus, `/` and the action bar (`menu_icons`, `toolbar_icons`, on), the
   Tabler outline catalog (`icon_catalog`, opt-in) with a searchable icon picker, and the **callout icon picker**
-  (`:::callout{icon=…}`, Tabler or emoji) — 1.7, branch `feat/icons`
+  (`:::callout{icon=…}`, Tabler or emoji) — 1.7, PR #17
 
 ## Feature assessments
 
