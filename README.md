@@ -46,6 +46,9 @@ This bundle is **FrankenPHP worker mode friendly**. See [docs/FRANKENPHP-WORKER-
   `:mark{text=… bg=…}` and `::: {text=… bg=…}`, rendered as token classes (AA in light and dark).
 - **Suggestions** — `[[` pages, `@` people, `:` icons and emoji, `/` blocks: remote candidate URLs, debounced, at most
   10 results, combobox keys (Up / Down, Enter / Tab, Escape) on the multi-line editable.
+- **Icons** (1.7) — decorative icons in menus, `/` and the action bar (`menu_icons`, `toolbar_icons`); the whole Tabler
+  outline set (`icon_catalog`, opt-in) with a searchable, keyboard-accessible icon picker inserting inline at the
+  caret; callout icons (`:::callout{icon="bulb"}` or an emoji).
 - **Per-viewer page titles** — chips resolve titles in one batched request; pages the viewer may not read show
   *Content not visible* (editor and renderer alike).
 - **Uploads** — drop, paste or *Insert file*: multipart POST with the CSRF token in a header, progress and errors in a
@@ -175,6 +178,16 @@ make qa
 ## License
 
 MIT © 2026 Héctor Franco Aceituno / Nowo.tech
+
+### Third-party assets
+
+The published assets (`src/Resources/public/`) bundle these third-party works, each under its own licence:
+
+| Asset | Licence | Where |
+|-------|---------|-------|
+| [Tabler Icons](https://tabler.io/icons) 3.50.0, outline set (catalog sprite shards and the UI glyphs) © Paweł Kuna | MIT | `icons/tabler-*.svg`, `icons/LICENSE-tabler.txt`, `milkdown-editor.js` |
+| [KaTeX](https://katex.org) stylesheet and fonts | MIT | `katex/` |
+| [Milkdown](https://milkdown.dev), ProseMirror, CodeMirror, Mermaid, Yjs (JavaScript) | MIT | `milkdown-editor.js`, `chunks/` |
 
 ## Contributing
 

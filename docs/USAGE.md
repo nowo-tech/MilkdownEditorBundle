@@ -14,6 +14,7 @@
 - [Context menu](#context-menu)
 - [Markdown clipboard](#markdown-clipboard)
 - [Block actions and colours](#block-actions-and-colours)
+- [Icons and the icon picker](#icons-and-the-icon-picker)
 - [Keyboard and accessibility](#keyboard-and-accessibility)
 - [Forms in Twig](#forms-in-twig)
 - [Overriding templates](#overriding-templates)
@@ -47,8 +48,9 @@ show as plain text is rejected when it is saved. `'max_length' => null` removes 
 |--------|---------|
 | `[[wiki:<uuid>]]`, `[[wiki:<uuid>#anchor]]` | Link to a page by id; shown with its current title, or *Content not visible* |
 | `@handle` | Mention (needs start of text, a space or `(` before it — never inside an e-mail) |
-| `:tabler-<name>:` | Icon from the sprite when the name is allowlisted, text otherwise |
+| `:tabler-<name>:` | Icon from the sprite when the name is allowlisted (or in the catalog with `icon_catalog`), text otherwise |
 | `:::callout{type=info\|success\|warning\|danger}` … `:::` | Callout |
+| `:::callout{icon="bulb" type=…}`, `:::callout{icon="💡" type=…}` | Callout with an icon: a Tabler name or an emoji (1.7) |
 | `:::details{summary="…"}` … `:::` | Collapsible section |
 | `::: {align=center}` … `:::` | Alignment (`left`, `center`, `right`) |
 | `:mark[text]{color=green}` | Highlight (colour tokens from `markdown.mark_colors`) |
@@ -329,9 +331,9 @@ Add `markdown_clipboard` to a field's `features` (1.5).
   wrapper: it copies the `<template>`'s text and writes `data-copied` / `data-failed` into the `role="status"` span,
   cleared after 4 s and on the next click.
 
-The *Insert* group (`insert_menu`, with `context_menu`) adds *Image or file…* (when the field has uploads), *Icon or
-emoji* (with icons or `:` suggestions) and the `/` blocks of the field. A new block goes after the current one; an
-empty paragraph is reused.
+The *Insert* group (`insert_menu`, with `context_menu`) adds *Image or file…* (when the field has uploads), *Icon…*
+(with icons or `:` suggestions; 1.5–1.6: *Icon or emoji*) and the `/` blocks of the field. A new block goes after the
+current one; an empty paragraph is reused. The icon goes inline at the caret (1.7).
 
 ## Block actions and colours
 
@@ -362,12 +364,49 @@ every combination stays AA (the text colour is kept in the Markdown). The menus 
 per character). **Colour is never the only
 carrier of meaning**: use a callout, an icon or words for status.
 
+## Icons and the icon picker
+
+Since 1.7 (see [CONFIGURATION](CONFIGURATION.md#icons) for `menu_icons`, `toolbar_icons` and `icon_catalog`):
+
+- **Picker.** With `icons` or `icon_catalog`, *Insert → Icon…*, `/icon`, the action bar's *Insert icon* and the last
+  option of the `:` list (*Browse all icons…*, which keeps what you typed) open a picker. It inserts `:tabler-NAME:`
+  **inline at the caret**, in the same paragraph (a caret in a code block gets a paragraph after it). Without icons
+  and without the catalog these entries type `:` as before.
+- **Search.** Names first (exact, prefix, word, substring), then Tabler's keywords and category; at most 60 options are
+  shown, the live region says how many match.
+- **Keyboard.** Focus starts in the search field (`role="combobox"`, `aria-activedescendant`): **Up / Down** move,
+  **Page Up / Page Down** jump 8, **Enter** picks, **Escape** closes; focus returns to the editor.
+- **Callout icons.** The callout header has an icon button (*Choose a callout icon* / *Callout icon: NAME*). Its
+  picker has **Icons** and **Emoji** tabs (Shift+Tab reaches the tabs, Left / Right switch, Tab returns to the field)
+  and a *No icon* option. The value is stored on the callout:
+
+  ```markdown
+  :::callout{icon="bulb" type="info"}
+  A Tabler icon.
+  :::
+
+  :::callout{icon="💡" type="warning"}
+  An emoji (1–8 code points, no letters, digits or spaces).
+  :::
+  ```
+
+  The editor writes attributes sorted by name (`icon` before `type`). A value that does not resolve (not allowlisted,
+  catalog off, unknown name, not an emoji) stays in the Markdown and is not drawn. The PHP renderer outputs
+  `<div class="nowo-md-callout nowo-md-callout--TYPE nowo-md-callout--icon" role="note">`, then either
+  `<svg class="nowo-md-icon nowo-md-callout__icon" aria-hidden="true">` or
+  `<span class="nowo-md-callout__icon nowo-md-callout__emoji" data-emoji="…" aria-hidden="true">` (drawn by CSS, so the
+  element has no text), then `<div class="nowo-md-callout__body">`. Emoji are Unicode text, never images.
+- **Search indexes.** Text extracted from the rendered HTML contains only the callout body. Text extracted from the
+  Markdown should drop directive fences and `{…}` attributes, or icon names would match searches.
+
 ## Keyboard and accessibility
 
 - The editable is a named multi-line textbox; the suggestion list follows the listbox pattern with
   `aria-activedescendant`, and a polite live region announces the number of results.
 - **Tab** / **Shift+Tab** nest and un-nest list items, move between table cells and indent in code blocks
   (**Escape** then **Tab** leaves a code block); anywhere else Tab moves focus out of the editor.
+- Menu, `/` and action-bar icons are decorative (`aria-hidden`); the label is the accessible name. The icon picker
+  follows the combobox + listbox pattern (above).
 - The context menu (`context_menu`) follows the WAI-ARIA menu pattern: Up / Down (wrap), Home / End, type-ahead,
   Right / Enter opens a submenu, Left / Escape closes it, Escape or Tab closes the menu and focus returns to the
   caret.

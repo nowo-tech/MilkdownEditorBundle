@@ -19,6 +19,40 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+Icons (planned as **1.7.0**).
+
+### Added
+
+- **Icons in the UI** (`menu_icons`, `toolbar_icons`, both on by default): a decorative Tabler glyph before the label of
+  every context menu item (clipboard, link, table, block actions, *Insert* and *Turn into* submenus), every block menu
+  item, every `/` slash menu option and the action bar buttons (*Insert file*, *Insert icon*). Glyphs are bundled inline
+  SVG built with DOM APIs (`svg.nowo-milkdown-glyph[aria-hidden="true"]`): no fetch, no inline style, the label stays
+  the accessible name; they follow the `--nowo-milkdown-*` tokens and dark mode (optional tokens
+  `--nowo-milkdown-icon-size`, `--nowo-milkdown-icon-color`). Host menu items may set `icon` to a glyph name.
+- **Tabler outline catalog** (`icon_catalog` profile / field option and `markdown.icon_catalog`, off by default): the
+  5,203 icons of Tabler Icons 3.50.0 (MIT) become insertable as `:tabler-NAME:` and render from sprite shards
+  published with the bundle (`icons/tabler-<first character>.svg`, a page only fetches the shards it uses). Allowlisted
+  icons keep the host sprite. The searchable names and keywords load as a lazy chunk.
+- **Icon picker** (lazy chunk): a non-modal dialog with a search field (`role="combobox"`) and a listbox of icons
+  (WAI-ARIA combobox + listbox; Up / Down, Page Up / Down, Enter, Escape). It opens from *Insert → Icon…*, `/icon`,
+  the action bar's *Insert icon* and *Browse all icons…*, the last option of the `:` suggestions; the icon is always
+  inserted **inline at the caret**. Available with `icons` or `icon_catalog`; otherwise these entries still type `:`.
+- **Callout icons**: `:::callout{icon="bulb" type="info"}` (a Tabler name) or `:::callout{icon="💡" type="info"}` (an
+  emoji). The callout header has an icon button opening the picker with *Icons* / *Emoji* tabs and *No icon*. The PHP
+  renderer adds the icon (decorative, `aria-hidden`; an emoji is drawn by CSS from `data-emoji`, so the HTML text is only
+  the body) and wraps the content in `.nowo-md-callout__body`. Callouts without `icon` are unchanged.
+- `TablerCatalog` service and an optional `$catalog` argument of `AllowlistIconResolver`.
+
+### Changed
+
+- The *Icon or emoji* item of the *Insert* group and the `/` menu is now **Icon…** (`slash.icon`) and opens the picker
+  when the field has icons; emoji stay available through `:`.
+
+### Fixed
+
+- *Insert → Icon* (context menu) no longer adds a new paragraph before the `:` trigger: inline entries are inserted at
+  the caret.
+
 ## [1.5.1] - 2026-11-04
 
 Collaboration request rate (patch).
