@@ -92,6 +92,11 @@ export type EditorOptions = {
   linkTitleUrl: string | null;
   iconSpriteUrl: string | null;
   icons: string[];
+  /** 1.7 `icon_catalog`: the bundled Tabler outline catalog (sprite shards under `icons/` next to the module). */
+  iconCatalog: boolean;
+  /** 1.7 `toolbar_icons` / `menu_icons`: decorative glyphs before action-bar and menu labels (default true). */
+  toolbarIcons: boolean;
+  menuIcons: boolean;
   upload: { url: string; csrfToken: string | null; maxSize: number; accept: string[] } | null;
   collaboration: CollaborationOptions | null;
   /** Colours the editor offers (`markdown.mark_colors`, 1.4); empty: the whole palette. */

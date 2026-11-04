@@ -78,6 +78,10 @@ export function parseOptions(raw: string | undefined | null): EditorOptions {
     linkTitleUrl: strOrNull(data.linkTitleUrl),
     iconSpriteUrl: strOrNull(data.iconSpriteUrl),
     icons: Array.isArray(data.icons) ? data.icons.filter((n): n is string => typeof n === 'string' && isIconName(n)) : [],
+    // 1.7: sent only when not the default.
+    iconCatalog: data.iconCatalog === true,
+    toolbarIcons: data.toolbarIcons !== false,
+    menuIcons: data.menuIcons !== false,
     upload: strOrNull(upload.url)
       ? {
           url: str(upload.url),

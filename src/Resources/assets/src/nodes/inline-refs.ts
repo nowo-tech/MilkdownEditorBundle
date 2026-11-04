@@ -6,6 +6,7 @@ import type { Node as PmNode } from '@milkdown/kit/prose/model';
 import { remarkNowoDialect } from '../dialect/remark-dialect';
 import { isAnchor, isHandle, isIconName, isUuid } from '../dialect/patterns';
 import { iconSvg, runtimeCtx, t } from '../runtime';
+import { lazyIcons } from '../icons/open';
 
 export const dialectRemark = $remark('nowoDialect', () => remarkNowoDialect as never);
 
@@ -150,16 +151,32 @@ export const tablerIconView = $view(tablerIconSchema.node, (ctx) => (node) => {
   const dom = document.createElement('span');
   dom.className = 'nowo-milkdown-tabler';
   dom.dataset.tabler = node.attrs.name;
-  const svg = iconSvg(runtime, node.attrs.name);
-  if (svg) {
-    dom.setAttribute('role', 'img');
-    dom.setAttribute('aria-label', node.attrs.name);
-    dom.append(svg);
-  } else {
+  const name = String(node.attrs.name);
+  const asText = (): void => {
     // Unknown names stay text (FR-075): never a remote image, never markup from the name.
+    dom.replaceChildren();
+    dom.removeAttribute('role');
+    dom.removeAttribute('aria-label');
     dom.classList.add('nowo-milkdown-tabler--unknown');
     dom.title = t(runtime, 'icon.unknown');
-    dom.textContent = `:tabler-${node.attrs.name}:`;
+    dom.textContent = `:tabler-${name}:`;
+  };
+  const svg = iconSvg(runtime, name);
+  if (svg) {
+    dom.setAttribute('role', 'img');
+    dom.setAttribute('aria-label', name);
+    dom.append(svg);
+    // 1.7: a catalog icon (not allowlisted) is checked against the catalog chunk; unknown names become text.
+    if (!runtime.icons.has(name) || !runtime.spriteUrl) {
+      void lazyIcons
+        .catalog()
+        .then((m) => {
+          if (!m.hasIcon(name)) asText();
+        })
+        .catch(asText);
+    }
+  } else {
+    asText();
   }
   return { dom, ignoreMutation: () => true };
 });

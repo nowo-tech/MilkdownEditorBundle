@@ -34,7 +34,7 @@ final class MilkdownEditorTypeTest extends TypeTestCase
         };
 
         return [
-            new PreloadedExtension([new MilkdownEditorType(new ProfileRegistry(['default' => self::PROFILE, 'wiki' => ['features' => ['code_mirror', 'math']] + self::PROFILE], 'default'), $nonce, null, 10)], []),
+            new PreloadedExtension([new MilkdownEditorType(new ProfileRegistry(['default' => self::PROFILE, 'wiki' => ['features' => ['code_mirror', 'math']] + self::PROFILE, 'icons' => ['icon_catalog' => true, 'toolbar_icons' => true, 'menu_icons' => false] + self::PROFILE], 'default'), $nonce, null, 10)], []),
             new ValidatorExtension(Validation::createValidator()),
         ];
     }
@@ -89,6 +89,10 @@ final class MilkdownEditorTypeTest extends TypeTestCase
         self::assertEquals((object) [], $o['messages']);
         self::assertArrayNotHasKey('mentionDisplay', $o); // 1.2.1 keys only when set: default JSON unchanged
         self::assertArrayNotHasKey('userTitleUrl', $o);
+        // 1.7 keys only when not the default.
+        self::assertArrayNotHasKey('iconCatalog', $o);
+        self::assertArrayNotHasKey('toolbarIcons', $o);
+        self::assertArrayNotHasKey('menuIcons', $o);
         self::assertSame('milkdown_editor', (new MilkdownEditorType(new ProfileRegistry(['default' => self::PROFILE], 'default')))->getBlockPrefix());
         self::assertSame(TextareaType::class, (new MilkdownEditorType(new ProfileRegistry(['default' => self::PROFILE], 'default')))->getParent());
     }
@@ -103,6 +107,24 @@ final class MilkdownEditorTypeTest extends TypeTestCase
 
         $this->expectException(InvalidOptionsException::class);
         $this->factory->create(MilkdownEditorType::class, null, ['mention_display' => 'email']);
+    }
+
+    #[Test]
+    public function iconOptionsComeFromTheProfileAndTheField(): void
+    {
+        $o = $this->factory->create(MilkdownEditorType::class, null, ['icon_catalog' => true, 'toolbar_icons' => false, 'menu_icons' => false])->createView()->vars['milkdown_options'];
+        self::assertIsArray($o);
+        self::assertTrue($o['iconCatalog']);
+        self::assertFalse($o['toolbarIcons']);
+        self::assertFalse($o['menuIcons']);
+        $profile = $this->factory->create(MilkdownEditorType::class, null, ['profile' => 'icons'])->createView()->vars['milkdown_options'];
+        self::assertIsArray($profile);
+        self::assertTrue($profile['iconCatalog']);
+        self::assertFalse($profile['menuIcons']);
+        self::assertArrayNotHasKey('toolbarIcons', $profile);
+
+        $this->expectException(InvalidOptionsException::class);
+        $this->factory->create(MilkdownEditorType::class, null, ['menu_icons' => 'yes']);
     }
 
     #[Test]

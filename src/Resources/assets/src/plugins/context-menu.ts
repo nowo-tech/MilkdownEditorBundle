@@ -69,6 +69,7 @@ export class ContextMenuView {
     this.menu = new Menu(host, t(runtime, 'menu.label'), (restore) => {
       if (restore) view.focus();
     });
+    this.menu.icons = runtime.menuIcons;
     view.dom.addEventListener('contextmenu', this.onContextMenu);
     view.dom.addEventListener('keydown', this.onKeyDown);
   }
@@ -156,7 +157,8 @@ export class ContextMenuView {
             label: entry.label,
             run: () =>
               runner(() => {
-                prepareInsertPoint(view);
+                // 1.7: inline entries (the icon) go at the caret; blocks get their own paragraph.
+                if (!entry.inline) prepareInsertPoint(view);
                 entry.run(view);
                 return true;
               }),

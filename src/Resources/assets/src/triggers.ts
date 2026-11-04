@@ -13,7 +13,10 @@ import { EMOJI } from './emoji';
 import { encodeAttributes } from './dialect/directives';
 import { isHandle, isIconName, isUuid } from './dialect/patterns';
 import { safeUrl } from './link-titles';
-import { t, type PageInfo, type Runtime } from './runtime';
+import { pickerAvailable, t, type PageInfo, type Runtime } from './runtime';
+import { glyphFor } from './ui/icons';
+import { catalogEntries, openPickerAtCaret } from './icons/open';
+import { mergeEntries, searchIcons } from './icons/search';
 import type { Range, SuggestItem, SuggestTrigger } from './plugins/suggest';
 import type { Candidate, EditorOptions } from './types';
 
@@ -40,6 +43,9 @@ function insertNode(view: EditorView, range: Range, type: NodeType | undefined, 
   if (!type) return;
   view.dispatch(view.state.tr.replaceWith(range.from, range.to, type.create(attrs)).insertText(' ').scrollIntoView());
 }
+
+/** Id of the last `:` option, *Browse all icons…* (1.7): opens the picker with the typed query. */
+export const BROWSE_ICONS = '__browse_icons';
 
 const isEmoji = (value: string): boolean => value !== '' && !/^[\x20-\x7e]*$/.test(value) && [...value].length <= 8;
 
@@ -90,7 +96,8 @@ export function buildTriggers(ctx: Ctx, deps: Deps): SuggestTrigger[] {
     });
   }
 
-  if (iconUrl || options.icons.length > 0) {
+  if (iconUrl || options.icons.length > 0 || runtime.catalogUrl) {
+    const browse: SuggestItem[] = pickerAvailable(runtime) ? [{ id: BROWSE_ICONS, label: t(runtime, 'icon.browse'), glyph: 'search' }] : [];
     triggers.push({
       name: 'icon',
       match: /(?:^|[\s(]):([a-z0-9_+-]{0,30})$/,
@@ -98,25 +105,29 @@ export function buildTriggers(ctx: Ctx, deps: Deps): SuggestTrigger[] {
       source: async (q, signal) => {
         const query = q.toLowerCase();
         if (iconUrl) {
-          return (await candidates(fetcher, iconUrl, q, signal))
+          const remote = (await candidates(fetcher, iconUrl, q, signal))
             .map((c): SuggestItem | null => {
               if (c.id.startsWith('tabler-') && runtime.icons.has(c.id.slice(7))) return { id: c.id, label: c.label, hint: c.hint, icon: c.id.slice(7) };
               if (isEmoji(c.id)) return { id: c.id, label: c.label, hint: c.hint, emoji: c.id };
               return null;
             })
             .filter((c): c is SuggestItem => c !== null);
+          return [...remote.slice(0, 10 - browse.length), ...browse];
         }
         const emoji = EMOJI.filter(([name]) => name.includes(query))
           .slice(0, 4)
           .map(([name, ch]) => ({ id: ch, label: name, emoji: ch }));
-        const icons = options.icons
-          .filter((name) => name.includes(query))
-          .slice(0, 10 - emoji.length)
-          .map((name) => ({ id: `tabler-${name}`, label: name, icon: name }));
-        return [...icons, ...emoji];
+        // 1.7: the allowlist first, then the catalog (lazy chunk) when the field has `icon_catalog`.
+        const entries = mergeEntries(options.icons, await catalogEntries(runtime));
+        const icons = searchIcons(entries, query, 10 - emoji.length - browse.length).names.map((name) => ({ id: `tabler-${name}`, label: name, icon: name }));
+        return [...icons, ...emoji, ...browse];
       },
       apply: (view, range, item) => {
-        if (item.id.startsWith('tabler-') && isIconName(item.id.slice(7))) {
+        if (item.id === BROWSE_ICONS) {
+          const query = view.state.doc.textBetween(range.from, range.to).replace(/^:/, '');
+          view.dispatch(view.state.tr.delete(range.from, range.to));
+          void openPickerAtCaret(view, runtime, query);
+        } else if (item.id.startsWith('tabler-') && isIconName(item.id.slice(7))) {
           insertNode(view, range, view.state.schema.nodes.tablerIcon, { name: item.id.slice(7) });
         } else {
           view.dispatch(view.state.tr.insertText(item.id, range.from, range.to).scrollIntoView());
@@ -151,7 +162,10 @@ export function slashItems(ctx: Ctx, options: EditorOptions, runtime: Runtime): 
   const run = (cmd: (view: EditorView) => boolean) => (view: EditorView) => {
     cmd(view);
   };
-  const block = (id: string, fn: (view: EditorView) => void): Block => ({ item: { id, label: t(runtime, `slash.${id}`) }, run: fn });
+  const block = (id: string, fn: (view: EditorView) => void): Block => ({
+    item: { id, label: t(runtime, `slash.${id}`), ...(runtime.menuIcons ? { glyph: glyphFor(id) } : {}) },
+    run: fn,
+  });
   const type = (name: string, attrs?: Attrs) => run((view) => setBlockType(nodes(view)[name]!, attrs)(view.state, view.dispatch));
   const text = (value: string) => (view: EditorView) => view.dispatch(view.state.tr.insertText(value));
   const container = (name: string, attributes: Record<string, string>) =>
@@ -186,6 +200,8 @@ export function slashItems(ctx: Ctx, options: EditorOptions, runtime: Runtime): 
   if (options.features.includes('math')) out.push(block('math', type('code_block', { language: 'LaTeX' })));
   if (options.suggestions['[[']) out.push(block('page_link', text('[[')));
   if (options.suggestions['@']) out.push(block('mention', text('@')));
-  if (options.suggestions[':'] || options.icons.length > 0) out.push(block('icon', text(':')));
+  // 1.7: *Icon…* opens the picker at the caret (inline) when there are icons to pick; otherwise it types `:`.
+  if (pickerAvailable(runtime)) out.push(block('icon', (view) => void openPickerAtCaret(view, runtime)));
+  else if (options.suggestions[':']) out.push(block('icon', text(':')));
   return out;
 }

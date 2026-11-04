@@ -1,6 +1,8 @@
 import { defineConfig } from 'vitest/config';
+import { tablerIcons } from './vite.icons';
 
 export default defineConfig({
+  plugins: [tablerIcons()],
   test: {
     environment: 'jsdom',
     include: ['src/Resources/assets/tests/**/*.test.ts'],

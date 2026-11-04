@@ -7,7 +7,13 @@ import { TextSelection } from '@milkdown/kit/prose/state';
 import type { EditorView } from '@milkdown/kit/prose/view';
 
 /** One entry of the group: `run` acts on the view at the caret prepared by {@link prepareInsertPoint}. */
-export type InsertItem = { id: string; label: string; run: (view: EditorView) => void };
+export type InsertItem = {
+  id: string;
+  label: string;
+  run: (view: EditorView) => void;
+  /** 1.7: inserted inline at the caret (the icon), without a new paragraph. */
+  inline?: boolean;
+};
 
 /** Blocks of the `/` menu offered by *Insert*, in this order (the others turn the current block). */
 export const INSERT_BLOCKS = ['h1', 'h2', 'h3', 'bullet_list', 'ordered_list', 'task_list', 'table', 'code', 'callout', 'divider', 'math', 'mermaid'] as const;

@@ -61,6 +61,8 @@ final class MilkdownEditorType extends AbstractType
         'suggest.label.mention', 'suggest.label.page', 'suggest.label.icon', 'suggest.label.slash',
         'suggest.empty', 'suggest.count', 'suggest.failed',
         'ref.hidden', 'ref.loading', 'icon.unknown', 'icon.button',
+        'icon.browse', 'picker.label', 'picker.search', 'picker.list', 'picker.tab_icons', 'picker.tab_emoji', 'picker.none',
+        'picker.empty', 'picker.count', 'picker.more', 'directive.callout_icon', 'directive.callout_icon_none',
         'upload.button', 'upload.uploading', 'upload.done', 'upload.failed', 'upload.too_large', 'upload.type',
         'directive.callout', 'directive.callout_type', 'directive.callout.info', 'directive.callout.success',
         'directive.callout.warning', 'directive.callout.danger', 'directive.details', 'directive.summary', 'directive.block',
@@ -172,6 +174,16 @@ final class MilkdownEditorType extends AbstractType
         if ($options['mention_display'] === 'name') {
             $view->vars['milkdown_options']['mentionDisplay'] = 'name';
         }
+        // 1.7: icons; only when not the default, so fields with the defaults keep the same widget JSON.
+        if ($options['icon_catalog'] === true) {
+            $view->vars['milkdown_options']['iconCatalog'] = true;
+        }
+        if ($options['toolbar_icons'] === false) {
+            $view->vars['milkdown_options']['toolbarIcons'] = false;
+        }
+        if ($options['menu_icons'] === false) {
+            $view->vars['milkdown_options']['menuIcons'] = false;
+        }
         if (is_string($options['user_title_url'])) {
             $view->vars['milkdown_options']['userTitleUrl'] = $options['user_title_url'];
         }
@@ -206,6 +218,9 @@ final class MilkdownEditorType extends AbstractType
             'upload_max_size'   => static fn (Options $o): int => $profile($o)['upload_max_size'],
             'upload_accept'     => static fn (Options $o): array => $profile($o)['upload_accept'],
             'mention_display'   => static fn (Options $o): string => $profile($o)['mention_display'] ?? 'handle',
+            'icon_catalog'      => static fn (Options $o): bool => $profile($o)['icon_catalog'] ?? false,
+            'toolbar_icons'     => static fn (Options $o): bool => $profile($o)['toolbar_icons'] ?? true,
+            'menu_icons'        => static fn (Options $o): bool => $profile($o)['menu_icons'] ?? true,
             'user_title_url'    => null,
             'attr'              => ['rows' => 12],
         ]);
@@ -229,6 +244,9 @@ final class MilkdownEditorType extends AbstractType
         $resolver->setAllowedTypes('upload_accept', 'string[]');
         $resolver->setAllowedValues('mention_display', ['handle', 'name']);
         $resolver->setAllowedTypes('user_title_url', ['null', 'string']);
+        $resolver->setAllowedTypes('icon_catalog', 'bool');
+        $resolver->setAllowedTypes('toolbar_icons', 'bool');
+        $resolver->setAllowedTypes('menu_icons', 'bool');
 
         $resolver->setNormalizer('profile', function (Options $o, ?string $value): ?string {
             if ($value !== null && !$this->profiles->has($value)) {

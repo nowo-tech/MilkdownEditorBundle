@@ -25,7 +25,7 @@ use function sprintf;
  *     nowo_milkdown_editor:
  *         default_profile: default
  *         profiles:
- *             default: { features: [...], theme: auto, min_height: 12rem, icon_sprite_url: ~, icons: [], upload_max_size: 10485760, upload_accept: [] }
+ *             default: { features: [...], theme: auto, min_height: 12rem, icon_sprite_url: ~, icons: [], icon_catalog: false, toolbar_icons: true, menu_icons: true, upload_max_size: 10485760, upload_accept: [] }
  *         markdown: { html_input: escape, allow_unsafe_links: false, allow_remote_images: false, math: true, ... }
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
@@ -114,6 +114,9 @@ final class Configuration implements ConfigurationInterface
                         ->defaultNull()
                     ->end()
                     ->append($this->iconsNode('Allowlisted icon names (`:tabler-NAME:`) offered by the `:` trigger.'))
+                    ->booleanNode('icon_catalog')->info('1.7: the bundled Tabler outline catalog (5,000+ icons, MIT) in the icon picker and the `:` list; allowlisted icons keep their sprite.')->defaultFalse()->end()
+                    ->booleanNode('toolbar_icons')->info('1.7: decorative icons before the labels of the action bar buttons.')->defaultTrue()->end()
+                    ->booleanNode('menu_icons')->info('1.7: decorative icons before the labels of the context menu, block menu and `/` menu items.')->defaultTrue()->end()
                     ->integerNode('upload_max_size')->info('Largest upload in bytes (0: no client-side limit).')->min(0)->defaultValue(10485760)->end()
                     ->enumNode('mention_display')->info('Mention chips show the @handle (default) or the person\'s name (1.2.1; names from the `@` suggestions and `user_title_url`).')->values(['handle', 'name'])->defaultValue('handle')->end()
                     ->arrayNode('upload_accept')
@@ -156,6 +159,7 @@ final class Configuration implements ConfigurationInterface
                 ->end()
                 ->scalarNode('icon_sprite_url')->info('Sprite URL for :tabler-NAME: icons in rendered HTML.')->defaultNull()->end()
                 ->append($this->iconsNode('Icon names the renderer turns into SVG (others stay text).'))
+                ->booleanNode('icon_catalog')->info('1.7: also render any icon of the bundled Tabler outline catalog (sprite shards under /bundles/nowomilkdowneditor/icons/).')->defaultFalse()->end()
                 ->arrayNode('mark_colors')
                     ->info('Colour names accepted by :mark[text]{bg=… text=…} (legacy color= is bg) and coloured blocks ::: {bg=… text=…}; the first is the default highlight.')
                     ->scalarPrototype()->end()

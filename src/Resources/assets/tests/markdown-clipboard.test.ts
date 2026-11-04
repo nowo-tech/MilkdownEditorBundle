@@ -285,8 +285,12 @@ describe('Insert group (1.5, insert_menu)', () => {
     sub(openMenu(handle), 'insert').querySelector<HTMLElement>('[data-id="insert_divider"]')!.click();
     expect(handle.getMarkdown()).toMatch(/^First\n\n(\*\*\*|---)/);
     select(handle, 2);
+    // 1.7: the icon is inline (no new block): the picker opens at the caret.
+    const blocks = view(handle).state.doc.childCount;
     sub(openMenu(handle), 'insert').querySelector<HTMLElement>('[data-id="insert_icon"]')!.click();
-    expect(view(handle).state.doc.textContent).toContain(':');
+    for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 20));
+    expect(document.querySelector('.nowo-milkdown-picker[role="dialog"]')).not.toBeNull();
+    expect(view(handle).state.doc.childCount).toBe(blocks);
     sub(openMenu(handle), 'insert').querySelector<HTMLElement>('[data-id="insert_file"]')!.click();
     expect(click).toHaveBeenCalled();
   });

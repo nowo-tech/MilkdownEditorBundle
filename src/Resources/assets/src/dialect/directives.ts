@@ -2,12 +2,15 @@
  * Directive helpers of the FR-075 dialect (`remark-directive` syntax):
  *
  *   :::callout{type=info|success|warning|danger}   container (rendered as a note)
+ *   :::callout{icon="bulb"} / {icon="💡"}           1.7: callout icon, a Tabler name or an emoji
  *   :::details{summary="…"}                        container (collapsible section)
  *   ::: {align=center}                             container without a name (alignment)
  *   :mark[text]{bg=<colour> text=<colour>}         text directive (background / text colour; legacy color= is bg)
  *   ::: {bg=<colour> text=<colour>}                container without a name (block colour, 1.4; with align=)
  *   ::name{…}                                      leaf directive kept as an embedded block (e.g. live host blocks)
  */
+import { ICON } from './patterns';
+
 export const CALLOUT_TYPES = ['info', 'success', 'warning', 'danger'] as const;
 export type CalloutType = (typeof CALLOUT_TYPES)[number];
 export const ALIGNMENTS = ['left', 'center', 'right'] as const;
@@ -17,6 +20,7 @@ export type Color = (typeof COLORS)[number];
 
 
 const NAME = /^[a-z][a-z0-9-]{0,40}$/;
+const ICON_NAME = new RegExp(`^${ICON}$`);
 const KEY = /^[a-z][a-z0-9_-]{0,40}$/;
 
 export const isDirectiveName = (value: string): boolean => NAME.test(value);
@@ -32,6 +36,23 @@ export function cleanAttributes(input: unknown): Record<string, string> {
     count++;
   }
   return out;
+}
+
+/**
+ * An emoji value (1.7 callout icons): 1–8 code points, none of them ASCII, a letter, a digit, a space or a control
+ * (zero-width joiner, variation selector 16 and the keycap mark allowed). The PHP renderer uses the same rule.
+ */
+const EMOJI = /^(?:[^\p{L}\p{N}\p{Z}\p{C}\p{ASCII}]|\u200d|\ufe0f|\u20e3)+$/u;
+export const isEmojiValue = (value: string): boolean => EMOJI.test(value) && [...value].length <= 8;
+
+export type CalloutIcon = { kind: 'tabler'; name: string } | { kind: 'emoji'; value: string };
+
+/** The icon of a callout (`icon=`, 1.7): a Tabler name, an emoji, or null (absent or anything else). */
+export function calloutIcon(attributes: Record<string, string>): CalloutIcon | null {
+  const value = attributes.icon ?? '';
+  if (ICON_NAME.test(value)) return { kind: 'tabler', name: value };
+  if (isEmojiValue(value)) return { kind: 'emoji', value };
+  return null;
 }
 
 export const calloutType = (attributes: Record<string, string>): CalloutType =>

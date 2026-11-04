@@ -16,5 +16,5 @@
     "rootDir": ".",
     "types": ["node", "vite/client"]
   },
-  "include": ["src/Resources/assets/src", "src/Resources/assets/tests", "vite.config.ts", "vitest.config.ts"]
+  "include": ["src/Resources/assets/src", "src/Resources/assets/tests", "vite.config.ts", "vite.icons.ts", "vitest.config.ts"]
 }

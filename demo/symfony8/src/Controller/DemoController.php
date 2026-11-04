@@ -31,7 +31,7 @@ final class DemoController extends AbstractController
         Ask @ada about [[wiki:0b6f4f0e-3c55-4d0a-9a43-1f7a2c9e8d10#setup]] before :tabler-bolt: shipping; the
         [[wiki:c0ffee00-1234-4abc-8def-001122334455]] stays hidden for you.
 
-        :::callout{type="warning"}
+        :::callout{icon="alert-triangle" type="warning"}
         Freeze **merges** on Friday. :mark[Highlight]{color="green"} the :mark[risky]{text="red"} ones.
         :::
 

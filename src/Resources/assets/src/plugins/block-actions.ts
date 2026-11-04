@@ -88,6 +88,7 @@ export class BlockActionsView {
       this.button.setAttribute('aria-expanded', 'false');
       if (restore) view.focus();
     });
+    this.menu.icons = runtime.menuIcons;
     view.dom.addEventListener('mousemove', this.onMove);
     view.dom.addEventListener('keydown', this.onKey, true);
   }

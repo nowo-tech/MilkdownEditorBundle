@@ -9,6 +9,9 @@ export const setAssetBase = (url: string): void => {
   base = url;
 };
 
+/** Absolute URL of a file published next to the module (e.g. `icons/` for the Tabler sprite shards, 1.7). */
+export const assetUrl = (path: string): string => new URL(path, base || document.baseURI).href;
+
 /** Adds `<link rel="stylesheet">` for `path` (relative to the module) once per page. */
 export function ensureStylesheet(path: string, nonce = ''): HTMLLinkElement {
   const existing = document.querySelector<HTMLLinkElement>(`link[data-nowo-milkdown="${path}"]`);
