@@ -15,7 +15,7 @@ import { addColumnAfter, addColumnBefore, addRowAfter, addRowBefore, deleteColum
 import { runtimeCtx, t, type Runtime } from '../runtime';
 import { Menu, type MenuGroups, type MenuItem } from '../ui/menu';
 import { TURN_INTO, currentBlock, deleteBlock, duplicateBlock, insertPlainText, moveBlock, selectionRunner, turnInto } from '../commands/blocks';
-import { tabContext } from './keyboard';
+import { flushSelection, tabContext } from './keyboard';
 import { colorItems } from '../commands/colors';
 import { safeUrl } from '../link-titles';
 import { hostItems, type ContextMenuContext } from '../context-menu-registry';
@@ -55,6 +55,7 @@ export class ContextMenuView {
     if (!isMenuKey || event.defaultPrevented) return;
     if ((event.target as HTMLElement | null)?.closest?.('.cm-editor')) return;
     event.preventDefault();
+    flushSelection(this.view); // 1.7: a caret just moved with End / arrows (not yet in the state) is where the menu acts
     const coords = this.view.coordsAtPos(this.view.state.selection.head);
     this.open(coords.left, coords.bottom);
   };

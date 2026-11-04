@@ -52,6 +52,10 @@ Icons (planned as **1.7.0**).
 
 - *Insert → Icon* (context menu) no longer adds a new paragraph before the `:` trigger: inline entries are inserted at
   the caret.
+- A key pressed right after the browser moved the caret (End, Home, arrows, a click) acted on the old caret: Shift+F10 /
+  the ContextMenu key opened the context menu (and inserted) there, Ctrl / ⌘ + / the block menu, Enter split the old
+  block. The editor now reads the pending DOM selection (ProseMirror's own flush) before its key handlers and before
+  opening a menu from the keyboard.
 
 ## [1.5.1] - 2026-11-04
 

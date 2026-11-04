@@ -18,7 +18,7 @@ import { catalogShard, defaultRuntime, iconHref, iconSvg, pickerAvailable, type 
 import { parseOptions } from '../src/options';
 import { assetUrl, setAssetBase } from '../src/assets';
 import { calloutIconButton } from '../src/nodes/directives';
-import { catalogText, iconNames, readTabler, spriteShards, tablerIcons, CATALOG_ID } from '../../../../vite.icons';
+import { catalogData, iconNames, keywordsOf, readTabler, spriteShards, tablerIcons, CATALOG_ID } from '../../../../vite.icons';
 
 let handle: MilkdownEditorHandle | null = null;
 afterEach(async () => {
@@ -116,7 +116,12 @@ describe('icon search and catalog (1.7)', () => {
   });
 
   it('the generated catalog has every Tabler outline icon with keywords', () => {
-    expect(parseCatalog('a\tb c\nd\n')).toEqual([{ name: 'a', keywords: 'b c' }, { name: 'd', keywords: '' }]);
+    expect(parseCatalog('a\t0100\tz y\nd\ne\t\tw\nf\tzz\n', 'one two')).toEqual([
+      { name: 'a', keywords: 'two one z y' },
+      { name: 'd', keywords: '' },
+      { name: 'e', keywords: 'w' },
+      { name: 'f', keywords: '' },
+    ]);
     expect(VERSION).toMatch(/^3\.\d+\.\d+$/);
     expect(catalog().length).toBeGreaterThan(5000);
     expect(catalog()).toBe(catalog());
@@ -129,7 +134,13 @@ describe('icon search and catalog (1.7)', () => {
     const data = readTabler();
     const names = iconNames(data);
     expect(names.length).toBe(catalog().length);
-    expect(catalogText(data).split('\n')[0]).toMatch(/^[a-z0-9-]+(\t.*)?$/);
+    const { dict, text } = catalogData(data);
+    expect(text.split('\n')[0]).toMatch(/^[a-z0-9-]+(\t.*)?$/);
+    expect(dict.split(' ').length).toBeLessThanOrEqual(62 * 62);
+    // Lossless for the search: every kept word, decoded, is in the parsed entry.
+    expect(parseCatalog(text, dict).find((e) => e.name === 'bulb')!.keywords.split(' ').sort()).toEqual(keywordsOf(data, 'bulb').sort());
+    // Words of the name and prefixes of longer words are dropped (they match anyway).
+    expect(keywordsOf({ ...data, meta: { 'a-b': { category: 'Text', tags: ['ab-test', 'testing', 'a', 'b'] } } }, 'a-b')).toEqual(['text', 'ab', 'testing']);
     const shards = spriteShards(data);
     expect([...shards.keys()].every((k) => /^[a-z0-9]$/.test(k))).toBe(true);
     const a = shards.get('a')!;
@@ -369,6 +380,35 @@ describe('icons in the editor (1.7)', () => {
     keydown(search(), 'Enter');
     expect(handle.getMarkdown()).toBe('Hello :tabler-bug: world\n');
     expect(v.state.doc.childCount).toBe(1);
+  });
+
+  it('Shift+F10 right after the browser moved the caret uses the new caret (selection flushed first)', async () => {
+    handle = await editor('Hello world', { ...OPTS, features: ['context_menu', 'insert_menu', 'block_actions'] });
+    const v = view(handle);
+    v.focus();
+    v.dispatch(v.state.tr.setSelection(TextSelection.create(v.state.doc, v.state.doc.content.size - 1)));
+    // The browser moves the caret (End / arrows) and has not told ProseMirror yet.
+    document.getSelection()!.collapse(v.dom.querySelector('p')!.firstChild!, 6);
+    expect(v.state.selection.head).toBe(12);
+    keydown(v.dom, 'F10', { shiftKey: true });
+    expect(v.state.selection.head).toBe(7);
+    const root = handle.root.querySelector<HTMLElement>('.nowo-milkdown-menu[role="menu"]')!;
+    root.querySelector<HTMLElement>('[data-id="insert"]')!.click();
+    [...handle.root.querySelectorAll<HTMLElement>('[data-id="insert_icon"]')].at(-1)!.click();
+    await settle();
+    keydown(search(), 'Enter');
+    expect(handle.getMarkdown()).toBe('Hello :tabler-bug: world\n');
+    // Ctrl+/ (block menu) and any other key read the moved caret too; IME input is left alone.
+    v.focus();
+    document.getSelection()!.collapse(v.dom.querySelector('p')!.firstChild!, 2);
+    keydown(v.dom, '/', { ctrlKey: true });
+    expect(v.state.selection.head).toBe(3);
+    v.focus();
+    document.getSelection()!.collapse(v.dom.querySelector('p')!.firstChild!, 1);
+    keydown(v.dom, 'x', { isComposing: true });
+    expect(v.state.selection.head).toBe(3);
+    keydown(v.dom, 'x');
+    expect(v.state.selection.head).toBe(2);
   });
 
   it('the action bar button and Browse all icons… from : insert at the caret', async () => {

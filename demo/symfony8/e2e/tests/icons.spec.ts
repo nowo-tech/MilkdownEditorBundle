@@ -9,15 +9,11 @@ import { caretAtEnd, editable, openDemo, seriousViolations, violations, watch } 
 /** A new paragraph "Alpha Omega" at the end, caret between "Alpha " and "Omega". */
 async function alphaOmega(page: Page): Promise<void> {
   await caretAtEnd(page);
-  await caretSynced(page);
   await page.keyboard.press('Enter');
   await page.keyboard.type('Alpha Omega');
+  // No wait: the editor reads the caret the browser just moved before acting on the next key (1.7).
   for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowLeft');
-  await caretSynced(page);
 }
-
-/** Arrow keys and End move the DOM caret; ProseMirror reads it on `selectionchange`, a moment later. */
-const caretSynced = (page: Page): Promise<void> => page.waitForTimeout(150);
 
 /** The children of the paragraph holding `text`: text as is, icons as [name]. */
 const paragraphOf = (page: Page, text: string): Promise<string[]> =>
@@ -93,12 +89,31 @@ test.describe('icons (1.7)', () => {
     expect(log.errors).toEqual([]);
   });
 
+  test('End then Shift+F10 with no delay: the menu acts at the new caret', async ({ page }) => {
+    const log = await watch(page);
+    await openDemo(page, '?devtools=0');
+    await caretAtEnd(page);
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('Delta Epsilon');
+    await page.keyboard.press('Home');
+    await page.keyboard.press('End');
+    await page.keyboard.press('Shift+F10');
+    const menu = page.getByRole('menu', { name: 'Editor actions' });
+    await menu.getByRole('menuitem', { name: 'Insert' }).focus();
+    await page.keyboard.press('ArrowRight');
+    await page.getByRole('menu', { name: 'Insert' }).getByRole('menuitem', { name: 'Icon…' }).focus();
+    await page.keyboard.press('Enter');
+    await pick(page, 'flame', 'flame');
+    expect(await paragraphOf(page, 'Delta')).toEqual(['Delta Epsilon[flame] ']);
+    expect(await violations(page)).toEqual([]);
+    expect(log.errors).toEqual([]);
+  });
+
   test('/icon, the action bar button and Browse all icons… insert inline at the caret', async ({ page }) => {
     const log = await watch(page);
     await openDemo(page, '?devtools=0');
     // Slash menu: the block menu only opens at the start of an empty paragraph; the icon lands in it.
     await caretAtEnd(page);
-    await caretSynced(page);
     await page.keyboard.press('Enter');
     await page.keyboard.type('/icon');
     await expect(page.getByRole('listbox', { name: 'Blocks' }).getByRole('option', { name: 'Icon…' })).toBeVisible();
@@ -113,7 +128,6 @@ test.describe('icons (1.7)', () => {
     expect(await paragraphOf(page, 'Alpha')).toEqual(['Alpha [flame] Omega']);
     // ":" suggestions → Browse all icons… with the typed query.
     await page.keyboard.press('End');
-    await caretSynced(page);
     await page.keyboard.press('Enter');
     await page.keyboard.type('Gamma :sparkl');
     const list = page.getByRole('listbox', { name: 'Icons and emoji' });
