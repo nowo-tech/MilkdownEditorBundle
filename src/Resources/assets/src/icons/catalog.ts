@@ -3,7 +3,7 @@
  * generated at build time from `@tabler/icons` (MIT) by the `nowo-tabler-icons` Vite plugin. The SVGs themselves are
  * the sprite shards published under `icons/` (never part of this chunk).
  */
-import data, { VERSION } from 'virtual:nowo-tabler-catalog';
+import data, { DICT, VERSION } from 'virtual:nowo-tabler-catalog';
 import type { IconEntry } from './search';
 
 export { VERSION };
@@ -11,24 +11,35 @@ export { VERSION };
 let entries: IconEntry[] | null = null;
 let names: Set<string> | null = null;
 
+const CODES = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
 /**
- * Parses `name<TAB>keywords` lines.
+ * Parses the compact catalog: `name<TAB>codes<TAB>words` lines, where `codes` are two base-62 characters per word of
+ * `dict` (space-separated, the words shared by several icons).
  *
- * @param source - The generated catalog text
+ * @param source - The generated lines
+ * @param dict - The generated dictionary
  */
-export function parseCatalog(source: string): IconEntry[] {
+export function parseCatalog(source: string, dict: string): IconEntry[] {
+  const words = dict.split(' ');
   return source
     .split('\n')
     .filter(Boolean)
     .map((line) => {
-      const tab = line.indexOf('\t');
-      return tab < 0 ? { name: line, keywords: '' } : { name: line.slice(0, tab), keywords: line.slice(tab + 1) };
+      const [name = '', codes = '', rest = ''] = line.split('\t');
+      const keywords: string[] = [];
+      for (let i = 0; i + 1 < codes.length; i += 2) {
+        const word = words[CODES.indexOf(codes[i]!) * 62 + CODES.indexOf(codes[i + 1]!)];
+        if (word) keywords.push(word);
+      }
+      if (rest) keywords.push(rest);
+      return { name, keywords: keywords.join(' ') };
     });
 }
 
 /** Every catalog icon, A–Z (parsed once). */
 export function catalog(): IconEntry[] {
-  entries ??= parseCatalog(data);
+  entries ??= parseCatalog(data, DICT);
   return entries;
 }
 

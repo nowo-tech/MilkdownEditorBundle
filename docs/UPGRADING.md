@@ -37,6 +37,9 @@ interfaces and `window.NowoMilkdownEditor`.
 - *Icon or emoji* is now **Icon…** (`slash.icon`, Spanish *Icono…*) and opens the icon picker when the field has
   `icons` or `icon_catalog`. Tests that select the item by name must use the new label; override the translation to
   keep the old one.
+- The catalog's search data is a **lazy, opt-in** chunk of about **79 kB gzip** (5,203 names, Tabler tags and
+  categories in a compact dictionary form), loaded only with `icon_catalog` on the first picker or `:` use; it never
+  adds to the up-front JavaScript (+5.2 kB gzip in 1.7 for the glyphs and menus).
 - `icon_catalog` (editor) and `markdown.icon_catalog` (renderer) are **opt-in**: with them, any `:tabler-NAME:` of the
   Tabler outline set renders as an icon (it was text unless allowlisted). Enable both together.
 - Callouts may carry `icon="…"`; renderers of other tools show the attribute as text, as for every directive attribute.

@@ -5,8 +5,8 @@ import type { Plugin } from 'vite';
 /**
  * Tabler outline icons (1.7, `icon_catalog`), from the `@tabler/icons` package (MIT, © Paweł Kuna):
  *
- * - the virtual module `virtual:nowo-tabler-catalog` (lazy `icons/catalog` chunk): one `name<TAB>keywords` line per
- *   icon, keywords = category + Tabler tags not already in the name;
+ * - the virtual module `virtual:nowo-tabler-catalog` (lazy `icons/catalog` chunk): names and search words of every icon
+ *   in the compact form of {@link catalogData};
  * - at build time, `icons/tabler-<first character>.svg` sprite shards with `<symbol id="tabler-NAME">`, the names list
  *   `icons/tabler-outline.json` (read by the PHP renderer) and `icons/LICENSE-tabler.txt`, under the output directory.
  */
@@ -35,18 +35,42 @@ export function readTabler(dir: string = resolve(process.cwd(), 'node_modules/@t
 /** Valid icon names, sorted. */
 export const iconNames = (data: TablerData): string[] => Object.keys(data.nodes).filter((n) => NAME.test(n)).sort();
 
-/** The catalog text: `name<TAB>keywords` lines. */
-export function catalogText(data: TablerData): string {
-  return iconNames(data)
-    .map((name) => {
-      const meta = data.meta[name] ?? {};
-      const inName = new Set(name.split('-'));
-      const words = [meta.category ?? '', ...(meta.tags ?? []).map(String)]
-        .map((w) => w.toLowerCase().replace(/[\t\n]/g, ' ').trim())
-        .filter((w) => w !== '' && !inName.has(w));
-      return `${name}\t${[...new Set(words)].join(' ')}`.trimEnd();
+/**
+ * Search words of one icon: its category and Tabler tags split into lower-case words, without duplicates, without words
+ * of the name and without a word that starts another of its words (`test` next to `testing`). The search matches
+ * substrings and word starts of `name words + keywords`, so dropping them never changes a result.
+ */
+export function keywordsOf(data: TablerData, name: string): string[] {
+  const meta = data.meta[name] ?? {};
+  const nameWords = name.split('-');
+  const words = [...new Set([meta.category ?? '', ...(meta.tags ?? []).map(String)].flatMap((w) => w.toLowerCase().split(/[\s_-]+/)).filter(Boolean))];
+  const pool = [...words, ...nameWords];
+  return words.filter((w) => !nameWords.includes(w) && !pool.some((o) => o !== w && o.startsWith(w)));
+}
+
+/** Two-character base-62 codes of the dictionary (3,844 words at most). */
+const CODES = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const code = (i: number): string => CODES[Math.floor(i / 62)]! + CODES[i % 62]!;
+
+/**
+ * The compact catalog (1.7, about 78 kB gzip instead of 97 kB as plain text): `dict` lists the words used by more than
+ * one icon, most frequent first; each line of `text` is `name<TAB>codes<TAB>other words`, where `codes` are two
+ * characters per dictionary word.
+ */
+export function catalogData(data: TablerData): { dict: string; text: string } {
+  const names = iconNames(data);
+  const keywords = new Map(names.map((n) => [n, keywordsOf(data, n)]));
+  const counts = new Map<string, number>();
+  for (const words of keywords.values()) for (const w of words) counts.set(w, (counts.get(w) ?? 0) + 1);
+  const dict = [...counts].filter(([, c]) => c > 1).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, CODES.length ** 2).map(([w]) => w);
+  const index = new Map(dict.map((w, i) => [w, code(i)]));
+  const text = names
+    .map((n) => {
+      const words = keywords.get(n)!;
+      return `${n}\t${words.map((w) => index.get(w) ?? '').join('')}\t${words.filter((w) => !index.has(w)).join(' ')}`.replace(/\t+$/, '');
     })
     .join('\n');
+  return { dict: dict.join(' '), text };
 }
 
 /** One `<symbol>` with the icon's paths (the stroke attributes Tabler uses, so it renders without the stylesheet). */
@@ -84,7 +108,8 @@ export function tablerIcons(outDir: string | null = null): Plugin {
     load(id) {
       if (id !== RESOLVED) return null;
       const d = load();
-      return `export const VERSION = ${JSON.stringify(d.version)};\nexport default ${JSON.stringify(catalogText(d))};\n`;
+      const { dict, text } = catalogData(d);
+      return `export const VERSION = ${JSON.stringify(d.version)};\nexport const DICT = ${JSON.stringify(dict)};\nexport default ${JSON.stringify(text)};\n`;
     },
     closeBundle() {
       if (!outDir) return;

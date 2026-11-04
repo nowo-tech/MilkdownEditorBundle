@@ -2,14 +2,15 @@ import { u as e } from "./lib-DaU_YkmU.js";
 import { at as t, ot as n, st as r, ut as i } from "./lib-9QpRoHAM.js";
 import { a, i as o } from "./runtime-DteDkkpb.js";
 import { a as s, c, colorItems as l, i as u, l as d, n as f, s as p, t as m } from "./colors-Bejnk0E_.js";
+import { t as h } from "./keyboard-Ci_tDM3V.js";
 // src/Resources/assets/src/plugins/block-actions.ts
-var h = new r("nowo-milkdown-block-actions"), g = /* @__PURE__ */ new WeakMap();
-function _(e, t) {
+var g = new r("nowo-milkdown-block-actions"), _ = /* @__PURE__ */ new WeakMap();
+function v(e, t) {
 	if (e.doc.childCount === 0) return null;
 	let n = e.doc.resolve(Math.min(Math.max(t, 0), e.doc.content.size));
 	return n.depth >= 1 ? n.before(1) : n.nodeAfter ? n.pos : null;
 }
-var v = class {
+var y = class {
 	view;
 	runtime;
 	drag;
@@ -24,7 +25,7 @@ var v = class {
 		let t = e.target instanceof Node ? e.target : null;
 		for (; t && t.parentNode !== this.view.dom;) t = t.parentNode;
 		if (t && this.view.state.doc.childCount !== 0) try {
-			this.show(_(this.view.state, this.view.posAtDOM(t, 0)));
+			this.show(v(this.view.state, this.view.posAtDOM(t, 0)));
 		} catch {}
 	};
 	onKey = (e) => this.handleKey(e);
@@ -36,7 +37,7 @@ var v = class {
 		}), this.menu.icons = t.menuIcons, e.dom.addEventListener("mousemove", this.onMove), e.dom.addEventListener("keydown", this.onKey, !0);
 	}
 	update(e, t) {
-		this.menu.isOpen && t && e.state.doc !== t.doc && this.menu.closeAll(!1), this.dragDoc !== null && e.state.doc !== this.dragDoc && (this.dragDoc = null, this.dragCancelled = !0, e.dragging = null), e.hasFocus() ? this.show(_(e.state, e.state.selection.from)) : this.target !== null && this.target >= e.state.doc.content.size && this.show(null);
+		this.menu.isOpen && t && e.state.doc !== t.doc && this.menu.closeAll(!1), this.dragDoc !== null && e.state.doc !== this.dragDoc && (this.dragDoc = null, this.dragCancelled = !0, e.dragging = null), e.hasFocus() ? this.show(v(e.state, e.state.selection.from)) : this.target !== null && this.target >= e.state.doc.content.size && this.show(null);
 	}
 	destroy() {
 		this.view.dom.removeEventListener("mousemove", this.onMove), this.view.dom.removeEventListener("keydown", this.onKey, !0), this.menu.destroy(), this.button.remove(), this.host.classList.remove("nowo-milkdown--blocks");
@@ -54,7 +55,7 @@ var v = class {
 	handleKey(e) {
 		if (!(e.defaultPrevented || e.target?.closest?.(".cm-editor"))) {
 			if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key === "/") {
-				e.preventDefault(), e.stopPropagation();
+				e.preventDefault(), e.stopPropagation(), h(this.view);
 				let t = this.view.coordsAtPos(this.view.state.selection.from);
 				this.open(t.left, t.bottom);
 			} else e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey && (e.key === "ArrowUp" || e.key === "ArrowDown") && (e.preventDefault(), e.stopPropagation(), this.move(e.key === "ArrowUp" ? -1 : 1));
@@ -126,7 +127,7 @@ var v = class {
 	dragStart(e) {
 		let { view: n } = this, r = null, i = this.targetDom;
 		if (i?.isConnected && i.parentNode === n.dom) try {
-			r = _(n.state, n.posAtDOM(i, 0));
+			r = v(n.state, n.posAtDOM(i, 0));
 		} catch {
 			r = null;
 		}
@@ -146,17 +147,17 @@ var v = class {
 		}
 	}
 };
-function y(t) {
+function b(t) {
 	return e((e) => new n({
-		key: h,
+		key: g,
 		view: (n) => {
-			let r = new v(n, e.get(o.key), t);
-			return g.set(n, r), r;
+			let r = new y(n, e.get(o.key), t);
+			return _.set(n, r), r;
 		},
 		props: { handleDrop: (e) => {
-			let t = g.get(e);
+			let t = _.get(e);
 			return t?.dragCancelled ? (t.dragCancelled = !1, !0) : !1;
 		} }
 	}));
 }
-export { v as BlockActionsView, h as blockActionsKey, y as blockActionsPlugin, _ as topLevelPos };
+export { y as BlockActionsView, g as blockActionsKey, b as blockActionsPlugin, v as topLevelPos };

@@ -8,9 +8,10 @@ import { d as Ct, t as wt } from "./chunks/dist-DPp-l4A4.js";
 import { t as Tt } from "./chunks/purify.es-CZ6K1J3y.js";
 import { t as Et } from "./chunks/mermaid-DJO1IgvH.js";
 import { a as V, c as Dt, d as Ot, f as kt, i as At, l as jt, n as Mt, r as Nt, s as Pt, t as Ft, u as It } from "./chunks/runtime-DteDkkpb.js";
-import { a as Lt, c as Rt, l as zt, n as Bt, o as Vt, r as Ht, s as Ut } from "./chunks/context-menu-registry-D-7JHeVn.js";
-import { a as Wt, c as Gt, d as Kt, f as qt, i as Jt, m as Yt, n as Xt, o as Zt, p as Qt, s as $t, t as en, u as H } from "./chunks/directives-BgYTlUOf.js";
-import { n as tn, t as nn } from "./chunks/icons-B-Y2FNeC.js";
+import { a as Lt, i as Rt, n as zt, o as Bt, r as Vt } from "./chunks/context-menu-registry-DUCZ7cub.js";
+import { a as Ht, c as Ut, d as Wt, f as Gt, i as Kt, m as qt, n as Jt, o as Yt, p as Xt, s as Zt, t as Qt, u as H } from "./chunks/directives-BgYTlUOf.js";
+import { n as $t, t as en } from "./chunks/icons-B-Y2FNeC.js";
+import { i as tn, n as nn } from "./chunks/keyboard-Ci_tDM3V.js";
 import { i as rn } from "./chunks/dist-BmAqUYId.js";
 import { n as an, r as on, t as sn } from "./chunks/search-BYXNAND9.js";
 // node_modules/.pnpm/@milkdown+plugin-clipboard@7.23.0/node_modules/@milkdown/plugin-clipboard/lib/index.js
@@ -3445,7 +3446,7 @@ function Ts(e = document) {
 // src/Resources/assets/src/icons/open.ts
 var Es = {
 	picker: () => import("./chunks/icon-picker-Cn5SM3Db.js"),
-	catalog: () => import("./chunks/catalog-qF2sC_2b.js")
+	catalog: () => import("./chunks/catalog-BfEKgkVo.js")
 };
 async function Ds(e) {
 	return e.catalogUrl ? (await Es.catalog()).catalog() : [];
@@ -3454,7 +3455,7 @@ function Os(e, t) {
 	let n = e.state.schema.nodes.tablerIcon;
 	if (!n) return;
 	let { $from: r } = e.state.selection;
-	r.parent.inlineContent && !r.parent.type.spec.code && r.parent.type.contentMatch.matchType(n) || Ut(e), e.dispatch(e.state.tr.replaceSelectionWith(n.create({ name: t }), !1).insertText(" ").scrollIntoView());
+	r.parent.inlineContent && !r.parent.type.spec.code && r.parent.type.contentMatch.matchType(n) || Rt(e), e.dispatch(e.state.tr.replaceSelectionWith(n.create({ name: t }), !1).insertText(" ").scrollIntoView());
 }
 async function ks(e, t, n = "") {
 	let { open: r } = await Es.picker();
@@ -3476,7 +3477,7 @@ async function ks(e, t, n = "") {
 	});
 }
 // src/Resources/assets/src/nodes/directives.ts
-var As = (e) => typeof e.name == "string" && qt(e.name) ? e.name : "div", js = (e) => e?.type === "paragraph" && e.data?.directiveLabel === !0, Ms = (e) => typeof e.value == "string" ? e.value : (e.children ?? []).map(Ms).join(""), Ns = Ie("containerDirective", () => ({
+var As = (e) => typeof e.name == "string" && Gt(e.name) ? e.name : "div", js = (e) => e?.type === "paragraph" && e.data?.directiveLabel === !0, Ms = (e) => typeof e.value == "string" ? e.value : (e.children ?? []).map(Ms).join(""), Ns = Ie("containerDirective", () => ({
 	group: "block",
 	content: "block+",
 	defining: !0,
@@ -3489,10 +3490,10 @@ var As = (e) => typeof e.name == "string" && qt(e.name) ? e.name : "div", js = (
 		tag: "div[data-directive]",
 		getAttrs: (e) => {
 			let t = e, n = t.dataset.directive ?? "";
-			return qt(n) ? {
+			return Gt(n) ? {
 				name: n,
 				label: "",
-				attributes: Kt(H(t.dataset.attributes))
+				attributes: Wt(H(t.dataset.attributes))
 			} : !1;
 		}
 	}],
@@ -3514,7 +3515,7 @@ var As = (e) => typeof e.name == "string" && qt(e.name) ? e.name : "div", js = (
 			}), e.openNode(n, {
 				name: As(t),
 				label: i,
-				attributes: Kt(Gt(t.attributes))
+				attributes: Wt(Ut(t.attributes))
 			}).next(r).closeNode();
 		}
 	},
@@ -3543,10 +3544,10 @@ var As = (e) => typeof e.name == "string" && qt(e.name) ? e.name : "div", js = (
 		tag: "div[data-leaf-directive]",
 		getAttrs: (e) => {
 			let t = e, n = t.dataset.leafDirective ?? "";
-			return qt(n) ? {
+			return Gt(n) ? {
 				name: n,
 				label: "",
-				attributes: Kt(H(t.dataset.attributes))
+				attributes: Wt(H(t.dataset.attributes))
 			} : !1;
 		}
 	}],
@@ -3560,7 +3561,7 @@ var As = (e) => typeof e.name == "string" && qt(e.name) ? e.name : "div", js = (
 			e.addNode(n, {
 				name: As(t),
 				label: Ms(t),
-				attributes: Kt(Gt(t.attributes))
+				attributes: Wt(Ut(t.attributes))
 			});
 		}
 	},
@@ -3586,14 +3587,14 @@ var As = (e) => typeof e.name == "string" && qt(e.name) ? e.name : "div", js = (
 		tag: "mark[data-directive]",
 		getAttrs: (e) => {
 			let t = e, n = t.dataset.directive ?? "";
-			return qt(n) ? {
+			return Gt(n) ? {
 				name: n,
-				attributes: Kt(H(t.dataset.attributes))
+				attributes: Wt(H(t.dataset.attributes))
 			} : !1;
 		}
 	}],
 	toDOM: (e) => {
-		let t = H(e.attrs.attributes), n = e.attrs.name === "mark" ? Qt(t) : "none", r = e.attrs.name === "mark" ? Yt(t) : null;
+		let t = H(e.attrs.attributes), n = e.attrs.name === "mark" ? Xt(t) : "none", r = e.attrs.name === "mark" ? qt(t) : null;
 		return ["mark", {
 			"data-directive": e.attrs.name,
 			"data-attributes": e.attrs.attributes,
@@ -3605,7 +3606,7 @@ var As = (e) => typeof e.name == "string" && qt(e.name) ? e.name : "div", js = (
 		runner: (e, t, n) => {
 			e.openMark(n, {
 				name: As(t),
-				attributes: Kt(Gt(t.attributes))
+				attributes: Wt(Ut(t.attributes))
 			}), e.next(t.children), e.closeMark(n);
 		}
 	},
@@ -3642,14 +3643,14 @@ function Ls(e, t, n, r) {
 	};
 	r === null && delete o[n], e.dispatch(e.state.tr.setNodeMarkup(i, void 0, {
 		...a.attrs,
-		attributes: Kt(o)
+		attributes: Wt(o)
 	}));
 }
 function Rs(e, t, n, r) {
-	let i = Zt(t), a = document.createElement("button");
+	let i = Yt(t), a = document.createElement("button");
 	a.type = "button", a.className = "nowo-milkdown-directive__icon", a.setAttribute("aria-haspopup", "dialog"), a.setAttribute("aria-label", i ? V(e, "directive.callout_icon", { name: i.kind === "tabler" ? i.name : i.value }) : V(e, "directive.callout_icon_none")), a.disabled = !n.editable;
 	let o;
-	return i?.kind === "emoji" ? (o = document.createElement("span"), o.className = "nowo-milkdown-directive__emoji", o.textContent = i.value) : i ? (o = Mt(e, i.name), o || (o = document.createElement("span"), o.className = "nowo-milkdown-directive__icon-name", o.textContent = i.name)) : o = nn("mood-plus"), o?.setAttribute("aria-hidden", "true"), o && a.append(o), a.addEventListener("click", () => {
+	return i?.kind === "emoji" ? (o = document.createElement("span"), o.className = "nowo-milkdown-directive__emoji", o.textContent = i.value) : i ? (o = Mt(e, i.name), o || (o = document.createElement("span"), o.className = "nowo-milkdown-directive__icon-name", o.textContent = i.name)) : o = en("mood-plus"), o?.setAttribute("aria-hidden", "true"), o && a.append(o), a.addEventListener("click", () => {
 		if (!n.editable) return;
 		let i = a.getBoundingClientRect(), o = n.dom.closest(".nowo-milkdown") ?? document.body, s = () => {
 			let e = r();
@@ -3678,7 +3679,7 @@ function zs(e, t, n, r) {
 	let i = document.createElement("div");
 	i.className = "nowo-milkdown-directive__header", i.contentEditable = "false";
 	let a = H(t.attrs.attributes), o = t.attrs.name;
-	if (o === "callout") i.append(Rs(e, a, n, r), Is(V(e, "directive.callout_type"), Xt, $t(a), (t) => V(e, `directive.callout.${t}`), (e) => Ls(n, r, "type", e)));
+	if (o === "callout") i.append(Rs(e, a, n, r), Is(V(e, "directive.callout_type"), Jt, Zt(a), (t) => V(e, `directive.callout.${t}`), (e) => Ls(n, r, "type", e)));
 	else if (o === "details") {
 		let t = document.createElement("label");
 		t.className = "nowo-milkdown-directive__field";
@@ -3686,7 +3687,7 @@ function zs(e, t, n, r) {
 		o.textContent = V(e, "directive.summary");
 		let s = document.createElement("input");
 		s.type = "text", s.value = a.summary ?? "", s.addEventListener("change", () => Ls(n, r, "summary", s.value)), t.append(o, s), i.append(t);
-	} else o === "align" ? i.append(Is(V(e, "directive.align"), en, Jt(a), (t) => V(e, `directive.align.${t}`), (e) => Ls(n, r, "align", e))) : i.textContent = o;
+	} else o === "align" ? i.append(Is(V(e, "directive.align"), Qt, Kt(a), (t) => V(e, `directive.align.${t}`), (e) => Ls(n, r, "align", e))) : i.textContent = o;
 	return i;
 }
 var Bs = [
@@ -3695,8 +3696,8 @@ var Bs = [
 		let i = e.get(At.key), a = document.createElement("div"), o = document.createElement("div");
 		o.className = "nowo-milkdown-directive__content";
 		let s = zs(i, t, n, r), c = (e) => {
-			let t = H(e.attrs.attributes), n = e.attrs.name, r = n === "align" ? Yt(t) : null, o = n === "align" ? Wt(t) : null;
-			a.className = `nowo-milkdown-directive nowo-milkdown-directive--${n}${r ? ` nowo-milkdown-color--${r}` : ""}${o ? ` nowo-milkdown-bg--${o}` : ""}`, a.dataset.directive = n, n === "callout" ? (a.dataset.type = $t(t), a.setAttribute("role", "note"), a.setAttribute("aria-label", V(i, `directive.callout.${$t(t)}`))) : n === "align" && (a.dataset.align = Jt(t));
+			let t = H(e.attrs.attributes), n = e.attrs.name, r = n === "align" ? qt(t) : null, o = n === "align" ? Ht(t) : null;
+			a.className = `nowo-milkdown-directive nowo-milkdown-directive--${n}${r ? ` nowo-milkdown-color--${r}` : ""}${o ? ` nowo-milkdown-bg--${o}` : ""}`, a.dataset.directive = n, n === "callout" ? (a.dataset.type = Zt(t), a.setAttribute("role", "note"), a.setAttribute("aria-label", V(i, `directive.callout.${Zt(t)}`))) : n === "align" && (a.dataset.align = Kt(t));
 		};
 		return c(t), a.append(s, o), {
 			dom: a,
@@ -4716,7 +4717,7 @@ function jl(e, t) {
 		source: async (e, t) => (await Dl(a, s, e, t)).filter((e) => It(e.id)).map((e) => (i({
 			id: e.id,
 			title: e.label,
-			url: zt(e.url),
+			url: Bt(e.url),
 			visible: !0
 		}), {
 			id: e.id,
@@ -4807,13 +4808,13 @@ function Ml(e, t, n) {
 		item: {
 			id: e,
 			label: V(n, `slash.${e}`),
-			...n.menuIcons ? { glyph: tn(e) } : {}
+			...n.menuIcons ? { glyph: $t(e) } : {}
 		},
 		run: t
 	}), o = (e, t) => i((n) => ve(r(n)[e], t)(n.state, n.dispatch)), c = (e) => (t) => t.dispatch(t.state.tr.insertText(e)), l = (e, t) => i((n) => De(r(n).containerDirective, {
 		name: e,
 		label: "",
-		attributes: Kt(t)
+		attributes: Wt(t)
 	})(n.state, n.dispatch)), u = [
 		a("text", o("paragraph")),
 		a("h1", o("heading", { level: 1 })),
@@ -4879,7 +4880,7 @@ function Fl(e, t, n, r = () => new XMLHttpRequest()) {
 			} catch {
 				t = {};
 			}
-			let n = zt(t.url);
+			let n = Bt(t.url);
 			if (!n) {
 				a(new Nl("upload.failed"));
 				return;
@@ -4967,7 +4968,7 @@ function Wl(e, t) {
 function Gl(e, t, n, r = null) {
 	let i = document.createElement("button");
 	i.type = "button", i.className = "nowo-milkdown__action";
-	let a = r ? nn(r, "nowo-milkdown__action-icon") : null;
+	let a = r ? en(r, "nowo-milkdown__action-icon") : null;
 	return a && i.append(a), i.append(t), i.addEventListener("click", n), e.append(i), i;
 }
 async function Kl(e, t = {}) {
@@ -4976,7 +4977,7 @@ async function Kl(e, t = {}) {
 	let r = {
 		...ws(e.dataset.nowoMilkdownOptions),
 		...t
-	}, i = Rt(r.linkTitleUrl), a = _s(r.mentionDisplay === "name" ? r.userTitleUrl : null), o = {
+	}, i = Lt(r.linkTitleUrl), a = _s(r.mentionDisplay === "name" ? r.userTitleUrl : null), o = {
 		...Ft(),
 		messages: r.messages,
 		spriteUrl: r.iconSpriteUrl,
@@ -4994,7 +4995,7 @@ async function Kl(e, t = {}) {
 	let { bar: s, surface: c, status: l, announce: u } = Wl(e, o), d = Ul(n), f = n.value, p = new Wn({
 		root: c,
 		defaultValue: r.collaboration ? "" : f
-	}), m = p.editor, h = r.collaboration ? await import("./chunks/collab-DT1di4uU.js") : null, g = r.features.includes("context_menu") ? await import("./chunks/context-menu-CXtOmGFI.js") : null, _ = r.features.includes("block_actions") ? await import("./chunks/block-actions-9ISl3HwT.js") : null, v = r.features.includes("colors") ? await import("./chunks/colors-Bejnk0E_.js") : null, y = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-J7KbfwfQ.js") : null;
+	}), m = p.editor, h = r.collaboration ? await import("./chunks/collab-DT1di4uU.js") : null, g = r.features.includes("context_menu") ? await import("./chunks/context-menu-BAsBnJKh.js") : null, _ = r.features.includes("block_actions") ? await import("./chunks/block-actions-DzoXhdZZ.js") : null, v = r.features.includes("colors") ? await import("./chunks/colors-Bejnk0E_.js") : null, y = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-J7KbfwfQ.js") : null;
 	m.config((e) => {
 		if (e.set(At.key, o), e.update(be, (e) => ({
 			...e,
@@ -5017,12 +5018,12 @@ async function Kl(e, t = {}) {
 				transformPasted: (t, n, r) => y.cleanPasted(e.transformPasted ? e.transformPasted(t, n, r) : t)
 			}));
 		}
-	}).use(At).use(vl).use(Bs).use(yl).use(Lt((e) => jl(e, {
+	}).use(At).use(vl).use(Bs).use(yl).use(tn((e) => jl(e, {
 		options: r,
 		runtime: o,
 		remember: i.remember,
 		rememberUser: a.remember
-	}))).use(Ht), r.mentionDisplay === "name" && m.use(gl), h && m.use(h.collab), g && m.use(g.contextMenuPlugin), _ && m.use(_.blockActionsPlugin(r.features.includes("block_drag"))), v && m.use(v.colorMenuPlugin), y && m.use(y.markdownClipboardPlugin((e, t) => u(e, {}, t, !0))), await hs(p, r, o), p.on((e) => e.markdownUpdated((e, t) => {
+	}))).use(nn), r.mentionDisplay === "name" && m.use(gl), h && m.use(h.collab), g && m.use(g.contextMenuPlugin), _ && m.use(_.blockActionsPlugin(r.features.includes("block_drag"))), v && m.use(v.colorMenuPlugin), y && m.use(y.markdownClipboardPlugin((e, t) => u(e, {}, t, !0))), await hs(p, r, o), p.on((e) => e.markdownUpdated((e, t) => {
 		n.value !== t && (n.value = t, n.dispatchEvent(new Event("input", { bubbles: !0 })), n.dispatchEvent(new Event("change", { bubbles: !0 })));
 	})), r.readonly && p.setReadonly(!0), await p.create();
 	let b = () => p.getMarkdown(), x = () => {
@@ -5168,7 +5169,7 @@ var su = {
 	renderRichContent: fs,
 	createStimulusController: $l,
 	start: ou,
-	contextMenu: { register: Bt }
+	contextMenu: { register: zt }
 };
 typeof window < "u" && !window.NowoMilkdownEditor && (window.NowoMilkdownEditor = su, document.documentElement.hasAttribute("data-nowo-milkdown-manual") || ou());
-export { nu as COPY_STATUS_MS, au as bindCopyButtons, iu as copySource, Kl as createEditor, $l as createStimulusController, Zl as instance, Yl as mount, Ql as mountAll, Bt as registerContextMenuItem, fs as renderRichContent, ou as start, Xl as unmount };
+export { nu as COPY_STATUS_MS, au as bindCopyButtons, iu as copySource, Kl as createEditor, $l as createStimulusController, Zl as instance, Yl as mount, Ql as mountAll, zt as registerContextMenuItem, fs as renderRichContent, ou as start, Xl as unmount };

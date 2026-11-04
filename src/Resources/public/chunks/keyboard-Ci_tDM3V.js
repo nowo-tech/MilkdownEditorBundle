@@ -1,105 +1,11 @@
-import { ot as e, st as t, ut as n } from "./lib-9QpRoHAM.js";
-import { u as r } from "./lib-DaU_YkmU.js";
+import { u as e } from "./lib-DaU_YkmU.js";
+import { ot as t, st as n } from "./lib-9QpRoHAM.js";
+import { f as r } from "./dist-DPp-l4A4.js";
 import { n as i, t as a } from "./dist-BmAqUYId.js";
-import { f as o } from "./dist-DPp-l4A4.js";
-import { a as s, i as c, n as l } from "./runtime-DteDkkpb.js";
-import { t as u } from "./icons-B-Y2FNeC.js";
-// src/Resources/assets/src/link-titles.ts
-var d = 50;
-function f(e, t = (...e) => fetch(...e)) {
-	let n = /* @__PURE__ */ new Map(), r = /* @__PURE__ */ new Map(), i = !1, a = (e) => ({
-		id: e,
-		title: "",
-		url: "",
-		visible: !1
-	});
-	async function o() {
-		i = !1;
-		let n = r;
-		r = /* @__PURE__ */ new Map();
-		let o = [...n.keys()];
-		for (let r = 0; r < o.length; r += d) {
-			let i = o.slice(r, r + d), s = [];
-			try {
-				let n = await t(`${e}${e.includes("?") ? "&" : "?"}ids=${encodeURIComponent(i.join(","))}`, {
-					credentials: "same-origin",
-					headers: { Accept: "application/json" }
-				});
-				n.ok && (s = await n.json());
-			} catch {
-				s = [];
-			}
-			for (let e of i) {
-				let t = Array.isArray(s) ? s.find((t) => t && t.id === e) : void 0;
-				n.get(e)(t && t.visible === !0 && typeof t.title == "string" ? {
-					id: e,
-					title: t.title,
-					url: p(t.url),
-					visible: !0
-				} : a(e));
-			}
-		}
-	}
-	return {
-		resolve(t) {
-			let s = n.get(t);
-			return !s && !e ? Promise.resolve(a(t)) : (s || (s = new Promise((e) => r.set(t, e)), n.set(t, s), i || (i = !0, queueMicrotask(() => void o()))), s);
-		},
-		remember(e) {
-			n.set(e.id, Promise.resolve({
-				...e,
-				url: p(e.url)
-			}));
-		}
-	};
-}
-function p(e) {
-	if (typeof e != "string") return "";
-	let t = e.replace(/[\t\n\r]/g, "").replace(/^[\u0000-\u0020]+|[\u0000-\u0020]+$/g, "");
-	if (t === "" || /^[\\/][\\/]/.test(t)) return "";
-	if (/^(?:\/|\.{1,2}\/|#|\?)/.test(t)) return t;
-	try {
-		let e = new URL(t);
-		return e.protocol === "https:" || e.protocol === "http:" ? t : "";
-	} catch {
-		return /^[^:]*$/.test(t) ? t : "";
-	}
-}
-// src/Resources/assets/src/commands/insert.ts
-var m = [
-	"h1",
-	"h2",
-	"h3",
-	"bullet_list",
-	"ordered_list",
-	"task_list",
-	"table",
-	"code",
-	"callout",
-	"divider",
-	"math",
-	"mermaid"
-];
-function h(e) {
-	let { $from: t } = e.state.selection;
-	if (t.depth === 1 && t.parent.type.name === "paragraph" && t.parent.content.size === 0) return;
-	let r = t.depth >= 1 ? t.after(1) : e.state.doc.content.size, i = e.state.tr.insert(r, e.state.schema.nodes.paragraph.create());
-	e.dispatch(i.setSelection(n.create(i.doc, r + 1)).scrollIntoView());
-}
-function g(e, t) {
-	let n = new Map(e.map((e) => [e.item.id, e])), r = [...t];
-	for (let e of m) {
-		let t = n.get(e);
-		t && r.push({
-			id: e,
-			label: t.item.label,
-			run: t.run
-		});
-	}
-	return r;
-}
-var _ = new t("nowo-milkdown-suggest"), v = 0, y = /* @__PURE__ */ new WeakMap(), b = (e) => y.get(e)?.isOpen === !0;
-function x(e, t) {
+import { a as o, i as s, n as c } from "./runtime-DteDkkpb.js";
+import { t as l } from "./icons-B-Y2FNeC.js";
+var u = new n("nowo-milkdown-suggest"), d = 0, f = /* @__PURE__ */ new WeakMap(), p = (e) => f.get(e)?.isOpen === !0;
+function m(e, t) {
 	let { selection: n } = e;
 	if (!n.empty) return null;
 	let r = n.$from;
@@ -120,7 +26,7 @@ function x(e, t) {
 	}
 	return null;
 }
-var S = class {
+var h = class {
 	view;
 	triggers;
 	runtime;
@@ -132,12 +38,12 @@ var S = class {
 	abort = null;
 	timer;
 	dismissedAt = null;
-	id = `nowo-milkdown-suggest-${++v}`;
+	id = `nowo-milkdown-suggest-${++d}`;
 	onKeyCapture = (e) => {
 		this.onKey(e) && (e.preventDefault(), e.stopImmediatePropagation());
 	};
 	constructor(e, t, n) {
-		this.view = e, this.triggers = t, this.runtime = n, y.set(e, this), this.listbox = document.createElement("ul"), this.listbox.id = this.id, this.listbox.className = "nowo-milkdown-suggest", this.listbox.setAttribute("role", "listbox"), this.listbox.hidden = !0, this.listbox.addEventListener("mousedown", (e) => {
+		this.view = e, this.triggers = t, this.runtime = n, f.set(e, this), this.listbox = document.createElement("ul"), this.listbox.id = this.id, this.listbox.className = "nowo-milkdown-suggest", this.listbox.setAttribute("role", "listbox"), this.listbox.hidden = !0, this.listbox.addEventListener("mousedown", (e) => {
 			let t = e.target.closest("[role=\"option\"]");
 			t && (e.preventDefault(), this.index = Number(t.dataset.index), this.pick());
 		}), e.dom.addEventListener("keydown", this.onKeyCapture, !0), this.live = document.createElement("div"), this.live.className = "nowo-milkdown-sr-only", this.live.setAttribute("aria-live", "polite"), (e.dom.closest(".nowo-milkdown") ?? document.body).append(this.listbox, this.live);
@@ -146,7 +52,7 @@ var S = class {
 		return this.active !== null && !this.listbox.hidden;
 	}
 	update(e) {
-		let t = x(e.state, this.triggers);
+		let t = m(e.state, this.triggers);
 		if (!t) {
 			this.close();
 			return;
@@ -155,7 +61,7 @@ var S = class {
 		this.active = t, n && this.schedule(), this.position();
 	}
 	destroy() {
-		this.close(), this.view.dom.removeEventListener("keydown", this.onKeyCapture, !0), this.listbox.remove(), this.live.remove(), y.delete(this.view);
+		this.close(), this.view.dom.removeEventListener("keydown", this.onKeyCapture, !0), this.listbox.remove(), this.live.remove(), f.delete(this.view);
 	}
 	onKey(e) {
 		if (!this.isOpen) return !1;
@@ -188,13 +94,13 @@ var S = class {
 	}
 	render(e) {
 		let t = this.active;
-		if (this.listbox.replaceChildren(), this.listbox.setAttribute("aria-label", s(this.runtime, `suggest.label.${t.trigger.name}`)), this.items.forEach((e, t) => {
+		if (this.listbox.replaceChildren(), this.listbox.setAttribute("aria-label", o(this.runtime, `suggest.label.${t.trigger.name}`)), this.items.forEach((e, t) => {
 			let n = document.createElement("li");
 			if (n.id = `${this.id}-opt-${t}`, n.setAttribute("role", "option"), n.dataset.index = String(t), n.className = "nowo-milkdown-suggest__option", e.emoji) {
 				let t = document.createElement("span");
 				t.className = "nowo-milkdown-suggest__emoji", t.textContent = e.emoji, t.setAttribute("aria-hidden", "true"), n.append(t);
 			}
-			let r = e.icon ? l(this.runtime, e.icon) : e.glyph ? u(e.glyph, "nowo-milkdown-suggest__glyph") : null;
+			let r = e.icon ? c(this.runtime, e.icon) : e.glyph ? l(e.glyph, "nowo-milkdown-suggest__glyph") : null;
 			r && n.append(r);
 			let i = document.createElement("span");
 			if (i.className = "nowo-milkdown-suggest__label", i.textContent = e.label, n.append(i), e.hint) {
@@ -204,11 +110,11 @@ var S = class {
 			this.listbox.append(n);
 		}), !this.items.length) {
 			let t = document.createElement("li");
-			t.className = "nowo-milkdown-suggest__empty", t.setAttribute("role", "presentation"), t.textContent = s(this.runtime, e ? "suggest.failed" : "suggest.empty"), this.listbox.append(t);
+			t.className = "nowo-milkdown-suggest__empty", t.setAttribute("role", "presentation"), t.textContent = o(this.runtime, e ? "suggest.failed" : "suggest.empty"), this.listbox.append(t);
 		}
 		this.listbox.hidden = !1;
 		let n = this.view.dom;
-		n.setAttribute("aria-controls", this.id), n.setAttribute("aria-autocomplete", "list"), this.live.textContent = e ? s(this.runtime, "suggest.failed") : s(this.runtime, "suggest.count", { count: this.items.length }), this.highlight(), this.position();
+		n.setAttribute("aria-controls", this.id), n.setAttribute("aria-autocomplete", "list"), this.live.textContent = e ? o(this.runtime, "suggest.failed") : o(this.runtime, "suggest.count", { count: this.items.length }), this.highlight(), this.position();
 	}
 	move(e) {
 		this.items.length && (this.index = (this.index + e + this.items.length) % this.items.length, this.highlight());
@@ -237,15 +143,15 @@ var S = class {
 		t.removeAttribute("aria-controls"), t.removeAttribute("aria-activedescendant"), t.removeAttribute("aria-autocomplete");
 	}
 };
-function C(t) {
-	return r((n) => new e({
-		key: _,
-		view: (e) => new S(e, t(n), n.get(c.key))
+function g(n) {
+	return e((e) => new t({
+		key: u,
+		view: (t) => new h(t, n(e), e.get(s.key))
 	}));
 }
 // src/Resources/assets/src/plugins/keyboard.ts
-var w = new t("nowo-milkdown-keyboard");
-function T(e) {
+var _ = new n("nowo-milkdown-keyboard");
+function v(e) {
 	let { $from: t } = e.selection;
 	for (let e = t.depth; e > 0; e--) {
 		let n = t.node(e).type.name;
@@ -254,28 +160,26 @@ function T(e) {
 	}
 	return "none";
 }
-function E(e, t) {
-	e.domObserver?.forceFlush?.();
-	let { state: n } = e, r = T(n), s = null;
-	if (r === "table") s = o(t.shiftKey ? -1 : 1);
-	else if (r === "list") {
+function y(e) {
+	e.domObserver?.flush?.();
+}
+function b(e, t) {
+	y(e);
+	let { state: n } = e, o = v(n), s = null;
+	if (o === "table") s = r(t.shiftKey ? -1 : 1);
+	else if (o === "list") {
 		let e = n.schema.nodes.list_item;
 		s = t.shiftKey ? a(e) : i(e);
 	}
 	return s !== null && s(n, e.dispatch);
 }
-var D = r(() => new e({
-	key: w,
+var x = e(() => new t({
+	key: _,
 	view: (e) => {
 		let t = (t) => {
-			t.key !== "Tab" || t.ctrlKey || t.metaKey || t.altKey || t.defaultPrevented || b(e) || t.target?.closest?.(".cm-editor") || (E(e, t) && t.preventDefault(), t.stopImmediatePropagation());
+			!t.isComposing && t.keyCode !== 229 && y(e), t.key !== "Tab" || t.ctrlKey || t.metaKey || t.altKey || t.defaultPrevented || p(e) || t.target?.closest?.(".cm-editor") || (b(e, t) && t.preventDefault(), t.stopImmediatePropagation());
 		};
 		return e.dom.addEventListener("keydown", t, !0), { destroy: () => e.dom.removeEventListener("keydown", t, !0) };
 	}
-})), O = /* @__PURE__ */ new Map();
-function k(e) {
-	return O.set(e.id, e), () => {
-		O.get(e.id) === e && O.delete(e.id);
-	};
-}
-export { C as a, f as c, T as i, p as l, k as n, g as o, D as r, h as s, O as t };
+}));
+export { g as i, x as n, v as r, y as t };

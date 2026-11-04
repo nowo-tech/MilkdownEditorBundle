@@ -166,7 +166,7 @@ Three independent icon settings (1.7):
   sized by `--nowo-milkdown-icon-size` (default `1.125em`). Crepe's selection toolbar and top bar already use icons.
 - **`icons` + `icon_sprite_url`**: your own allowlist and sprite (`<symbol id="tabler-NAME">`), as before.
 - **`icon_catalog`** (default off) and **`markdown.icon_catalog`**: every icon of the Tabler outline set shipped with the
-  bundle. The editor searches the names and Tabler keywords in a lazy chunk (about 97 kB gzip, loaded on the first
+  bundle. The editor searches the names and Tabler keywords in a lazy chunk (about 79 kB gzip, loaded on the first
   picker or `:` use); icons render from `/bundles/nowomilkdowneditor/icons/tabler-<first character>.svg` (26 shards,
   about 250 kB gzip in total, the largest 55 kB; a page only fetches the shards of the icons it shows). Allowlisted
   names keep your sprite. Enable both keys so the read pages render what the editor shows.
