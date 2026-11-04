@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format foll
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.7.0] - 2026-11-04](#170---2026-11-04)
 - [[1.6.0] - 2026-11-04](#160---2026-11-04)
 - [[1.5.1] - 2026-11-04](#151---2026-11-04)
 - [[1.5.0] - 2026-11-03](#150---2026-11-03)
@@ -20,7 +21,9 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
-Icons (planned as **1.7.0**).
+## [1.7.0] - 2026-11-04
+
+Icons: menus and toolbar, Tabler catalog and picker, callout icons.
 
 ### Added
 
