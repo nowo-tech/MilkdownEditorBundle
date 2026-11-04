@@ -1,7 +1,7 @@
 import { $ as e, Ot as t, St as n, at as r, ct as i, et as a, nt as o, ot as s, st as c, ut as l } from "./lib-9QpRoHAM.js";
 import { u } from "./lib-DaU_YkmU.js";
 import { i as d } from "./dist-BmAqUYId.js";
-import { d as f, l as p, r as m, u as h } from "./directives-BgYTlUOf.js";
+import { d as f, l as p, r as m, u as h } from "./directives-DfhiezYY.js";
 import { a as g } from "./runtime-DteDkkpb.js";
 import { n as _, t as v } from "./icons-B-Y2FNeC.js";
 // src/Resources/assets/src/commands/blocks.ts

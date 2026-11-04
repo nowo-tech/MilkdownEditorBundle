@@ -40,8 +40,10 @@ changes or removes `icon="…"` on the callout; read pages show it as a decorati
   renders at most 60 options and announces the count politely.
 - **FR-ICON-004**: every entry point inserts inline at the caret (fixes the 1.5 *Insert → Icon* new-paragraph bug);
   only a caret where inline nodes cannot go gets a paragraph after its block.
-- **FR-ICON-005**: `:::callout{icon="NAME"}` (Tabler) or `{icon="EMOJI"}` (1–8 code points, no ASCII / letter / digit /
-  space / control); unresolved values stay in the Markdown and are not drawn; without `icon` nothing changes.
+- **FR-ICON-005**: `:::callout{icon="NAME"}` (Tabler) or `{icon="EMOJI"}`: Extended_Pictographic emoji, flags or
+  keycaps (skin tones, VS16, ZWJ sequences), at most 8 code points and 64 bytes, checked linearly with the same table
+  in TS and PHP (audit DY-M1 / DY-I1); unresolved values stay in the Markdown and are not drawn; without `icon`
+  nothing changes.
 - **FR-ICON-006**: the PHP renderer escapes everything; an emoji icon is drawn by CSS from `data-emoji`, so the HTML
   text of a callout is its body only; no emoji images.
 - **FR-BC-001**: `:tabler-NAME:` round-trips unchanged; the widget JSON options of default fields are unchanged (keys

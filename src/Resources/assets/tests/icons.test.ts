@@ -9,7 +9,8 @@ import type { MilkdownEditorHandle } from '../src/editor';
 import { GLYPHS } from '../src/ui/glyphs';
 import { ITEM_GLYPHS, glyph, glyphFor } from '../src/ui/icons';
 import { Menu } from '../src/ui/menu';
-import { IconPicker, MAX_OPTIONS, open } from '../src/ui/icon-picker';
+import { IconPicker, MAX_OPTIONS, MAX_QUERY, open } from '../src/ui/icon-picker';
+import { EMOJI } from '../src/emoji';
 import { mergeEntries, searchIcons, type IconEntry } from '../src/icons/search';
 import { VERSION, catalog, hasIcon, parseCatalog } from '../src/icons/catalog';
 import { catalogEntries, insertIcon, lazyIcons, openPickerAtCaret } from '../src/icons/open';
@@ -499,6 +500,61 @@ describe('icons in the editor (1.7)', () => {
     v.dispatch(v.state.tr.setSelection(TextSelection.create(v.state.doc, 1)));
     keydown(search(), 'Enter');
     expect(handle.getMarkdown()).toBe('abc:tabler-bug:  def\n');
+  });
+});
+
+describe('callout emoji rule (audit DY-M1 / DY-I1)', () => {
+  type Row = { value: string; emoji: boolean; note: string };
+  const table = JSON.parse(readFileSync(resolve('tests/Fixtures/callout-icon-values.json'), 'utf8')) as { rows: Row[] };
+
+  it('follows the shared TS / PHP table', () => {
+    for (const row of table.rows) expect(isEmojiValue(row.value), `${row.note}: ${JSON.stringify(row.value.slice(0, 12))}`).toBe(row.emoji);
+  });
+
+  it('accepts every emoji the picker offers', () => {
+    expect(EMOJI.filter(([, ch]) => !isEmojiValue(ch))).toEqual([]);
+  });
+
+  it('is linear: hostile values return at once', () => {
+    for (const n of [25, 1000, 100_000]) {
+      for (const mark of ['\ufe0f', '\u20e3', '\u200d💡']) {
+        const value = mark.repeat(n) + 'a';
+        const t = performance.now();
+        expect(isEmojiValue(value)).toBe(false);
+        expect(calloutIcon({ icon: value })).toBeNull();
+        expect(performance.now() - t).toBeLessThan(50);
+      }
+    }
+  });
+
+  it('a stored hostile callout does not block the editor (PoC n=25 and n=1000)', async () => {
+    for (const n of [25, 1000]) {
+      const t = performance.now();
+      handle = await editor(`:::callout{icon="${'\ufe0f'.repeat(n)}a" type="info"}\nText\n:::\n`);
+      expect(performance.now() - t).toBeLessThan(2000);
+      expect(handle.root.querySelector('.nowo-milkdown-directive__icon')?.getAttribute('aria-label')).toBe('Choose a callout icon');
+      await handle.destroy();
+      handle = null;
+    }
+  });
+
+  it('a catalog name the catalog does not have shows as its name, like an unresolved one (DY-I4)', async () => {
+    handle = await editor(':::callout{icon="nope-nope" type="info"}\nText\n:::\n\n:::callout{icon="bulb" type="info"}\nText\n:::\n', { iconCatalog: true });
+    await settle();
+    const [unknown, known] = [...handle.root.querySelectorAll<HTMLButtonElement>('.nowo-milkdown-directive__icon')];
+    expect(unknown!.querySelector('svg')).toBeNull();
+    expect(unknown!.querySelector('.nowo-milkdown-directive__icon-name')?.textContent).toBe('nope-nope');
+    expect(known!.querySelector('use')).not.toBeNull();
+  });
+
+  it('a failing catalog chunk falls back to the name too; the picker caps the query', async () => {
+    vi.spyOn(lazyIcons, 'catalog').mockRejectedValue(new Error('offline'));
+    handle = await editor(':::callout{icon="bulb" type="info"}\nText\n:::\n', { iconCatalog: true });
+    await settle();
+    expect(handle.root.querySelector('.nowo-milkdown-directive__icon-name')?.textContent).toBe('bulb');
+    const p = new IconPicker({ host: document.body, runtime: runtime(), x: 0, y: 0, query: 'q'.repeat(500), entries: async () => [], onPick: () => undefined, onClose: () => undefined });
+    expect(p.input.value.length).toBe(MAX_QUERY);
+    expect(p.input.maxLength).toBe(MAX_QUERY);
   });
 });
 

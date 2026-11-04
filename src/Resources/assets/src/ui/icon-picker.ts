@@ -15,6 +15,8 @@ import { mergeEntries, searchIcons, type IconEntry } from '../icons/search';
 
 /** Options rendered at most (the live region says how many match). */
 export const MAX_OPTIONS = 60;
+/** Longest search query (characters). */
+export const MAX_QUERY = 64;
 const PAGE = 8;
 
 export type PickerTab = 'icons' | 'emoji';
@@ -101,8 +103,10 @@ export class IconPicker {
     this.input.type = 'search';
     this.input.className = 'nowo-milkdown-picker__search';
     this.input.autocomplete = 'off';
+    // A long pasted query only slows the search down (audit DY-I2).
+    this.input.maxLength = MAX_QUERY;
     this.input.spellcheck = false;
-    this.input.value = opts.query ?? '';
+    this.input.value = (opts.query ?? '').slice(0, MAX_QUERY);
     this.input.placeholder = t(runtime, 'picker.search');
     this.input.setAttribute('aria-label', t(runtime, 'picker.search'));
     this.input.setAttribute('role', 'combobox');

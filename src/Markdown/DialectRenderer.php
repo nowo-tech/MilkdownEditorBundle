@@ -25,6 +25,7 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\ResolvedUser;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 use function in_array;
+use function strlen;
 
 use const ENT_HTML5;
 use const ENT_QUOTES;
@@ -194,6 +195,9 @@ final readonly class DialectRenderer implements NodeRendererInterface
         $class = 'nowo-md-callout nowo-md-callout--' . (in_array($a['type'] ?? '', self::CALLOUT_TYPES, true) ? $a['type'] : 'info');
         $value = $a['icon'] ?? '';
         $icon  = '';
+        if (strlen($value) > EmojiRule::MAX_BYTES) {
+            $value = ''; // bounded before any pattern (audit DY-L1)
+        }
         if (preg_match(Configuration::ICON_PATTERN, $value) === 1) {
             $sprite = $this->icons->spriteUrl($value);
             if ($sprite !== null && self::safeUrl($sprite) !== '') {
@@ -210,12 +214,12 @@ final readonly class DialectRenderer implements NodeRendererInterface
     }
 
     /**
-     * An emoji value of a callout icon: 1–8 code points, none ASCII, a letter, a digit, a separator or a control (ZWJ,
-     * VS16 and the keycap mark allowed). The editor uses the same rule.
+     * An emoji value of a callout icon (see {@see EmojiRule}: linear, at most 64 bytes and 8 code points). The editor
+     * uses the same rule.
      */
     public static function isEmoji(string $value): bool
     {
-        return preg_match('/^(?:[^\p{L}\p{N}\p{Z}\p{C}\x00-\x7F]|\x{200D}|\x{FE0F}|\x{20E3})+$/u', $value) === 1 && preg_match_all('/./su', $value) <= 8;
+        return EmojiRule::matches($value);
     }
 
     /** A colour name from the allow-list (`markdown.mark_colors`), or null. */

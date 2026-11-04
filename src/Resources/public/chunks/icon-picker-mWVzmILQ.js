@@ -2,7 +2,7 @@ import { n as e, r as t, t as n } from "./search-BYXNAND9.js";
 import { a as r, n as i } from "./runtime-DteDkkpb.js";
 import { t as a } from "./icons-B-Y2FNeC.js";
 // src/Resources/assets/src/ui/icon-picker.ts
-var o = 60, s = 8, c = 0, l = null, u = class {
+var o = 60, s = 64, c = 8, l = 0, u = null, d = class {
 	opts;
 	element;
 	input;
@@ -14,7 +14,7 @@ var o = 60, s = 8, c = 0, l = null, u = class {
 	index = 0;
 	catalog = [];
 	closed = !1;
-	id = `nowo-milkdown-picker-${++c}`;
+	id = `nowo-milkdown-picker-${++l}`;
 	onOutside = (e) => {
 		this.element.contains(e.target) || this.close(!1);
 	};
@@ -33,7 +33,7 @@ var o = 60, s = 8, c = 0, l = null, u = class {
 		let n = document.createElement("div");
 		n.className = "nowo-milkdown-picker__field";
 		let i = t.menuIcons ? a("search", "nowo-milkdown-picker__search-icon") : null;
-		i && n.append(i), this.input = document.createElement("input"), this.input.type = "search", this.input.className = "nowo-milkdown-picker__search", this.input.autocomplete = "off", this.input.spellcheck = !1, this.input.value = e.query ?? "", this.input.placeholder = r(t, "picker.search"), this.input.setAttribute("aria-label", r(t, "picker.search")), this.input.setAttribute("role", "combobox"), this.input.setAttribute("aria-expanded", "true"), this.input.setAttribute("aria-autocomplete", "list"), this.input.setAttribute("aria-controls", `${this.id}-list`), this.input.addEventListener("input", () => this.render()), n.append(this.input), this.listbox = document.createElement("ul"), this.listbox.id = `${this.id}-list`, this.listbox.className = "nowo-milkdown-picker__list", this.listbox.setAttribute("role", "listbox"), this.listbox.addEventListener("mousedown", (e) => {
+		i && n.append(i), this.input = document.createElement("input"), this.input.type = "search", this.input.className = "nowo-milkdown-picker__search", this.input.autocomplete = "off", this.input.maxLength = 64, this.input.spellcheck = !1, this.input.value = (e.query ?? "").slice(0, 64), this.input.placeholder = r(t, "picker.search"), this.input.setAttribute("aria-label", r(t, "picker.search")), this.input.setAttribute("role", "combobox"), this.input.setAttribute("aria-expanded", "true"), this.input.setAttribute("aria-autocomplete", "list"), this.input.setAttribute("aria-controls", `${this.id}-list`), this.input.addEventListener("input", () => this.render()), n.append(this.input), this.listbox = document.createElement("ul"), this.listbox.id = `${this.id}-list`, this.listbox.className = "nowo-milkdown-picker__list", this.listbox.setAttribute("role", "listbox"), this.listbox.addEventListener("mousedown", (e) => {
 			let t = e.target.closest("[role=\"option\"]");
 			t && (e.preventDefault(), this.index = Number(t.dataset.index), this.pick());
 		}), this.live = document.createElement("div"), this.live.className = "nowo-milkdown-sr-only", this.live.setAttribute("aria-live", "polite"), this.element.append(n, this.listbox, this.live), e.emoji && (e.icons === !1 || e.current && !/^[a-z0-9-]+$/.test(e.current)) && (this.tab = "emoji");
@@ -138,7 +138,7 @@ var o = 60, s = 8, c = 0, l = null, u = class {
 				} else n = !1;
 				break;
 			case "PageDown":
-				this.move(s, !1);
+				this.move(c, !1);
 				break;
 			case "PageUp":
 				this.move(-8, !1);
@@ -166,12 +166,12 @@ var o = 60, s = 8, c = 0, l = null, u = class {
 		this.closed || (this.teardown(), this.opts.onClose(e));
 	}
 	teardown() {
-		this.closed = !0, document.removeEventListener("pointerdown", this.onOutside, !0), this.element.remove(), l === this && (l = null);
+		this.closed = !0, document.removeEventListener("pointerdown", this.onOutside, !0), this.element.remove(), u === this && (u = null);
 	}
 };
-function d(e) {
-	l?.close(!1);
-	let t = new u(e);
-	return l = t, t.show(), t;
+function f(e) {
+	u?.close(!1);
+	let t = new d(e);
+	return u = t, t.show(), t;
 }
-export { u as IconPicker, o as MAX_OPTIONS, d as open };
+export { d as IconPicker, o as MAX_OPTIONS, s as MAX_QUERY, f as open };

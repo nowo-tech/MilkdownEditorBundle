@@ -52,6 +52,12 @@ Icons (planned as **1.7.0**).
 
 - *Insert → Icon* (context menu) no longer adds a new paragraph before the `:` trigger: inline entries are inserted at
   the caret.
+- Callout emoji rule (audit DY-M1 / DY-L1 / DY-I1, before release): a linear check of at most 64 bytes and 8 code
+  points, the same table in TS and PHP (Unicode 18 Extended_Pictographic, flags, keycaps, skin tones, VS16, ZWJ).
+  The first version's pattern backtracked exponentially on values such as 40 × U+FE0F + `a`. It also accepted
+  combining marks, U+2800 and plain symbols and rejected ℹ️, which the picker offers.
+- The callout icon button checks catalog names like inline icons do: an unknown one shows its name (DY-I4). The picker
+  search is capped at 64 characters (DY-I2).
 - A key pressed right after the browser moved the caret (End, Home, arrows, a click) acted on the old caret: Shift+F10 /
   the ContextMenu key opened the context menu (and inserted) there, Ctrl / ⌘ + / the block menu, Enter split the old
   block. The editor now reads the pending DOM selection (ProseMirror's own flush) before its key handlers and before

@@ -170,6 +170,10 @@ Three independent icon settings (1.7):
   picker or `:` use); icons render from `/bundles/nowomilkdowneditor/icons/tabler-<first character>.svg` (26 shards,
   about 250 kB gzip in total, the largest 55 kB; a page only fetches the shards of the icons it shows). Allowlisted
   names keep your sprite. Enable both keys so the read pages render what the editor shows.
+  SVG `<use>` only loads same-origin files: serve the bundle assets (`assets:install`) from the page's origin, not
+  from a CDN `base_urls` of the `nowo_milkdown_editor` package, or catalog icons stay invisible (they fail closed).
+  Like the other bundle assets, send the shards with `Content-Type: image/svg+xml` and
+  `X-Content-Type-Options: nosniff` (they contain only `svg`, `symbol` and `path`).
 
 With `icons` or `icon_catalog` the **icon picker** is available (see [USAGE](USAGE.md#icons-and-the-icon-picker)).
 

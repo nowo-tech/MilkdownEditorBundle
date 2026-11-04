@@ -9,7 +9,7 @@ import { t as Tt } from "./chunks/purify.es-CZ6K1J3y.js";
 import { t as Et } from "./chunks/mermaid-DJO1IgvH.js";
 import { a as V, c as Dt, d as Ot, f as kt, i as At, l as jt, n as Mt, r as Nt, s as Pt, t as Ft, u as It } from "./chunks/runtime-DteDkkpb.js";
 import { a as Lt, i as Rt, n as zt, o as Bt, r as Vt } from "./chunks/context-menu-registry-DUCZ7cub.js";
-import { a as Ht, c as Ut, d as Wt, f as Gt, i as Kt, m as qt, n as Jt, o as Yt, p as Xt, s as Zt, t as Qt, u as H } from "./chunks/directives-BgYTlUOf.js";
+import { a as Ht, c as Ut, d as Wt, f as Gt, i as Kt, m as qt, n as Jt, o as Yt, p as Xt, s as Zt, t as Qt, u as H } from "./chunks/directives-DfhiezYY.js";
 import { n as $t, t as en } from "./chunks/icons-B-Y2FNeC.js";
 import { i as tn, n as nn } from "./chunks/keyboard-Ci_tDM3V.js";
 import { i as rn } from "./chunks/dist-BmAqUYId.js";
@@ -3282,7 +3282,7 @@ var ps = {
 	math: () => import("./chunks/latex-DBdrxhZV.js"),
 	katex: () => import("./chunks/katex-DNCsLolD.js"),
 	topBar: () => import("./chunks/top-bar-AG6DU-ne.js"),
-	colors: () => import("./chunks/colors-Bejnk0E_.js")
+	colors: () => import("./chunks/colors-DI2KGTHp.js")
 }, ms = "<svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 16l5-12 5 12\"/><path d=\"M9 11h6\"/><path d=\"M4 20h16\"/></svg>";
 async function hs(e, t, n) {
 	let r = new Set(t.features), [i, a, o] = await Promise.all([
@@ -3445,7 +3445,7 @@ function Ts(e = document) {
 }
 // src/Resources/assets/src/icons/open.ts
 var Es = {
-	picker: () => import("./chunks/icon-picker-Cn5SM3Db.js"),
+	picker: () => import("./chunks/icon-picker-mWVzmILQ.js"),
 	catalog: () => import("./chunks/catalog-BfEKgkVo.js")
 };
 async function Ds(e) {
@@ -3650,7 +3650,20 @@ function Rs(e, t, n, r) {
 	let i = Yt(t), a = document.createElement("button");
 	a.type = "button", a.className = "nowo-milkdown-directive__icon", a.setAttribute("aria-haspopup", "dialog"), a.setAttribute("aria-label", i ? V(e, "directive.callout_icon", { name: i.kind === "tabler" ? i.name : i.value }) : V(e, "directive.callout_icon_none")), a.disabled = !n.editable;
 	let o;
-	return i?.kind === "emoji" ? (o = document.createElement("span"), o.className = "nowo-milkdown-directive__emoji", o.textContent = i.value) : i ? (o = Mt(e, i.name), o || (o = document.createElement("span"), o.className = "nowo-milkdown-directive__icon-name", o.textContent = i.name)) : o = en("mood-plus"), o?.setAttribute("aria-hidden", "true"), o && a.append(o), a.addEventListener("click", () => {
+	if (i?.kind === "emoji") o = document.createElement("span"), o.className = "nowo-milkdown-directive__emoji", o.textContent = i.value;
+	else if (i) {
+		let t = i.name, n = () => {
+			let e = document.createElement("span");
+			return e.className = "nowo-milkdown-directive__icon-name", e.setAttribute("aria-hidden", "true"), e.textContent = t, e;
+		};
+		if (o = Mt(e, t) ?? n(), o instanceof SVGElement && (!e.icons.has(t) || !e.spriteUrl)) {
+			let e = o, r = () => e.replaceWith(n());
+			Es.catalog().then((e) => {
+				e.hasIcon(t) || r();
+			}).catch(r);
+		}
+	} else o = en("mood-plus");
+	return o?.setAttribute("aria-hidden", "true"), o && a.append(o), a.addEventListener("click", () => {
 		if (!n.editable) return;
 		let i = a.getBoundingClientRect(), o = n.dom.closest(".nowo-milkdown") ?? document.body, s = () => {
 			let e = r();
@@ -4995,7 +5008,7 @@ async function Kl(e, t = {}) {
 	let { bar: s, surface: c, status: l, announce: u } = Wl(e, o), d = Ul(n), f = n.value, p = new Wn({
 		root: c,
 		defaultValue: r.collaboration ? "" : f
-	}), m = p.editor, h = r.collaboration ? await import("./chunks/collab-DT1di4uU.js") : null, g = r.features.includes("context_menu") ? await import("./chunks/context-menu-BAsBnJKh.js") : null, _ = r.features.includes("block_actions") ? await import("./chunks/block-actions-DzoXhdZZ.js") : null, v = r.features.includes("colors") ? await import("./chunks/colors-Bejnk0E_.js") : null, y = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-J7KbfwfQ.js") : null;
+	}), m = p.editor, h = r.collaboration ? await import("./chunks/collab-DT1di4uU.js") : null, g = r.features.includes("context_menu") ? await import("./chunks/context-menu-BwH29ECx.js") : null, _ = r.features.includes("block_actions") ? await import("./chunks/block-actions-MSE-33gS.js") : null, v = r.features.includes("colors") ? await import("./chunks/colors-DI2KGTHp.js") : null, y = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-J7KbfwfQ.js") : null;
 	m.config((e) => {
 		if (e.set(At.key, o), e.update(be, (e) => ({
 			...e,

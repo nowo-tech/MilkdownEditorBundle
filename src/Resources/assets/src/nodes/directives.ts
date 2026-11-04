@@ -193,11 +193,25 @@ export function calloutIconButton(runtime: Runtime, attributes: Record<string, s
     art.className = 'nowo-milkdown-directive__emoji';
     art.textContent = icon.value;
   } else if (icon) {
-    art = iconSvg(runtime, icon.name);
-    if (!art) {
-      art = document.createElement('span');
-      art.className = 'nowo-milkdown-directive__icon-name';
-      art.textContent = icon.name;
+    const name = icon.name;
+    const asName = (): HTMLSpanElement => {
+      const span = document.createElement('span');
+      span.className = 'nowo-milkdown-directive__icon-name';
+      span.setAttribute('aria-hidden', 'true');
+      span.textContent = name;
+      return span;
+    };
+    art = iconSvg(runtime, name) ?? asName();
+    // A catalog name (not the host's allowlist) is checked against the catalog, as inline icons are (audit DY-I4).
+    if (art instanceof SVGElement && (!runtime.icons.has(name) || !runtime.spriteUrl)) {
+      const svg = art;
+      const fallback = (): void => svg.replaceWith(asName());
+      void lazyIcons
+        .catalog()
+        .then((m) => {
+          if (!m.hasIcon(name)) fallback();
+        })
+        .catch(fallback);
     }
   } else {
     art = glyph('mood-plus');

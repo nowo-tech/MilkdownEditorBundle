@@ -386,7 +386,8 @@ Since 1.7 (see [CONFIGURATION](CONFIGURATION.md#icons) for `menu_icons`, `toolba
   :::
 
   :::callout{icon="💡" type="warning"}
-  An emoji (1–8 code points, no letters, digits or spaces).
+  An emoji: Extended_Pictographic emoji, flags or keycaps, optionally with skin tones, VS16 and ZWJ sequences,
+  at most 8 code points and 64 bytes (every emoji of the picker qualifies).
   :::
   ```
 

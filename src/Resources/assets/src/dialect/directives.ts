@@ -10,6 +10,7 @@
  *   ::name{…}                                      leaf directive kept as an embedded block (e.g. live host blocks)
  */
 import { ICON } from './patterns';
+import { MAX_BYTES, isEmojiValue } from './emoji-rule';
 
 export const CALLOUT_TYPES = ['info', 'success', 'warning', 'danger'] as const;
 export type CalloutType = (typeof CALLOUT_TYPES)[number];
@@ -38,18 +39,16 @@ export function cleanAttributes(input: unknown): Record<string, string> {
   return out;
 }
 
-/**
- * An emoji value (1.7 callout icons): 1–8 code points, none of them ASCII, a letter, a digit, a space or a control
- * (zero-width joiner, variation selector 16 and the keycap mark allowed). The PHP renderer uses the same rule.
- */
-const EMOJI = /^(?:[^\p{L}\p{N}\p{Z}\p{C}\p{ASCII}]|\u200d|\ufe0f|\u20e3)+$/u;
-export const isEmojiValue = (value: string): boolean => EMOJI.test(value) && [...value].length <= 8;
+// An emoji value (1.7 callout icons): a linear scan, see `emoji-rule.ts` (audit DY-M1 / DY-I1).
+export { isEmojiValue };
 
 export type CalloutIcon = { kind: 'tabler'; name: string } | { kind: 'emoji'; value: string };
 
 /** The icon of a callout (`icon=`, 1.7): a Tabler name, an emoji, or null (absent or anything else). */
 export function calloutIcon(attributes: Record<string, string>): CalloutIcon | null {
   const value = attributes.icon ?? '';
+  // Bounded before any pattern: icon names and emoji are short (DY-M1).
+  if (value.length > MAX_BYTES) return null;
   if (ICON_NAME.test(value)) return { kind: 'tabler', name: value };
   if (isEmojiValue(value)) return { kind: 'emoji', value };
   return null;

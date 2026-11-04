@@ -2,7 +2,7 @@ import { u as e } from "./lib-DaU_YkmU.js";
 import { ot as t, st as n, ut as r } from "./lib-9QpRoHAM.js";
 import { a as i, c as a, i as o, l as s, o as c, r as l, u } from "./dist-DPp-l4A4.js";
 import { a as d, i as f } from "./runtime-DteDkkpb.js";
-import { a as p, c as m, colorItems as h, i as g, l as _, n as v, o as y, r as b, s as x, t as S } from "./colors-Bejnk0E_.js";
+import { a as p, c as m, colorItems as h, i as g, l as _, n as v, o as y, r as b, s as x, t as S } from "./colors-DI2KGTHp.js";
 import { r as C, t as w } from "./keyboard-Ci_tDM3V.js";
 import { i as T, n as E, o as D, t as O } from "./context-menu-registry-DUCZ7cub.js";
 import { copyMarkdown as k, markdownIo as A, pasteMarkdown as j } from "./markdown-clipboard-J7KbfwfQ.js";
