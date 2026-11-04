@@ -135,7 +135,10 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
   elements (`p br strong em del s code pre blockquote ul ol li a span mark h1–h6 table …`) and attributes (`href`
   through `safeUrl()`, `nowo-md-*` classes, `title`, `datetime`, `lang`); scripts, styles, SVG, iframes and event
   handlers are dropped, other elements become their text, and links get `rel="noopener noreferrer nofollow"`. Names
-  are text, colours `#rrggbb`, avatars through `safeUrl()` (the host's `img-src` applies), reactions short non-ASCII
+  are text, colours `#rrggbb`, avatars through `safeAvatarUrl()` (only `https://` without userinfo or a same-origin `/`
+  path; `http:`, `data:` of any kind, `blob:`, `//`, backslashes, controls and URLs over 2048 bytes are dropped; the
+  `<img>` has `alt=""`, `referrerpolicy="same-origin"`, no `crossorigin`, and falls back to the initial on error; the
+  host's `img-src` applies), reactions short non-ASCII
   strings. Buttons follow the host's `can` flags, which the host re-checks on every write. Live updates carry ids
   only (validated, at most 100 per message, debounced). The editor keeps nothing in storage.
 - **Version view and diff (1.6).** `version_view` is read-only, without collaboration, uploads or comments; *Restore*

@@ -402,7 +402,11 @@ $builder->add('body', MilkdownEditorType::class, [
   edit / delete own, *Show resolved*, page-level comments. Endpoints under `url`: `GET /threads`,
   `GET|POST /threads[/{id}]`, `POST /threads/{id}/comments`, `PATCH /threads/{id}`, `PATCH|DELETE /comments/{cid}`,
   `PUT|DELETE /comments/{cid}/reactions/{emoji}`. Comment bodies are HTML rendered by the host with this bundle's
-  renderer; the component copies an allow-list of it with DOM APIs.
+  renderer; the component copies an allow-list of it with DOM APIs. Avatars (`author.avatarUrl`,
+  `resolvedBy.avatarUrl`) must be `https://` URLs without userinfo or same-origin paths starting with one `/`; anything
+  else shows the initial. The picture (`.nowo-milkdown-avatar__image`, lazy, `referrerpolicy="same-origin"`) lies over
+  the initial (`.nowo-milkdown-avatar`) and is removed if it fails to load. Serve inline images from your own URL
+  (no `data:`), and list the origins your avatar URLs redirect to in `img-src`.
 - **In a host drawer** (`panel: 'container'`, `container: '#wiki-comments'`, or `handle.comments.mount(el)` later): the
   threads render into your element with no landmark, heading, layout or Escape handling of their own. Listen to
   `nowo-milkdown:comments-open-requested` (`{id}`, `null` for a new comment) to open the drawer before the thread is

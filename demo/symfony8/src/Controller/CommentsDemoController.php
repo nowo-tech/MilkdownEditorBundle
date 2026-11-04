@@ -27,6 +27,7 @@ final class CommentsDemoController extends AbstractController
     private const OLD = "# Deploy checklist\n\nTag the release, then deploy to staging.\n\n- Run the smoke tests\n- Ask @ada\n";
     private const NEW = "# Deploy checklist\n\nTag the release, then deploy to production after staging.\n\n- Run the smoke tests\n- Ask @ada\n\nRoll back with the previous tag.\n";
     private const KEY = 'demo_comment_threads';
+    private const AVATAR = '/demo-avatar.svg';
 
     public function __construct(
         private readonly CsrfTokenManagerInterface $csrf,
@@ -207,15 +208,19 @@ final class CommentsDemoController extends AbstractController
      */
     private function view(array $thread): array
     {
+        // Avatars (contract v1.1 §10.3): the first comment has a picture; replies point at a missing file, so the
+        // component falls back to the initial.
+        $first              = $thread['comments'][0]['id'] ?? null;
         $thread['comments'] = array_map(fn (array $c): array => [
             'id'        => $c['id'],
-            'author'    => ['name' => 'Demo user', 'color' => '#1f6f54'],
+            'author'    => ['name' => 'Demo user', 'color' => '#1f6f54', 'avatarUrl' => $c['id'] === $first ? self::AVATAR : '/demo-avatar-missing.png'],
             'html'      => $this->renderer->render($c['body']),
             'createdAt' => $c['createdAt'],
             'reactions' => [],
             'can'       => ['edit' => false, 'delete' => true],
         ], $thread['comments']);
-        $thread['can'] = ['reply' => true, 'resolve' => true, 'react' => false];
+        $thread['can']        = ['reply' => true, 'resolve' => true, 'react' => false];
+        $thread['resolvedBy'] = $thread['resolved'] === true ? ['name' => 'Demo user', 'avatarUrl' => self::AVATAR] : null;
 
         return $thread;
     }

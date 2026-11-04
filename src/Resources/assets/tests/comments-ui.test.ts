@@ -90,7 +90,7 @@ describe('host answers are validated', () => {
     expect(parseThreadDetail({ id: 'x y' })).toBeNull();
     const t = parseThreadDetail({ ...thread('t'), count: 0, resolvedBy: { name: 'Bo' }, resolvedAt: '2026-11-03T11:00:00+01:00' })!;
     expect(t.count).toBe(1);
-    expect(t.resolvedBy).toEqual({ name: 'Bo' });
+    expect(t.resolvedBy).toEqual({ name: 'Bo', avatarUrl: null });
     expect(t.resolvedAt).toBe('2026-11-03T11:00:00+01:00');
     expect(parseThreadDetail({ id: 't', anchor: null })).toMatchObject({ comments: [], resolvedBy: null, can: { reply: false } });
   });
@@ -160,7 +160,7 @@ describe('thread component (1.6)', () => {
     const open = aside.querySelector('[data-thread-id="t2"] .nowo-milkdown-comments__thread')!;
     expect(open.querySelector('.nowo-milkdown-comments__body strong')?.textContent).toBe('there');
     expect(open.querySelector('time')?.getAttribute('datetime')).toBe('2026-11-03T10:00:00Z');
-    expect(open.querySelector('.nowo-milkdown-comments__avatar')?.textContent).toBe('A');
+    expect(open.querySelector('.nowo-milkdown-avatar')?.textContent).toBe('A');
   });
 
   it('replies, reacts, resolves, edits and deletes through the host', async () => {
@@ -214,7 +214,7 @@ describe('thread component (1.6)', () => {
     box.dispatchEvent(new Event('change'));
     aside.querySelector<HTMLButtonElement>('[data-thread-id="t1"] .nowo-milkdown-comments__card')!.click();
     await tick(10);
-    expect(section().querySelector('.nowo-milkdown-comments__resolved')?.textContent).toBe('Resolved by Cy');
+    expect(section().querySelector('.nowo-milkdown-comments__resolved')?.textContent).toBe('C Resolved by Cy');
     const edit = [...section().querySelectorAll<HTMLButtonElement>('.nowo-milkdown-comments__own button')][0]!;
     edit.click();
     const editForm = section().querySelector<HTMLFormElement>('.nowo-milkdown-comments__comment form')!;

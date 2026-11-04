@@ -6,6 +6,7 @@
 import { t, type Runtime } from '../runtime';
 import type { CommentsOptions } from '../types';
 import { ID_PATTERN, type CommentAnchor } from './anchor';
+import { avatarElement } from './avatar';
 import { CommentsClient, type Thread, type ThreadComment } from './client';
 import { emit, type ThreadRef } from './plugin';
 import { sanitizeBody } from './sanitize';
@@ -428,7 +429,11 @@ export class ThreadPanel {
     const list = el('ol', 'nowo-milkdown-comments__comments');
     for (const c of th.comments) list.append(this.comment(th, c));
     section.append(list);
-    if (th.resolved && th.resolvedBy) section.append(el('p', 'nowo-milkdown-comments__resolved', t(runtime, 'comments.resolved_by', { name: th.resolvedBy.name })));
+    if (th.resolved && th.resolvedBy) {
+      const resolved = el('p', 'nowo-milkdown-comments__resolved');
+      resolved.append(avatarElement(th.resolvedBy.name, null, th.resolvedBy.avatarUrl), ` ${t(runtime, 'comments.resolved_by', { name: th.resolvedBy.name })}`);
+      section.append(resolved);
+    }
     const actions = el('div', 'nowo-milkdown-comments__actions');
     if (th.can.resolve) {
       const b = el('button', 'nowo-milkdown__action', t(runtime, th.resolved ? 'comments.reopen' : 'comments.resolve'));
@@ -463,18 +468,7 @@ export class ThreadPanel {
       return li;
     }
     const meta = el('p', 'nowo-milkdown-comments__meta');
-    if (c.author.avatarUrl) {
-      const img = document.createElement('img');
-      img.className = 'nowo-milkdown-comments__avatar';
-      img.alt = '';
-      img.src = c.author.avatarUrl;
-      meta.append(img);
-    } else {
-      const initials = el('span', 'nowo-milkdown-comments__avatar', c.author.name.slice(0, 1).toUpperCase());
-      initials.setAttribute('aria-hidden', 'true');
-      if (c.author.color) initials.style.backgroundColor = c.author.color;
-      meta.append(initials);
-    }
+    meta.append(avatarElement(c.author.name, c.author.color, c.author.avatarUrl));
     meta.append(el('strong', 'nowo-milkdown-comments__author', c.author.name));
     if (c.createdAt) {
       const time = el('time', 'nowo-milkdown-comments__time', formatDate(c.createdAt));

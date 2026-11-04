@@ -39,6 +39,10 @@ test.describe('comments, version view and diff (1.6)', () => {
       const thread = page.getByRole('region', { name: 'Comment thread' });
       await expect(thread).toBeVisible();
       await expect(thread.locator('.nowo-milkdown-comments__body')).toHaveText('Why production?');
+      // Avatar: the picture lies over the initial once loaded (decorative, lazy, same-origin referrer).
+      const firstAvatar = thread.locator('.nowo-milkdown-comments__comment').first().locator('.nowo-milkdown-avatar');
+      await expect(firstAvatar).toHaveClass(/is-loaded/);
+      await expect(firstAvatar.locator('img')).toHaveAttribute('referrerpolicy', 'same-origin');
       expect(await seriousViolations(page)).toEqual([]);
 
       // Escape closes the thread; next comment selects and announces it; Enter reopens it.
@@ -56,6 +60,10 @@ test.describe('comments, version view and diff (1.6)', () => {
       await thread.getByRole('textbox', { name: 'Reply' }).fill('Because staging passed.');
       await thread.getByRole('button', { name: 'Send' }).click();
       await expect(thread.locator('.nowo-milkdown-comments__comment')).toHaveCount(2);
+      // A broken avatar URL falls back to the initial.
+      const replyAvatar = thread.locator('.nowo-milkdown-comments__comment').nth(1).locator('.nowo-milkdown-avatar');
+      await expect(replyAvatar.locator('img')).toHaveCount(0);
+      await expect(replyAvatar).toHaveText('D');
       await thread.getByRole('button', { name: 'Resolve' }).click();
       await expect(highlight).toHaveCount(0);
       await page.getByRole('checkbox', { name: 'Show resolved' }).check();
@@ -73,7 +81,8 @@ test.describe('comments, version view and diff (1.6)', () => {
         console.log('page', await page.evaluate(() => [location.href, document.querySelector('.sf-toolbar') !== null, performance.getEntriesByType('navigation').length, Math.round(performance.now()), [...document.querySelectorAll('script')].map((s) => s.src || `inline:${s.textContent?.slice(0, 80)}`)]));
       }
       expect(found).toEqual([]);
-      expect(log.errors).toEqual([]);
+      // The broken demo avatar is the only expected failed request.
+      expect(log.errors.filter((e) => !/Failed to load resource.*404/.test(e))).toEqual([]);
     });
 
     test(`version banner and diff navigation (${theme})`, async ({ page }) => {

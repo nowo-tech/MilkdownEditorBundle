@@ -37,6 +37,10 @@ Comments, version view, rendered diff and heading ids (all opt-in).
     Escape handling of its own);
   - an optional, accessible thread component (`comments.url`, `panel: margin | sidebar | container`): replies, reactions,
     resolve / reopen, edit / delete own, *Show resolved*, page-level comments, live updates by thread id over Mercure;
+  - comment avatars (`author.avatarUrl`, `resolvedBy.avatarUrl`; avatar contract v1.1): only `https://` without
+    userinfo or a same-origin `/` path (no `http:`, `data:`, `blob:`, `//`, backslashes, controls, over 2048 bytes),
+    a lazy `<img alt="" referrerpolicy="same-origin">` over the initial in `.nowo-milkdown-avatar`, falling back to
+    the initial on error (failed URLs are not requested again on that page);
   - `Nowo\MilkdownEditorBundle\Comment\CommentAnchor` to validate anchors on the host (shared test vectors with the
     editor).
 - **`version_view`** (opt-in): a read-only view of an old version with a banner; *Restore* / *Copy to a new page*

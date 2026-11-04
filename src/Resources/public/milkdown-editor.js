@@ -5116,7 +5116,7 @@ async function Wl(e, t = {}) {
 	ae && C?.canCreate && (o.comment = ae.start);
 	let k = () => void 0, oe = r.comments;
 	if (ae && b && oe?.url && oe.panel !== "none") {
-		let t = oe.url, { mountThreadPanel: n } = await import("./chunks/thread-ui-BNl0ouCV.js"), i = n({
+		let t = oe.url, { mountThreadPanel: n } = await import("./chunks/thread-ui-DMjwQKDO.js"), i = n({
 			root: e,
 			surface: c,
 			options: {

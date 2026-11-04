@@ -2,8 +2,8 @@
  * Host endpoints of the comment thread component (1.6, contract section 6.1) and validation of their answers.
  * Requests go only to `comments.url` (same origin, checked by `parseOptions()`), with the CSRF header on writes.
  */
-import { safeUrl } from '../link-titles';
 import { ID_PATTERN, type CommentAnchor } from './anchor';
+import { safeAvatarUrl } from './avatar';
 import { ISO_DATE, parseThread, parseThreads, type ThreadRef } from './plugin';
 
 export type Reaction = { emoji: string; count: number; mine: boolean };
@@ -20,7 +20,7 @@ export type ThreadComment = {
 export type Thread = ThreadRef & {
   comments: ThreadComment[];
   can: { reply: boolean; resolve: boolean; react: boolean };
-  resolvedBy: { name: string } | null;
+  resolvedBy: { name: string; avatarUrl: string | null } | null;
   resolvedAt: string | null;
 };
 export type ThreadList = { threads: Map<string, ThreadRef>; page: Map<string, ThreadRef>; truncated: boolean };
@@ -60,7 +60,7 @@ export function parseComment(value: unknown): ThreadComment | null {
     id: c.id,
     author: {
       name: name(author.name),
-      avatarUrl: typeof author.avatarUrl === 'string' && safeUrl(author.avatarUrl) !== '' ? safeUrl(author.avatarUrl) : null,
+      avatarUrl: safeAvatarUrl(author.avatarUrl),
       color: typeof author.color === 'string' && /^#[0-9a-f]{6}$/i.test(author.color) ? author.color : null,
     },
     html: !deleted && typeof c.html === 'string' ? c.html.slice(0, MAX_HTML) : '',
@@ -90,7 +90,7 @@ export function parseThreadDetail(value: unknown): Thread | null {
     count: base.count || comments.filter((c) => !c.deleted).length,
     comments,
     can: { reply: flag(can.reply), resolve: flag(can.resolve), react: flag(can.react) },
-    resolvedBy: typeof resolvedBy.name === 'string' ? { name: name(resolvedBy.name) } : null,
+    resolvedBy: typeof resolvedBy.name === 'string' ? { name: name(resolvedBy.name), avatarUrl: safeAvatarUrl(resolvedBy.avatarUrl) } : null,
     resolvedAt: date(t.resolvedAt),
   };
 }

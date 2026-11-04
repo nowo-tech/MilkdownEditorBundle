@@ -44,6 +44,8 @@ interfaces and `window.NowoMilkdownEditor`.
   without moving focus (`focus(id)` moves focus into the editor), and feed the tab badge from
   `nowo-milkdown:comments-count` / `handle.comments.count()` (`{open, resolved, orphaned, page, total}`). In this mode
   Escape, open / close and focus restoration belong to the host.
+- Comment avatars (`author.avatarUrl`, `resolvedBy.avatarUrl`) accept only `https://` URLs without userinfo or
+  same-origin paths starting with one `/`; `http:` and `data:` avatars show the initial.
 - Read-side heading ids are off by default; with `markdown.heading_ids: true` headings get `id="nowo-h-<slug>"`
   (sanitiser allow-lists that strip `id` must allow that prefix).
 
