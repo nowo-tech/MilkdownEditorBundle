@@ -417,6 +417,10 @@ $builder->add('body', MilkdownEditorType::class, [
   textarea). A reply from someone else is announced only while the component is visible (not inside a `hidden`
   drawer); the count is never announced. The component is `width: 100%` with no positioning or fixed heights, so it
   fits a full-height drawer on phones; the host owns scrolling, Escape and focus restoration.
+- **`handle.comments.open(id)`** opens the built-in thread view and emits only
+  `nowo-milkdown:comments-open-requested` (`{id}`). It does **not** emit the cancelable `nowo-milkdown:comment-open`:
+  only a click or **Enter** on a highlight (or a card in the list) emits that. Hosts must not expect a cancelable event
+  from the API call; to draw your own thread view, cancel `comment-open` for user actions and do not call `open()`.
 - **Live updates:** with `topic` and co-editing, the component listens to the hub for `{"threads": [ids]}` and
   refetches those threads; otherwise call `handle.comments.refresh(ids)`.
 - **Keyboard:** **Ctrl / ⌘ + Alt + PageDown / PageUp** next / previous comment (selected and announced), **Enter**
