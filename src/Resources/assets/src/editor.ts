@@ -46,6 +46,8 @@ export type MilkdownEditorHandle = {
 };
 
 let sequence = 0;
+/** How long a transient confirmation stays in the live region (ms, 1.5.1). */
+export const STATUS_CLEAR_MS = 4000;
 export const normaliseNewlines = (value: string): string => value.replace(/\r\n?/g, '\n');
 
 /**
@@ -84,10 +86,27 @@ function chrome(root: HTMLElement, runtime: Runtime) {
   alert.className = 'nowo-milkdown__alert';
   alert.setAttribute('role', 'alert');
   root.append(bar, surface, status, alert);
-  const announce = (key: string, params: Record<string, string | number>, error = false): void => {
-    (error ? alert : status).textContent = t(runtime, key, params);
-    if (!error) alert.textContent = '';
+  // 1.5.1: confirmations ("Copied as Markdown") are transient: cleared after a few seconds and on the next action.
+  let clearTimer: ReturnType<typeof setTimeout> | null = null;
+  let transientText: string | null = null;
+  const clearTransient = (): void => {
+    if (clearTimer) clearTimeout(clearTimer);
+    clearTimer = null;
+    if (transientText !== null && status.textContent === transientText) status.textContent = '';
+    transientText = null;
   };
+  const announce = (key: string, params: Record<string, string | number>, error = false, transient = false): void => {
+    clearTransient();
+    const text = t(runtime, key, params);
+    (error ? alert : status).textContent = text;
+    if (!error) alert.textContent = '';
+    if (transient && !error) {
+      transientText = text;
+      clearTimer = setTimeout(clearTransient, STATUS_CLEAR_MS);
+    }
+  };
+  surface.addEventListener('keydown', clearTransient);
+  surface.addEventListener('pointerdown', clearTransient);
   return { bar, surface, status, announce };
 }
 
@@ -177,7 +196,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   if (contextMenuModule) editor.use(contextMenuModule.contextMenuPlugin);
   if (blockActionsModule) editor.use(blockActionsModule.blockActionsPlugin(options.features.includes('block_drag')));
   if (colorsModule) editor.use(colorsModule.colorMenuPlugin);
-  if (clipboardModule) editor.use(clipboardModule.markdownClipboardPlugin((key, error) => announce(key, {}, error)));
+  if (clipboardModule) editor.use(clipboardModule.markdownClipboardPlugin((key, error) => announce(key, {}, error, true)));
   await addFeatures(builder, options, runtime);
 
   builder.on((api) =>
@@ -277,6 +296,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     // 1.2: a save from the live session tells the host so (it keeps the shared log instead of resetting it).
     const live = provider;
     const markSession = (): void => {
+      live.flush(true);
       let input = form?.querySelector<HTMLInputElement>(`input[name="${SESSION_FIELD}"]`) ?? null;
       if (live.status !== 'online') {
         input?.remove();
@@ -291,8 +311,12 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
       input.value = topic;
     };
     form?.addEventListener('submit', markSession, true);
+    // 1.5.1: edits waiting in the send window go out when the editor loses focus.
+    const flush = (): void => live.flush();
+    surface.addEventListener('focusout', flush);
     stopCollaboration = () => {
       form?.removeEventListener('submit', markSession, true);
+      surface.removeEventListener('focusout', flush);
       collaboration.stop();
     };
   }

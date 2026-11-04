@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
+- [Unreleased (1.5.1)](#unreleased-151)
 - [1.5.0](#150)
 - [1.4.0](#140)
 - [1.3.1](#131)
@@ -24,6 +25,19 @@
 Public API covered by Semantic Versioning: the configuration tree, profile keys, form options, Twig filter / function
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
+
+## Unreleased (1.5.1)
+
+- No BC break. Co-editing sends far fewer requests: edits are merged per 200 ms window and presence is throttled to
+  one post per 750 ms (tunable with `collaboration.update_delay_ms` / `awareness_delay_ms`).
+- **Hosts:** use **separate rate limiters** for `/update` and `/awareness` (and for `/token`, `/state`) instead of one
+  shared limiter, and answer **429 with `Retry-After`** when a limit trips: the client now backs off and retries with
+  the merged edits instead of going offline. Updates may now carry several edits merged with `Y.mergeUpdates` (still a
+  plain Yjs update: nothing to change in a host that applies or logs them).
+- `nowo_milkdown_copy_markdown()` accepts `icon` (`true` or `'only'`); its markup is a stable public contract, so hosts
+  that copied it can call the function instead.
+- Editor confirmations ("Copied as Markdown") now clear themselves; tests that read the live region later should
+  read it right after the action.
 
 ## 1.5.0
 

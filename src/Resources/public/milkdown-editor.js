@@ -3279,7 +3279,7 @@ var Qo = {
 	math: () => import("./chunks/latex-DBdrxhZV.js"),
 	katex: () => import("./chunks/katex-DNCsLolD.js"),
 	topBar: () => import("./chunks/top-bar-AG6DU-ne.js"),
-	colors: () => import("./chunks/colors-D__tvSCF.js")
+	colors: () => import("./chunks/colors-BL4xTh-v.js")
 }, $o = "<svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 16l5-12 5 12\"/><path d=\"M9 11h6\"/><path d=\"M4 20h16\"/></svg>";
 async function es(e, t, n) {
 	let r = new Set(t.features), [i, a, o] = await Promise.all([
@@ -3412,8 +3412,7 @@ function Ss(e) {
 function Cs(e) {
 	let t = xs(e), n = bs(t.url), r = bs(t.hubUrl), i = bs(t.topic);
 	if (!n || !r || !i) return null;
-	let a = xs(t.user);
-	return {
+	let a = xs(t.user), o = {
 		url: n,
 		hubUrl: r,
 		topic: i,
@@ -3422,6 +3421,7 @@ function Cs(e) {
 			color: /^#[0-9a-f]{6}$/i.test($(a.color)) ? $(a.color) : "#1f6f54"
 		}
 	};
+	return typeof t.updateDelay == "number" && (o.updateDelay = t.updateDelay), typeof t.awarenessDelay == "number" && (o.awarenessDelay = t.awarenessDelay), typeof t.maxUpdateBytes == "number" && (o.maxUpdateBytes = t.maxUpdateBytes), o;
 }
 function ws(e) {
 	let t;
@@ -4912,20 +4912,20 @@ function Ml(e, t, n = Al) {
 	};
 }
 // src/Resources/assets/src/editor.ts
-var Nl = "_nowo_milkdown_collab", Pl = 0, Fl = (e) => e.replace(/\r\n?/g, "\n");
-function Il(e) {
+var Nl = "_nowo_milkdown_collab", Pl = 0, Fl = 4e3, Il = (e) => e.replace(/\r\n?/g, "\n");
+function Ll(e) {
 	let t = e.dataset.theme;
 	if (t === "dark") return !0;
 	if (t === "light") return !1;
 	let n = e.parentElement?.closest("[data-theme]");
 	return n ? n.dataset.theme === "dark" : typeof matchMedia == "function" && matchMedia("(prefers-color-scheme: dark)").matches;
 }
-function Ll(e) {
+function Rl(e) {
 	if (!e.id) return null;
 	let t = document.querySelector(`label[for="${CSS.escape(e.id)}"]`);
 	return t && !t.id && (t.id = `${e.id}_label`), t;
 }
-function Rl(e, t) {
+function zl(e, t) {
 	let n = document.createElement("div");
 	n.className = "nowo-milkdown__actions";
 	let r = document.createElement("div");
@@ -4933,20 +4933,26 @@ function Rl(e, t) {
 	let i = document.createElement("div");
 	i.className = "nowo-milkdown__status", i.setAttribute("role", "status"), i.setAttribute("aria-live", "polite");
 	let a = document.createElement("div");
-	return a.className = "nowo-milkdown__alert", a.setAttribute("role", "alert"), e.append(n, r, i, a), {
+	a.className = "nowo-milkdown__alert", a.setAttribute("role", "alert"), e.append(n, r, i, a);
+	let o = null, s = null, c = () => {
+		o && clearTimeout(o), o = null, s !== null && i.textContent === s && (i.textContent = ""), s = null;
+	};
+	return r.addEventListener("keydown", c), r.addEventListener("pointerdown", c), {
 		bar: n,
 		surface: r,
 		status: i,
-		announce: (e, n, r = !1) => {
-			(r ? a : i).textContent = V(t, e, n), r || (a.textContent = "");
+		announce: (e, n, r = !1, l = !1) => {
+			c();
+			let u = V(t, e, n);
+			(r ? a : i).textContent = u, r || (a.textContent = ""), l && !r && (s = u, o = setTimeout(c, Fl));
 		}
 	};
 }
-function zl(e, t, n) {
+function Bl(e, t, n) {
 	let r = document.createElement("button");
 	return r.type = "button", r.className = "nowo-milkdown__action", r.textContent = t, r.addEventListener("click", n), e.append(r), r;
 }
-async function Bl(e, t = {}) {
+async function Vl(e, t = {}) {
 	let n = e.querySelector("textarea");
 	if (!n) throw Error("nowo-milkdown: the widget has no textarea");
 	let r = {
@@ -4962,13 +4968,13 @@ async function Bl(e, t = {}) {
 		features: new Set(r.features),
 		colors: r.colors,
 		nonce: r.nonce,
-		dark: () => Il(e)
+		dark: () => Ll(e)
 	};
-	e.classList.add("nowo-milkdown"), e.dataset.theme = r.theme, e.style.setProperty("--nowo-milkdown-min-height", r.minHeight), n.hidden = !0, n.value = Fl(n.value);
-	let { bar: s, surface: c, status: l, announce: u } = Rl(e, o), d = Ll(n), f = n.value, p = new An({
+	e.classList.add("nowo-milkdown"), e.dataset.theme = r.theme, e.style.setProperty("--nowo-milkdown-min-height", r.minHeight), n.hidden = !0, n.value = Il(n.value);
+	let { bar: s, surface: c, status: l, announce: u } = zl(e, o), d = Rl(n), f = n.value, p = new An({
 		root: c,
 		defaultValue: r.collaboration ? "" : f
-	}), m = p.editor, h = r.collaboration ? await import("./chunks/collab-Elq1tKQg.js") : null, g = r.features.includes("context_menu") ? await import("./chunks/context-menu-QmtZGn7x.js") : null, _ = r.features.includes("block_actions") ? await import("./chunks/block-actions-GONzXZal.js") : null, v = r.features.includes("colors") ? await import("./chunks/colors-D__tvSCF.js") : null, y = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-J7KbfwfQ.js") : null;
+	}), m = p.editor, h = r.collaboration ? await import("./chunks/collab-DT1di4uU.js") : null, g = r.features.includes("context_menu") ? await import("./chunks/context-menu-Bz1dxpc9.js") : null, _ = r.features.includes("block_actions") ? await import("./chunks/block-actions-DtN4JMXJ.js") : null, v = r.features.includes("colors") ? await import("./chunks/colors-BL4xTh-v.js") : null, y = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-J7KbfwfQ.js") : null;
 	m.config((e) => {
 		if (e.set(Ot.key, o), e.update(be, (e) => ({
 			...e,
@@ -4996,7 +5002,7 @@ async function Bl(e, t = {}) {
 		runtime: o,
 		remember: i.remember,
 		rememberUser: a.remember
-	}))).use(At), r.mentionDisplay === "name" && m.use(dl), h && m.use(h.collab), g && m.use(g.contextMenuPlugin), _ && m.use(_.blockActionsPlugin(r.features.includes("block_drag"))), v && m.use(v.colorMenuPlugin), y && m.use(y.markdownClipboardPlugin((e, t) => u(e, {}, t))), await es(p, r, o), p.on((e) => e.markdownUpdated((e, t) => {
+	}))).use(At), r.mentionDisplay === "name" && m.use(dl), h && m.use(h.collab), g && m.use(g.contextMenuPlugin), _ && m.use(_.blockActionsPlugin(r.features.includes("block_drag"))), v && m.use(v.colorMenuPlugin), y && m.use(y.markdownClipboardPlugin((e, t) => u(e, {}, t, !0))), await es(p, r, o), p.on((e) => e.markdownUpdated((e, t) => {
 		n.value !== t && (n.value = t, n.dispatchEvent(new Event("input", { bubbles: !0 })), n.dispatchEvent(new Event("change", { bubbles: !0 })));
 	})), r.readonly && p.setReadonly(!0), await p.create();
 	let b = () => p.getMarkdown(), x = () => {
@@ -5022,9 +5028,9 @@ async function Bl(e, t = {}) {
 	}, D = !!(r.suggestions[":"] || r.icons.length > 0);
 	if (r.upload && !r.readonly) {
 		let e = r.upload;
-		zl(s, V(o, "upload.button"), () => T(e));
+		Bl(s, V(o, "upload.button"), () => T(e));
 	}
-	if (D && !r.readonly && zl(s, V(o, "icon.button"), () => m.action((e) => E(e.get(M)))), r.features.includes("insert_menu") && !r.readonly) {
+	if (D && !r.readonly && Bl(s, V(o, "icon.button"), () => m.action((e) => E(e.get(M)))), r.features.includes("insert_menu") && !r.readonly) {
 		let e = r.upload, t = [];
 		e && t.push({
 			id: "file",
@@ -5049,11 +5055,14 @@ async function Bl(e, t = {}) {
 		});
 		ee = i.provider;
 		let a = ee, s = () => {
+			a.flush(!0);
 			let e = S?.querySelector("input[name=\"_nowo_milkdown_collab\"]") ?? null;
 			a.status === "online" ? (e || (e = document.createElement("input"), e.type = "hidden", e.name = Nl, S?.append(e)), e.value = t) : e?.remove();
 		};
-		S?.addEventListener("submit", s, !0), te = () => {
-			S?.removeEventListener("submit", s, !0), i.stop();
+		S?.addEventListener("submit", s, !0);
+		let d = () => a.flush();
+		c.addEventListener("focusout", d), te = () => {
+			S?.removeEventListener("submit", s, !0), c.removeEventListener("focusout", d), i.stop();
 		};
 	}
 	return {
@@ -5063,7 +5072,7 @@ async function Bl(e, t = {}) {
 		builder: p,
 		provider: ee,
 		getMarkdown: b,
-		setMarkdown: (e) => m.action(ze(Fl(e))),
+		setMarkdown: (e) => m.action(ze(Il(e))),
 		focus: C,
 		destroy: async () => {
 			w(), te(), S?.removeEventListener("submit", x, !0), S?.removeEventListener("formdata", x, !0), d?.removeEventListener("click", C), await p.destroy(), e.querySelectorAll(".nowo-milkdown__actions, .nowo-milkdown__surface, .nowo-milkdown__status, .nowo-milkdown__alert, .nowo-milkdown__reload").forEach((e) => e.remove()), n.hidden = !1;
@@ -5072,68 +5081,69 @@ async function Bl(e, t = {}) {
 }
 // src/Resources/assets/src/index.ts
 Bo(import.meta.url.replace(/[^/]*$/, ""));
-var Vl = "[data-nowo-milkdown-options]", Hl = /* @__PURE__ */ new WeakMap();
-function Ul(e) {
-	let t = Hl.get(e);
-	return t || (t = Bl(e), Hl.set(e, t), t.then(() => e.dispatchEvent(new CustomEvent("nowo-milkdown:ready", { bubbles: !0 })), (t) => {
-		Hl.delete(e), console.error("nowo-milkdown", t instanceof Error ? t.stack ?? t.message : t);
+var Hl = "[data-nowo-milkdown-options]", Ul = /* @__PURE__ */ new WeakMap();
+function Wl(e) {
+	let t = Ul.get(e);
+	return t || (t = Vl(e), Ul.set(e, t), t.then(() => e.dispatchEvent(new CustomEvent("nowo-milkdown:ready", { bubbles: !0 })), (t) => {
+		Ul.delete(e), console.error("nowo-milkdown", t instanceof Error ? t.stack ?? t.message : t);
 	})), t;
 }
-async function Wl(e) {
-	let t = Hl.get(e);
-	t && (Hl.delete(e), await (await t).destroy());
+async function Gl(e) {
+	let t = Ul.get(e);
+	t && (Ul.delete(e), await (await t).destroy());
 }
-var Gl = (e) => Hl.get(e);
-function Kl(e = document) {
-	return [...e.querySelectorAll(Vl)].map(Ul);
+var Kl = (e) => Ul.get(e);
+function ql(e = document) {
+	return [...e.querySelectorAll(Hl)].map(Wl);
 }
-function ql(e) {
+function Jl(e) {
 	return class extends e {
 		connect() {
-			Ul(this.element);
+			Wl(this.element);
 		}
 		disconnect() {
-			Wl(this.element);
+			Gl(this.element);
 		}
 	};
 }
-var Jl = null, Yl = /* @__PURE__ */ new WeakSet();
-async function Xl(e) {
-	let t = e.closest("[data-nowo-milkdown-copy]"), n = t?.querySelector("template")?.content.textContent ?? "", r;
+var Yl = null, Xl = /* @__PURE__ */ new WeakSet(), Zl = 4e3, Ql = /* @__PURE__ */ new WeakMap();
+async function $l(e) {
+	let t = e.closest("[data-nowo-milkdown-copy]"), n = t?.querySelector("[role=\"status\"]") ?? null;
+	n && (clearTimeout(Ql.get(n)), n.textContent = "");
+	let r = t?.querySelector("template")?.content.textContent ?? "", i;
 	try {
-		await navigator.clipboard.writeText(n), r = !0;
+		await navigator.clipboard.writeText(r), i = !0;
 	} catch {
-		r = !1;
+		i = !1;
 	}
-	let i = t?.querySelector("[role=\"status\"]");
-	return i && (i.textContent = (r ? e.dataset.copied : e.dataset.failed) ?? ""), r;
+	return n && (n.textContent = (i ? e.dataset.copied : e.dataset.failed) ?? "", Ql.set(n, setTimeout(() => n.textContent = "", Zl))), i;
 }
-function Zl(e = document) {
-	Yl.has(e) || (Yl.add(e), e.addEventListener("click", (e) => {
+function eu(e = document) {
+	Xl.has(e) || (Xl.add(e), e.addEventListener("click", (e) => {
 		let t = e.target?.closest?.("[data-nowo-milkdown-copy-markdown]");
-		t && Xl(t);
+		t && $l(t);
 	}));
 }
-function Ql(e = document) {
-	let t = () => void Kl(e);
-	Zl(e), e.readyState === "loading" ? e.addEventListener("DOMContentLoaded", t, { once: !0 }) : t(), e.addEventListener("turbo:load", t), Jl?.disconnect(), Jl = new MutationObserver((e) => {
+function tu(e = document) {
+	let t = () => void ql(e);
+	eu(e), e.readyState === "loading" ? e.addEventListener("DOMContentLoaded", t, { once: !0 }) : t(), e.addEventListener("turbo:load", t), Yl?.disconnect(), Yl = new MutationObserver((e) => {
 		for (let t of e) t.addedNodes.forEach((e) => {
-			e instanceof HTMLElement && (e.matches(Vl) && Ul(e), Kl(e));
+			e instanceof HTMLElement && (e.matches(Hl) && Wl(e), ql(e));
 		});
-	}), Jl.observe(e.documentElement, {
+	}), Yl.observe(e.documentElement, {
 		childList: !0,
 		subtree: !0
 	});
 }
-var $l = {
-	mount: Ul,
-	unmount: Wl,
-	mountAll: Kl,
-	instance: Gl,
+var nu = {
+	mount: Wl,
+	unmount: Gl,
+	mountAll: ql,
+	instance: Kl,
 	renderRichContent: Zo,
-	createStimulusController: ql,
-	start: Ql,
+	createStimulusController: Jl,
+	start: tu,
 	contextMenu: { register: Nt }
 };
-typeof window < "u" && !window.NowoMilkdownEditor && (window.NowoMilkdownEditor = $l, document.documentElement.hasAttribute("data-nowo-milkdown-manual") || Ql());
-export { Zl as bindCopyButtons, Xl as copySource, Bl as createEditor, ql as createStimulusController, Gl as instance, Ul as mount, Kl as mountAll, Nt as registerContextMenuItem, Zo as renderRichContent, Ql as start, Wl as unmount };
+typeof window < "u" && !window.NowoMilkdownEditor && (window.NowoMilkdownEditor = nu, document.documentElement.hasAttribute("data-nowo-milkdown-manual") || tu());
+export { Zl as COPY_STATUS_MS, eu as bindCopyButtons, $l as copySource, Vl as createEditor, Jl as createStimulusController, Kl as instance, Wl as mount, ql as mountAll, Nt as registerContextMenuItem, Zo as renderRichContent, tu as start, Gl as unmount };

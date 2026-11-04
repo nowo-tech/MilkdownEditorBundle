@@ -4,6 +4,9 @@ import { MercureProvider, fromBase64, stateUpdates, toBase64 } from '../src/coll
 import { RELOAD_CAP, RELOAD_WINDOW, allowReload } from '../src/collab/index';
 import { tick } from './helpers';
 
+/** No send windows: every update and presence change is posted on the next tick (the 1.0–1.5 behaviour). */
+const FAST = { updateDelay: 0, awarenessDelay: 0 };
+
 class FakeEventSource {
   static last: FakeEventSource;
   onopen: (() => void) | null = null;
@@ -75,7 +78,7 @@ describe('MercureProvider', () => {
   it('connects: state applied, local diff and awareness posted, updates relayed both ways', async () => {
     const doc = new Y.Doc();
     doc.getText('t').insert(0, 'offline ');
-    const provider = new MercureProvider(doc, '/c', '/hub', 'topic');
+    const provider = new MercureProvider(doc, '/c', '/hub', 'topic', FAST);
     const statuses: string[] = [];
     provider.onStatus((s) => statuses.push(s));
     await provider.connect();
@@ -114,7 +117,7 @@ describe('MercureProvider', () => {
   it('offline edits are buffered and failures reconnect', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout'] });
     const doc = new Y.Doc();
-    const provider = new MercureProvider(doc, '/c', '/hub', 't');
+    const provider = new MercureProvider(doc, '/c', '/hub', 't', FAST);
     const connecting = provider.connect();
     await vi.advanceTimersByTimeAsync(1);
     await connecting;
@@ -163,7 +166,7 @@ describe('MercureProvider', () => {
     stateExtra = { updates: [toBase64(Y.encodeStateAsUpdate(a)), '', 7, toBase64(Y.encodeStateAsUpdate(b))], seq: 42, compact: true };
 
     const doc = new Y.Doc();
-    const provider = new MercureProvider(doc, '/c', '/hub', 't');
+    const provider = new MercureProvider(doc, '/c', '/hub', 't', FAST);
     await provider.connect();
     expect(doc.getText('t').toString()).toContain('log1 log2');
     const compact = posts.find((p) => p.url === '/c/compact') as { body: { c: number; d: string; s: number } } | undefined;
@@ -206,7 +209,7 @@ describe('MercureProvider', () => {
 
   it('sends the tab client id with the token and state requests', async () => {
     const doc = new Y.Doc();
-    const provider = new MercureProvider(doc, '/c', '/hub', 't');
+    const provider = new MercureProvider(doc, '/c', '/hub', 't', FAST);
     await provider.connect();
     expect(headers).toEqual([{ 'X-Nowo-Collab-Client': String(doc.clientID) }, { 'X-Nowo-Collab-Client': String(doc.clientID) }]);
     provider.disconnect();

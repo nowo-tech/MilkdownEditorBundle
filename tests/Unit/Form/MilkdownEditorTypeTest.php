@@ -142,6 +142,10 @@ final class MilkdownEditorTypeTest extends TypeTestCase
         yield 'unknown trigger' => [['suggestions' => ['#' => '/x']], 'Unknown suggestion trigger "#"'];
         yield 'empty url' => [['suggestions' => ['@' => '']], 'needs a candidate URL'];
         yield 'collaboration without topic' => [['collaboration' => ['url' => '/c', 'hub_url' => '/h']], 'non-empty "topic"'];
+        yield 'collaboration update delay too long' => [['collaboration' => ['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'update_delay_ms' => 2001]], 'collaboration.update_delay_ms'];
+        yield 'collaboration update cap too small' => [['collaboration' => ['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'max_update_bytes' => 100]], 'from 1024 to 67108864'];
+        yield 'collaboration awareness delay not an int' => [['collaboration' => ['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'awareness_delay_ms' => '500']], 'collaboration.awareness_delay_ms'];
+        yield 'collaboration negative delay' => [['collaboration' => ['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'update_delay_ms' => -1]], 'from 0 to 2000.'];
         yield 'bad theme' => [['theme' => 'blue'], 'theme'];
     }
 
@@ -163,6 +167,10 @@ final class MilkdownEditorTypeTest extends TypeTestCase
         self::assertSame(
             ['url' => '/c', 'hubUrl' => '/h', 'topic' => 't', 'user' => ['name' => 'Anonymous', 'color' => '#1f6f54']],
             MilkdownEditorType::normaliseCollaboration(['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'user' => ['color' => 'red']]),
+        );
+        self::assertSame(
+            ['url' => '/c', 'hubUrl' => '/h', 'topic' => 't', 'user' => ['name' => 'Anonymous', 'color' => '#1f6f54'], 'updateDelay' => 150, 'awarenessDelay' => 1000, 'maxUpdateBytes' => 131072],
+            MilkdownEditorType::normaliseCollaboration(['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'update_delay_ms' => 150, 'awareness_delay_ms' => 1000, 'max_update_bytes' => 131072]),
         );
     }
 

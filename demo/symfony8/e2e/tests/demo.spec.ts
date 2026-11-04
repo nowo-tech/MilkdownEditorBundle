@@ -119,6 +119,9 @@ test.describe('Milkdown editor demo', () => {
     await page.keyboard.press('Control+Alt+Shift+C');
     await expect(page.locator('.nowo-milkdown__status').first()).toHaveText('Copied as Markdown');
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('## From the clipboard\n');
+    // 1.5.1: the confirmation is transient: the next action clears it.
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('.nowo-milkdown__status').first()).toHaveText('');
     // Insert group of the context menu: a new block after the current one.
     await page.locator('.nowo-milkdown .ProseMirror h2', { hasText: 'From the clipboard' }).click({ button: 'right' });
     const menu = page.getByRole('menu', { name: 'Editor actions' });
@@ -134,13 +137,57 @@ test.describe('Milkdown editor demo', () => {
     await expect(page.locator('.nowo-milkdown .ProseMirror h2', { hasText: 'From the clipboard' })).toBeVisible();
     // The read view copies the saved source.
     await page.getByRole('button', { name: 'Save' }).click();
-    const copy = page.locator('[data-nowo-milkdown-copy-markdown]');
+    // Public markup contract of nowo_milkdown_copy_markdown() (1.5.1): hosts may rely on these selectors.
+    const wrappers = page.locator('span.nowo-milkdown-copy[data-nowo-milkdown-copy]');
+    await expect(wrappers).toHaveCount(2);
+    for (const wrapper of await wrappers.all()) {
+      await expect(wrapper.locator('> button.nowo-milkdown-copy__button[type="button"][data-nowo-milkdown-copy-markdown][data-copied][data-failed]')).toHaveCount(1);
+      await expect(wrapper.locator('> template')).toHaveCount(1);
+      await expect(wrapper.locator('> span.nowo-milkdown-copy__status[role="status"]')).toHaveCount(1);
+    }
+    const copy = page.locator('[data-nowo-milkdown-copy-markdown]').first();
     await expect(copy).toHaveText('Copy as Markdown');
     await copy.click();
-    await expect(page.locator('.nowo-milkdown-copy__status')).toHaveText('Copied as Markdown');
+    const status = page.locator('.nowo-milkdown-copy__status').first();
+    await expect(status).toHaveText('Copied as Markdown');
     expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('### Inserted');
+    // The confirmation clears itself (and on the next click).
+    await expect(status).toHaveText('', { timeout: 6000 });
+    // Icon-only: named by its visually hidden label, icon hidden from assistive technology, no inline style.
+    const iconOnly = page.getByRole('button', { name: 'Copy as Markdown' }).nth(1);
+    await expect(iconOnly).toHaveClass(/nowo-milkdown-copy__button--icon/);
+    await expect(iconOnly.locator('svg.nowo-milkdown-copy__icon[aria-hidden="true"]')).toHaveCount(1);
+    expect(await iconOnly.evaluate((b) => b.querySelectorAll('[style]').length + (b.hasAttribute('style') ? 1 : 0))).toBe(0);
+    await iconOnly.click();
+    await expect(page.locator('.nowo-milkdown-copy__status').nth(1)).toHaveText('Copied as Markdown');
     expect(await seriousViolations(page, '.demo-preview')).toEqual([]);
     expect(log.errors).toEqual([]);
+  });
+
+  test('a submenu at the right edge opens to the left of its menu (1.5.1)', async ({ page }) => {
+    await openDemo(page, '?devtools=0');
+    const width = page.viewportSize()!.width;
+    const paragraph = page.locator('.nowo-milkdown .ProseMirror p', { hasText: 'Euler:' });
+    await paragraph.click({ button: 'right', position: { x: 5, y: 5 } });
+    const menu = page.getByRole('menu', { name: 'Editor actions' });
+    await expect(menu).toBeVisible();
+    // As if opened at the right edge of the viewport (the menu is kept inside it): no room for a submenu on the right.
+    await menu.evaluate((el, w) => {
+      el.style.left = `${w - el.getBoundingClientRect().width - 4}px`;
+    }, width);
+    await menu.getByRole('menuitem', { name: 'Insert' }).focus();
+    await page.keyboard.press('ArrowRight');
+    const insert = page.getByRole('menu', { name: 'Insert' });
+    await expect(insert.getByRole('menuitem').first()).toBeFocused();
+    const main = (await menu.boundingBox())!;
+    const sub = (await insert.boundingBox())!;
+    expect(sub.x + sub.width).toBeLessThanOrEqual(width);
+    expect(sub.x + sub.width).toBeLessThanOrEqual(main.x + 1); // beside the menu, not over its shortcut column
+    await page.keyboard.press('ArrowLeft');
+    await expect(insert).toBeHidden();
+    await expect(menu.getByRole('menuitem', { name: 'Insert' })).toBeFocused();
+    expect(await seriousViolations(page)).toEqual([]);
+    await page.keyboard.press('Escape');
   });
 
   test('block actions: handle, Ctrl+/ block menu with colours (axe), Alt+Shift+arrows, colours rendered server-side', async ({ page }) => {

@@ -131,6 +131,20 @@ them. `GET <url>/state` answers `{"state": "<base64 Yjs update>", "seed": true|f
 an empty document from the field's Markdown. The client that saves still submits Markdown (the server never reads Y
 state). Readers without edit rights must not get the options at all.
 
+**Request rate (1.5.1).** Local edits are merged (`Y.mergeUpdates`) and posted at most once per **200 ms**
+(`update_delay_ms`, 0–2000), one request at a time so their order is kept; presence is posted at most once per
+**750 ms** (`awareness_delay_ms`, 0–5000, trailing edge). Pending edits are sent at once when the editor loses focus,
+on form submit, when the tab is hidden or closed (`keepalive`) and on destroy. A typist at 15 keys/s therefore costs
+about 6 requests/s (5 updates + 1–2 presence) instead of 30. Answer **429** with `Retry-After` when a limiter trips:
+the client keeps the merged edits, waits at least its exponential backoff (1 s doubling up to 30 s) or a longer
+`Retry-After` (seconds or a date, honoured between 1 and 60 s), retries and stays online. One POST never carries more
+than `max_update_bytes` (default 256 KiB of Yjs data; set it to your endpoint's limit): a larger backlog is split. **Use separate limiters** for `/update` and `/awareness` (and `/token`, `/state`), sized
+for these windows (e.g. 600/min per user and page for updates, 120/min for presence).
+
+```php
+'collaboration' => [/* … */, 'update_delay_ms' => 200, 'awareness_delay_ms' => 750, 'max_update_bytes' => 262144],
+```
+
 **State as a log (1.2).** A host that cannot merge Yjs updates on the server (PHP) may answer `GET <url>/state` with
 the stored log instead of one merged update: `{"state": "<base64 snapshot or empty>", "updates": ["<base64>", …],
 "seq": 128, "compact": true, "seed": false}`. The client applies `state` then every update in order (Yjs updates are
@@ -292,9 +306,28 @@ Add `markdown_clipboard` to a field's `features` (1.5).
 - **Copy as Markdown** (**Ctrl / ⌘ + Alt + Shift + C**, and in the context menu, also for readers) writes the selection
   as Markdown of the dialect, as plain text, and says so in the live region.
 - **Read pages.** `{{ nowo_milkdown_copy_markdown(page.markdown) }}` prints a "Copy as Markdown" button (options:
-  `label`, `class`, e.g. `{class: 'btn btn-outline-secondary btn-sm'}`). It needs `nowo_milkdown_editor_assets()` on
+  `label`, `class`, e.g. `{class: 'btn btn-outline-secondary btn-sm'}`, and since 1.5.1 `icon`: `true` for an icon and
+  the label, `'only'` for an icon-only button named by a visually hidden label and its `title`). It needs `nowo_milkdown_editor_assets()` on
   the page. The source travels in the page HTML: print it only for viewers who may read the page, and pass the
   Markdown they may read (page links carry ids, not titles).
+
+  **Markup (public API since 1.5.1, stable within 1.x):**
+
+  ```html
+  <span class="nowo-milkdown-copy" data-nowo-milkdown-copy>
+    <button type="button" class="nowo-milkdown-copy__button [nowo-milkdown-copy__button--icon] [your classes]"
+            data-nowo-milkdown-copy-markdown data-copied="…" data-failed="…" [title="…"]>
+      [<svg class="nowo-milkdown-copy__icon" aria-hidden="true" …>…</svg>]
+      Label | <span class="nowo-milkdown-copy__label">Label</span> | <span class="nowo-milkdown-sr-only">Label</span>
+    </button>
+    <template>the escaped Markdown source</template>
+    <span class="nowo-milkdown-copy__status" role="status"></span>
+  </span>
+  ```
+
+  The editor module binds any `[data-nowo-milkdown-copy-markdown]` button inside a `[data-nowo-milkdown-copy]`
+  wrapper: it copies the `<template>`'s text and writes `data-copied` / `data-failed` into the `role="status"` span,
+  cleared after 4 s and on the next click.
 
 The *Insert* group (`insert_menu`, with `context_menu`) adds *Image or file…* (when the field has uploads), *Icon or
 emoji* (with icons or `:` suggestions) and the `/` blocks of the field. A new block goes after the current one; an

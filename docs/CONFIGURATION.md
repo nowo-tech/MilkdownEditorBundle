@@ -142,7 +142,7 @@ With the defaults the worst input measured peaks at about 39 MB (process total) 
 | `upload_csrf_token` | `?string` | `null` | Sent as `X-CSRF-Token` |
 | `upload_max_size` | `int` | profile | Bytes |
 | `upload_accept` | `list<string>` | profile | |
-| `collaboration` | `?array{url, hub_url, topic, user?: {name, color}}` | `null` | Opt-in Yjs over Mercure |
+| `collaboration` | `?array{url, hub_url, topic, user?: {name, color}, update_delay_ms?: int, awareness_delay_ms?: int, max_update_bytes?: int}` | `null` | Opt-in Yjs over Mercure; send windows in ms and the largest update per POST (1.5.1, defaults 200 / 750 / 256 KiB, see [USAGE](USAGE.md#collaboration)) |
 | `csp_nonce` | `?string` | `null` | Null: `CspNonceProviderInterface`; stamped on the module `<script>` and `<link>` only |
 | `max_length` | `?int` | `markdown.max_input_length` | Bytes; adds a `Length` constraint when symfony/validator is installed (null: none) |
 

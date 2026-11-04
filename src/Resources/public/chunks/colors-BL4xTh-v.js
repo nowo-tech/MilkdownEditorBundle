@@ -156,7 +156,7 @@ var E = 0, D = {
 	get isOpen() {
 		return !this.element.hidden;
 	}
-	open(e, t, n) {
+	open(e, t, n, r) {
 		this.closeChild(), this.element.replaceChildren(), this.items = [], this.buttons = [];
 		for (let t of e.filter((e) => e.length)) {
 			if (this.items.length) {
@@ -165,7 +165,7 @@ var E = 0, D = {
 			}
 			for (let e of t) this.addItem(e);
 		}
-		this.element.isConnected || this.host.append(this.element), this.element.hidden = !1, this.place(t, n), this.parent || document.addEventListener("pointerdown", this.onOutside, !0), this.focus(0);
+		this.element.isConnected || this.host.append(this.element), this.element.hidden = !1, this.place(t, n, r), this.parent || document.addEventListener("pointerdown", this.onOutside, !0), this.focus(0);
 	}
 	addItem(e) {
 		if (e.separatorBefore && this.items.length) {
@@ -194,10 +194,12 @@ var E = 0, D = {
 		}
 		this.items.push(e), this.buttons.push(t), this.element.append(t);
 	}
-	place(e, t) {
+	place(e, t, n) {
 		this.element.style.left = "0px", this.element.style.top = "0px";
-		let n = this.element.getBoundingClientRect(), r = n.width || 0, i = n.height || 0, a = Math.max(0, window.innerWidth - r - 4), o = Math.max(0, window.innerHeight - i - 4);
-		this.element.style.left = `${Math.round(Math.min(Math.max(4, e), a))}px`, this.element.style.top = `${Math.round(Math.min(Math.max(4, t), o))}px`;
+		let r = this.element.getBoundingClientRect(), i = r.width || 0, a = r.height || 0, o = Math.max(0, window.innerWidth - i - 4);
+		n !== void 0 && e > o && n - i >= 4 && (e = n - i);
+		let s = Math.max(0, window.innerHeight - a - 4);
+		this.element.style.left = `${Math.round(Math.min(Math.max(4, e), o))}px`, this.element.style.top = `${Math.round(Math.min(Math.max(4, t), s))}px`;
 	}
 	focus(e) {
 		if (!this.buttons.length) {
@@ -271,7 +273,7 @@ var E = 0, D = {
 		let n = this.items[t], r = this.buttons[t], i = new e(this.host, n.label, () => void 0, this);
 		this.child = i, r.setAttribute("aria-expanded", "true"), r.setAttribute("aria-controls", i.element.id);
 		let a = r.getBoundingClientRect();
-		i.open([n.items], a.right, a.top);
+		i.open([n.items], a.right, a.top, this.element.getBoundingClientRect().left);
 	}
 	closeChild(e = !1) {
 		if (!this.child) return;

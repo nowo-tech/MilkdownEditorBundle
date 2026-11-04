@@ -38,7 +38,12 @@ function collaboration(value: unknown): CollaborationOptions | null {
   const topic = strOrNull(v.topic);
   if (!url || !hubUrl || !topic) return null;
   const user = obj(v.user);
-  return { url, hubUrl, topic, user: { name: str(user.name, 'Anonymous'), color: /^#[0-9a-f]{6}$/i.test(str(user.color)) ? str(user.color) : '#1f6f54' } };
+  const out: CollaborationOptions = { url, hubUrl, topic, user: { name: str(user.name, 'Anonymous'), color: /^#[0-9a-f]{6}$/i.test(str(user.color)) ? str(user.color) : '#1f6f54' } };
+  // 1.5.1: send windows (the provider clamps them).
+  if (typeof v.updateDelay === 'number') out.updateDelay = v.updateDelay;
+  if (typeof v.awarenessDelay === 'number') out.awarenessDelay = v.awarenessDelay;
+  if (typeof v.maxUpdateBytes === 'number') out.maxUpdateBytes = v.maxUpdateBytes;
+  return out;
 }
 
 /**

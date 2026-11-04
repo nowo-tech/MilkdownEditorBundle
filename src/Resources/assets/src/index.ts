@@ -102,8 +102,17 @@ const copyBound = new WeakSet<Document>();
  * @param button - The `[data-nowo-milkdown-copy-markdown]` button
  * @returns Whether the clipboard took the text
  */
+/** How long the read-view copy status stays (ms, 1.5.1); the next click clears it too. */
+export const COPY_STATUS_MS = 4000;
+const copyTimers = new WeakMap<Element, ReturnType<typeof setTimeout>>();
+
 export async function copySource(button: HTMLElement): Promise<boolean> {
   const root = button.closest('[data-nowo-milkdown-copy]');
+  const status = root?.querySelector('[role="status"]') ?? null;
+  if (status) {
+    clearTimeout(copyTimers.get(status));
+    status.textContent = '';
+  }
   const source = root?.querySelector('template')?.content.textContent ?? '';
   let ok: boolean;
   try {
@@ -112,8 +121,13 @@ export async function copySource(button: HTMLElement): Promise<boolean> {
   } catch {
     ok = false;
   }
-  const status = root?.querySelector('[role="status"]');
-  if (status) status.textContent = (ok ? button.dataset.copied : button.dataset.failed) ?? '';
+  if (status) {
+    status.textContent = (ok ? button.dataset.copied : button.dataset.failed) ?? '';
+    copyTimers.set(
+      status,
+      setTimeout(() => (status.textContent = ''), COPY_STATUS_MS),
+    );
+  }
   return ok;
 }
 

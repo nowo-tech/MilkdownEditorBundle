@@ -188,6 +188,16 @@ final class BundleTest extends TestCase
         self::assertStringContainsString('class="nowo-milkdown-copy__button btn btn-sm" data-nowo-milkdown-copy-markdown', $twig->createTemplate("{{ nowo_milkdown_copy_markdown('x', {class: 'btn btn-sm', label: 'Copy <md>'}) }}")->render());
         self::assertStringContainsString('>Copy &lt;md&gt;</button>', $twig->createTemplate("{{ nowo_milkdown_copy_markdown('x', {label: 'Copy <md>'}) }}")->render());
         self::assertSame('', $twig->createTemplate('{{ nowo_milkdown_copy_markdown(null) }}{{ nowo_milkdown_copy_markdown(\'\') }}')->render());
+        // 1.5.1: icon variants (static SVG, no inline style; icon-only keeps an accessible label).
+        $iconOnly = $twig->createTemplate("{{ nowo_milkdown_copy_markdown('x', {icon: 'only', label: 'Copy <md>', class: 'btn'}) }}")->render();
+        self::assertStringContainsString('class="nowo-milkdown-copy__button nowo-milkdown-copy__button--icon btn" data-nowo-milkdown-copy-markdown title="Copy &lt;md&gt;"', $iconOnly);
+        self::assertStringContainsString('<span class="nowo-milkdown-sr-only">Copy &lt;md&gt;</span></button>', $iconOnly);
+        self::assertStringContainsString('<svg class="nowo-milkdown-copy__icon"', $iconOnly);
+        self::assertStringNotContainsString('style=', $iconOnly);
+        $withIcon = $twig->createTemplate("{{ nowo_milkdown_copy_markdown('x', {icon: true}) }}")->render();
+        self::assertMatchesRegularExpression('#</svg><span class="nowo-milkdown-copy__label">[^<]+</span></button>#', $withIcon);
+        self::assertStringNotContainsString(' title=', $withIcon);
+        self::assertStringNotContainsString('<svg', $twig->createTemplate("{{ nowo_milkdown_copy_markdown('x', {icon: 'yes'}) }}")->render());
     }
 
     #[Test]
