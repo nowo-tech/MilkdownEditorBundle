@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format foll
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.6.0] - 2026-11-04](#160---2026-11-04)
 - [[1.5.1] - 2026-11-04](#151---2026-11-04)
 - [[1.5.0] - 2026-11-03](#150---2026-11-03)
 - [[1.4.0] - 2026-11-03](#140---2026-11-03)
@@ -18,6 +19,10 @@ All notable changes to this project are documented in this file. The format foll
 - [[1.0.0] - 2026-10-31](#100---2026-10-31)
 
 ## [Unreleased]
+
+## [1.6.0] - 2026-11-04
+
+Comments, version view and diff, heading ids
 
 Comments, version view, rendered diff and heading ids (all opt-in).
 

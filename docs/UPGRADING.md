@@ -3,7 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
-- [Unreleased (1.6.0)](#unreleased-160)
+- [To 1.6.0](#to-160)
 - [To 1.5.1](#to-151)
 - [1.5.0](#150)
 - [1.4.0](#140)
@@ -27,7 +27,13 @@ Public API covered by Semantic Versioning: the configuration tree, profile keys,
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
 
-## Unreleased (1.6.0)
+## To 1.6.0
+
+From **1.5.1**:
+
+```bash
+composer update nowo-tech/milkdown-editor-bundle
+```
 
 - **New opt-in features:** `comments`, `version_view` (never together with `comments`) and `heading_ids`; new form
   options `comments` and `version`; new renderer option `markdown.heading_ids` (default `false`). Fields and pages
