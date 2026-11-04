@@ -1,0 +1,68 @@
+{
+ "slug": [
+  [
+   "Install the bundle",
+   "install-the-bundle"
+  ],
+  [
+   "  Hello, World!  ",
+   "hello-world"
+  ],
+  [
+   "Instalación rápida",
+   "instalación-rápida"
+  ],
+  [
+   "日本語の見出し",
+   "日本語の見出し"
+  ],
+  [
+   "C++ & C#",
+   "c-c"
+  ],
+  [
+   "!!!",
+   "section"
+  ],
+  [
+   "",
+   "section"
+  ],
+  [
+   "Ünïcödé — ok",
+   "ünïcödé-ok"
+  ],
+  [
+   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  [
+   "Version 1.6.0",
+   "version-1-6-0"
+  ],
+  [
+   "emoji 🎉 party",
+   "emoji-party"
+  ],
+  [
+   "ŞĞİ",
+   "şği̇"
+  ]
+ ],
+ "unique": [
+  {
+   "texts": [
+    "Intro",
+    "Intro",
+    "Intro-2",
+    "Intro"
+   ],
+   "slugs": [
+    "intro",
+    "intro-2",
+    "intro-2-2",
+    "intro-3"
+   ]
+  }
+ ]
+}

@@ -35,6 +35,7 @@ nowo_milkdown_editor:
         allow_remote_images: false      # images from other hosts become links
         math: true                      # $inline$ and $$block$$ math
         footnotes: true                 # GFM footnotes [^1] / [^1]: … (ids nowo-md-fn-<salt>-<label>)
+        heading_ids: false              # 1.6: <h2 id="nowo-h-<slug>">, the same slugs as the editor feature heading_ids
         max_footnote_refs: 200          # more footnote references render as literal [^label] text (1.2.1)
         mention_display: handle         # handle | name: rendered mentions show @handle or the resolved name (1.2.1)
         max_nesting_level: 50
@@ -97,6 +98,9 @@ the `Nowo\MilkdownEditorBundle\ProfileRegistry` service.
 | `context_menu` | Right-click / Shift+F10 / ContextMenu-key menu: clipboard, *Turn into*, table, link and block actions, host items (1.3, see [USAGE](USAGE.md#context-menu)) | lazy |
 | `markdown_clipboard` | Smart paste of Markdown; *Paste as Markdown* (**Ctrl / ⌘ + Alt + V**) and *Copy as Markdown* (**Ctrl / ⌘ + Alt + Shift + C**), also in the context menu (1.5, see [USAGE](USAGE.md#markdown-clipboard)) | lazy |
 | `insert_menu` | *Insert* group of the context menu: file, icon and the `/` blocks of the field (needs `context_menu`; 1.5) | entry |
+| `comments` | Inline comment anchors, highlights, **Ctrl / ⌘ + Alt + M**, next / previous comment, events; optional thread component with `comments.url` (1.6, see [USAGE](USAGE.md#comments)) | lazy |
+| `version_view` | Read-only view of an old version with a banner (*Restore* / *Copy to a new page* events); never with `comments` (1.6, see [USAGE](USAGE.md#version-view-and-diff)) | lazy |
+| `heading_ids` | Headings get ids `nowo-h-<slug>`, the same as the renderer's `markdown.heading_ids` (1.6) | lazy |
 
 Lists, task lists, blockquotes, headings, links, images and the dialect nodes are always available.
 
@@ -145,8 +149,11 @@ With the defaults the worst input measured peaks at about 39 MB (process total) 
 | `collaboration` | `?array{url, hub_url, topic, user?: {name, color}, update_delay_ms?: int, awareness_delay_ms?: int, max_update_bytes?: int}` | `null` | Opt-in Yjs over Mercure; send windows in ms and the largest update per POST (1.5.1, defaults 200 / 750 / 256 KiB, see [USAGE](USAGE.md#collaboration)) |
 | `csp_nonce` | `?string` | `null` | Null: `CspNonceProviderInterface`; stamped on the module `<script>` and `<link>` only |
 | `max_length` | `?int` | `markdown.max_input_length` | Bytes; adds a `Length` constraint when symfony/validator is installed (null: none) |
+| `comments` | `?array{url?, csrf_token?, can_create?, panel?, container?, topic?}` | `null` | With the `comments` feature (1.6): host endpoints of the thread component (a path or an http(s) URL on the page origin; null: events only), CSRF token, whether the viewer may start threads (default true), `margin` / `sidebar` / `container` / `none` (`margin` when `url` is set; `container` renders into `container`, a CSS selector of 1–200 characters of your drawer, or wherever `handle.comments.mount(el)` puts it, with no landmark, heading, layout or Escape handling of its own), private Mercure topic of thread ids |
+| `version` | `?array{label?, restore?, copy?}` | `null` | With `version_view` (1.6): banner text and whether *Restore* / *Copy to a new page* exist (default true; false removes the button) |
 
-`disabled: true` makes the editor read-only.
+`disabled: true` makes the editor read-only. `nowo_milkdown_view(markdown, options)` (1.6) renders the same widget
+read-only outside a form.
 
 ## Theme tokens
 

@@ -120,6 +120,32 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
   source (typically: people who may edit the page), never on public or shared views, and never with Markdown that
   holds values the viewer may not read. When in doubt, offer the button to editors only.
 
+- **Comments (1.6).** Comments are decorations, never in the Markdown, exports or search. **Anchors are untrusted on
+  both sides**: the editor validates every anchor and thread id from the host (`parseCommentAnchor()`, ids
+  `^[A-Za-z0-9_-]{1,64}$`, quote ≤ 4096 UTF-16 units, context ≤ 32, offsets ≤ 10⁷, Yjs positions base64 ≤ 512, the whole
+  anchor ≤ 16 KiB; unknown keys dropped), and hosts must validate them with `CommentAnchor::fromJson()` (the same
+  caps and shared test vectors) before storing, and treat `quote.exact` as text (escape it in notifications and
+  e-mails). Yjs positions are decoded in a try / catch and only ever handed to Yjs. **Quotes duplicate page text**
+  outside the body: apply the page's read permission to comments, include anchors in purge and privacy erasure, and
+  keep them out of exports, search and AI context. Mentions, page links and icons are `U+FFFC` in quotes, so anchors
+  hold no per-viewer title or name. **Thread component:** requests go only to `comments.url` (validated as a path or
+  an http(s) URL in PHP and as the page origin in the browser; `redirect: 'error'`, same-origin credentials, the CSRF
+  header on writes). Comment bodies are host HTML (rendered with this bundle's safe renderer) that the component
+  **never assigns with `innerHTML`**: it parses it in an inert `DOMParser` document and copies an allow-list of
+  elements (`p br strong em del s code pre blockquote ul ol li a span mark h1–h6 table …`) and attributes (`href`
+  through `safeUrl()`, `nowo-md-*` classes, `title`, `datetime`, `lang`); scripts, styles, SVG, iframes and event
+  handlers are dropped, other elements become their text, and links get `rel="noopener noreferrer nofollow"`. Names
+  are text, colours `#rrggbb`, avatars through `safeUrl()` (the host's `img-src` applies), reactions short non-ASCII
+  strings. Buttons follow the host's `can` flags, which the host re-checks on every write. Live updates carry ids
+  only (validated, at most 100 per message, debounced). The editor keeps nothing in storage.
+- **Version view and diff (1.6).** `version_view` is read-only, without collaboration, uploads or comments; *Restore*
+  and *Copy* only emit events. `nowo_milkdown_diff()` renders both versions with the normal renderer (per-viewer
+  resolvers, no cache across calls); deleted words are copied from the renderer's escaped output into `<del>`, and
+  tags come from the new version only, so the markup stays well-formed; inputs over `max_input_length`, more than
+  2000 blocks or 500 changed blocks fall back to an escaped line diff, and LCS tables are capped at 10⁶ cells.
+- **Heading ids (1.6).** Opt-in ids are prefixed `nowo-h-` (no DOM clobbering of host ids or globals). Note that
+  Milkdown itself gives editor headings unprefixed ids (pre-existing; the editor DOM only).
+
 ## Content Security Policy
 
 The widget works under `script-src 'self' 'nonce-…'` and `style-src-elem 'self' 'nonce-…'` with no `unsafe-inline`

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\MilkdownEditorBundle\DependencyInjection;
 
+use Nowo\MilkdownEditorBundle\Diff\MarkdownDiffRenderer;
 use Nowo\MilkdownEditorBundle\Form\MilkdownEditorType;
 use Nowo\MilkdownEditorBundle\Markdown\MilkdownMarkdownRenderer;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\AllowlistIconResolver;
@@ -68,6 +69,8 @@ final class NowoMilkdownEditorExtension extends Extension implements PrependExte
             ->setArgument('$icons', $config['markdown']['icons']);
         $container->getDefinition(MilkdownMarkdownRenderer::class)
             ->setArgument('$options', $config['markdown']);
+        $container->getDefinition(MarkdownDiffRenderer::class)
+            ->setArgument('$maxInputLength', $config['markdown']['max_input_length']);
         $container->getDefinition(MilkdownEditorType::class)
             ->setArgument('$maxInputLength', $config['markdown']['max_input_length'])
             ->setArgument('$markColors', $config['markdown']['mark_colors']);

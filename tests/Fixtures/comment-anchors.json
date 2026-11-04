@@ -1,0 +1,589 @@
+{
+ "valid": [
+  {
+   "name": "minimal",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   },
+   "normalised": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "with yjs and heading",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": "Install"
+    },
+    "yjs": {
+     "start": "AQKX4bEBAA==",
+     "end": "AQKX4bEBCQ=="
+    }
+   },
+   "normalised": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": "Install"
+    },
+    "yjs": {
+     "start": "AQKX4bEBAA==",
+     "end": "AQKX4bEBCQ=="
+    }
+   }
+  },
+  {
+   "name": "unknown keys dropped",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps",
+     "x": 1
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null,
+    "evil": "<script>"
+   },
+   "normalised": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "yjs missing",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    }
+   },
+   "normalised": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "empty context",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "",
+     "suffix": ""
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   },
+   "normalised": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "",
+     "suffix": ""
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   }
+  }
+ ],
+ "invalid": [
+  {
+   "name": "version 2",
+   "anchor": {
+    "v": 2,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "version string",
+   "anchor": {
+    "v": "1",
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "empty exact",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 10
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "exact too long",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 4107
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "prefix too long",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "suffix not string",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": null
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "nul in exact",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown\u0000fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "length mismatch",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 20
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "start after end",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 19,
+     "end": 10
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "float position",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10.5,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "negative position",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": -1,
+     "end": 8
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "position too large",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10000000,
+     "end": 10000009
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "block index too large",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 100001,
+     "heading": null
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "empty heading",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": ""
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "heading too long",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "yjs not base64",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": {
+     "start": "not base64!",
+     "end": "AQKX4bEBCQ=="
+    }
+   }
+  },
+  {
+   "name": "yjs too long",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": {
+     "start": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+     "end": "AQKX4bEBCQ=="
+    }
+   }
+  },
+  {
+   "name": "yjs missing end",
+   "anchor": {
+    "v": 1,
+    "quote": {
+     "exact": "brown fox",
+     "prefix": "The quick ",
+     "suffix": " jumps"
+    },
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": {
+     "start": "AQKX4bEBAA=="
+    }
+   }
+  },
+  {
+   "name": "quote not object",
+   "anchor": {
+    "v": 1,
+    "quote": "brown fox",
+    "position": {
+     "start": 10,
+     "end": 19
+    },
+    "block": {
+     "index": 0,
+     "heading": null
+    },
+    "yjs": null
+   }
+  },
+  {
+   "name": "not an object",
+   "anchor": [
+    "v",
+    1
+   ]
+  }
+ ]
+}

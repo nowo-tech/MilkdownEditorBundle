@@ -9,3 +9,8 @@ demo.comment: Comment
 demo.save: Save
 demo.preview: Rendered by the PHP renderer
 demo.markdown: Stored Markdown
+demo.comments.nav: Comments and history
+demo.comments.heading: Comments, version view and diff
+demo.comments.lead: Select text and press Ctrl+Alt+M (or use the toolbar or the context menu) to comment. Threads are kept in your session.
+demo.comments.version: Earlier version
+demo.comments.diff: Changes since that version

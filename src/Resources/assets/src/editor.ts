@@ -29,6 +29,7 @@ import { insertItems, type InsertItem } from './commands/insert';
 import { createUploader } from './upload';
 import type { EditorOptions } from './types';
 import type { MercureProvider } from './collab/mercure-provider';
+import type { CommentsApi, CommentsHost, ThreadUi, YjsAnchors } from './comments/index';
 
 
 /** Hidden field a save from a live collaborative session carries (the topic): the host keeps the shared log (1.2). */
@@ -43,6 +44,8 @@ export type MilkdownEditorHandle = {
   focus: () => void;
   destroy: () => Promise<void>;
   provider: MercureProvider | null;
+  /** `comments` API (1.6); undefined when the feature is off. */
+  comments?: CommentsApi;
 };
 
 let sequence = 0;
@@ -151,6 +154,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   textarea.hidden = true;
   textarea.value = normaliseNewlines(textarea.value);
   const { bar, surface, status, announce } = chrome(root, runtime);
+  if (options.version) root.insertBefore((await import('./version')).versionBanner(root, options.version, runtime), bar);
   const label = labelFor(textarea);
   const initial = textarea.value;
 
@@ -163,6 +167,13 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   const colorsModule = options.features.includes('colors') ? await import('./commands/colors') : null;
   // 1.5: smart paste and Paste / Copy as Markdown.
   const clipboardModule = options.features.includes('markdown_clipboard') ? await import('./commands/markdown-clipboard') : null;
+  // 1.6: comment highlights, anchors and events (a lazy chunk); the thread component is another chunk.
+  const commentsModule = options.comments ? await import('./comments/index') : null;
+  let yjs: YjsAnchors | null = null;
+  let threadUi: ThreadUi | null = null;
+  const commentsHost: CommentsHost | null = options.comments
+    ? { root, announce: (key, params) => announce(key, params), yjs: () => yjs, canCreate: options.comments.canCreate }
+    : null;
   editor
     .config((ctx) => {
       ctx.set(runtimeCtx.key, runtime);
@@ -197,6 +208,8 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   if (blockActionsModule) editor.use(blockActionsModule.blockActionsPlugin(options.features.includes('block_drag')));
   if (colorsModule) editor.use(colorsModule.colorMenuPlugin);
   if (clipboardModule) editor.use(clipboardModule.markdownClipboardPlugin((key, error) => announce(key, {}, error, true)));
+  if (options.features.includes('heading_ids')) editor.use((await import('./plugins/heading-ids')).headingIdsPlugin);
+  if (commentsModule && commentsHost) commentsModule.useComments(editor, commentsHost, () => threadUi);
   await addFeatures(builder, options, runtime);
 
   builder.on((api) =>
@@ -293,6 +306,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
       },
     );
     provider = collaboration.provider;
+    if (commentsModule) yjs = collabModule.yjsAnchors(() => editor.action((ctx) => ctx.get(editorViewCtx).state));
     // 1.2: a save from the live session tells the host so (it keeps the shared log instead of resetting it).
     const live = provider;
     const markSession = (): void => {
@@ -321,23 +335,47 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     };
   }
 
+  const comments = commentsModule && commentsHost ? commentsModule.commentsApi(editor, commentsHost, () => threadUi) : undefined;
+  if (comments && commentsHost?.canCreate) runtime.comment = comments.start;
+  // 1.6: the optional thread component (its own chunk), only with host endpoints and a panel.
+  let stopThreads = (): void => undefined;
+  const commentOptions = options.comments;
+  if (comments && commentsModule && commentOptions?.url && commentOptions.panel !== 'none') {
+    const url = commentOptions.url;
+    const { mountThreadPanel } = await import('./comments/thread-ui');
+    const panel = mountThreadPanel({
+      root,
+      surface,
+      options: { ...commentOptions, url },
+      runtime,
+      api: () => comments,
+      announce,
+      tops: () => commentsModule.threadTops(editor, surface),
+      hubUrl: options.collaboration?.hubUrl ?? null,
+    });
+    threadUi = { create: (d) => panel.create(d.anchor), open: (id) => panel.open(id), refresh: (ids) => panel.refresh(ids), mount: (el) => panel.mount(el) };
+    stopThreads = () => panel.destroy();
+  }
+
   return {
     root,
     textarea,
     options,
     builder,
     provider,
+    ...(comments ? { comments } : {}),
     getMarkdown,
     setMarkdown: (markdown: string) => editor.action(replaceAll(normaliseNewlines(markdown))),
     focus,
     destroy: async () => {
+      stopThreads();
       unwatch();
       stopCollaboration();
       form?.removeEventListener('submit', sync, true);
       form?.removeEventListener('formdata', sync, true);
       label?.removeEventListener('click', focus);
       await builder.destroy();
-      root.querySelectorAll('.nowo-milkdown__actions, .nowo-milkdown__surface, .nowo-milkdown__status, .nowo-milkdown__alert, .nowo-milkdown__reload').forEach((el) => el.remove());
+      root.querySelectorAll('.nowo-milkdown__version, .nowo-milkdown__actions, .nowo-milkdown__surface, .nowo-milkdown__status, .nowo-milkdown__alert, .nowo-milkdown__reload').forEach((el) => el.remove());
       textarea.hidden = false;
     },
   };
