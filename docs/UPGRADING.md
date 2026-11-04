@@ -3,7 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
-- [Unreleased (1.5.1)](#unreleased-151)
+- [To 1.5.1](#to-151)
 - [1.5.0](#150)
 - [1.4.0](#140)
 - [1.3.1](#131)
@@ -26,7 +26,13 @@ Public API covered by Semantic Versioning: the configuration tree, profile keys,
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
 
-## Unreleased (1.5.1)
+## To 1.5.1
+
+From **1.5.0**:
+
+```bash
+composer update nowo-tech/milkdown-editor-bundle
+```
 
 - No BC break. Co-editing sends far fewer requests: edits are merged per 200 ms window and presence is throttled to
   one post per 750 ms (tunable with `collaboration.update_delay_ms` / `awareness_delay_ms`).
