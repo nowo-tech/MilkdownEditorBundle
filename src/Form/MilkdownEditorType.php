@@ -24,12 +24,18 @@ use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 use function array_key_exists;
+use function array_keys;
 use function class_exists;
+use function implode;
 use function in_array;
 use function is_array;
+use function is_bool;
 use function is_int;
 use function is_string;
+use function mb_substr;
+use function preg_match;
 use function sprintf;
+use function strlen;
 
 /**
  * Markdown field edited with Milkdown (FR-072): a textarea holding the Markdown (the form value, and the no-JS
@@ -99,7 +105,22 @@ final class MilkdownEditorType extends AbstractType
         ],
         'markdown_clipboard' => ['menu.paste_markdown', 'menu.copy_markdown', 'clipboard.copied_markdown', 'clipboard.copy_failed'],
         'insert_menu'        => ['menu.insert', 'menu.insert_file'],
+        'version_view'       => [
+            'version.region', 'version.viewing', 'version.viewing_old', 'version.restore', 'version.copy',
+        ],
+        'comments' => [
+            'comments.action', 'comments.no_selection', 'comments.position', 'comments.position_label',
+            'comments.title', 'comments.show_resolved', 'comments.truncated', 'comments.new_label', 'comments.send',
+            'comments.cancel', 'comments.page', 'comments.add_page', 'comments.load_failed', 'comments.failed',
+            'comments.sent', 'comments.new_reply', 'comments.open', 'comments.count', 'comments.orphaned',
+            'comments.thread', 'comments.resolved_by', 'comments.resolve', 'comments.reopen', 'comments.reply',
+            'comments.deleted', 'comments.edited', 'comments.react', 'comments.edit', 'comments.save',
+            'comments.delete',
+        ],
     ];
+
+    /** Panels of the comment thread component (1.6). */
+    public const COMMENT_PANELS = ['margin', 'sidebar', 'container', 'none'];
 
     /**
      * @param ProfileRegistry $profiles Named profiles
@@ -171,6 +192,30 @@ final class MilkdownEditorType extends AbstractType
         if (in_array('colors', $features, true) && $this->markColors !== []) {
             $view->vars['milkdown_options']['colors'] = $this->markColors;
         }
+        // 1.6: only with the feature (hooks only when the option is not set), so other fields keep the same JSON.
+        if (in_array('comments', $features, true)) {
+            /** @var array{url: string|null, csrf_token: string|null, can_create: bool, panel: string, container: string|null, topic: string|null} $comments */
+            $comments = $options['comments'] ?? self::normaliseComments([]);
+
+            $view->vars['milkdown_options']['comments'] = [
+                'url'       => $comments['url'],
+                'csrfToken' => $comments['csrf_token'],
+                'canCreate' => $comments['can_create'],
+                'panel'     => $comments['panel'],
+                'container' => $comments['container'],
+                'topic'     => $comments['topic'],
+            ];
+        }
+        // 1.6: a read-only view of an old version with a banner (Restore / Copy emit events; false hides them).
+        if (in_array('version_view', $features, true)) {
+            /** @var array{label: string, restore: bool, copy: bool} $version */
+            $version = $options['version'] ?? self::normaliseVersion([]);
+
+            $view->vars['milkdown_options']['readonly']      = true;
+            $view->vars['milkdown_options']['collaboration'] = null;
+            $view->vars['milkdown_options']['upload']        = null;
+            $view->vars['milkdown_options']['version']       = $version;
+        }
         if ($options['mention_display'] === 'name') {
             $view->vars['milkdown_options']['mentionDisplay'] = 'name';
         }
@@ -222,6 +267,8 @@ final class MilkdownEditorType extends AbstractType
             'toolbar_icons'     => static fn (Options $o): bool => $profile($o)['toolbar_icons'] ?? true,
             'menu_icons'        => static fn (Options $o): bool => $profile($o)['menu_icons'] ?? true,
             'user_title_url'    => null,
+            'comments'          => null,
+            'version'           => null,
             'attr'              => ['rows' => 12],
         ]);
 
@@ -247,6 +294,9 @@ final class MilkdownEditorType extends AbstractType
         $resolver->setAllowedTypes('icon_catalog', 'bool');
         $resolver->setAllowedTypes('toolbar_icons', 'bool');
         $resolver->setAllowedTypes('menu_icons', 'bool');
+        $resolver->setAllowedTypes('comments', ['null', 'array']);
+        $resolver->setAllowedTypes('version', ['null', 'array']);
+        $resolver->setNormalizer('version', static fn (Options $o, ?array $value): ?array => $value === null ? null : self::normaliseVersion($value));
 
         $resolver->setNormalizer('profile', function (Options $o, ?string $value): ?string {
             if ($value !== null && !$this->profiles->has($value)) {
@@ -275,6 +325,7 @@ final class MilkdownEditorType extends AbstractType
             return array_values($icons);
         });
         $resolver->setNormalizer('suggestions', static fn (Options $o, array $value): array => self::normaliseSuggestions($value));
+        $resolver->setNormalizer('comments', static fn (Options $o, ?array $value): ?array => $value === null ? null : self::normaliseComments($value));
         $resolver->setNormalizer('collaboration', static fn (Options $o, ?array $value): ?array => $value === null ? null : self::normaliseCollaboration($value));
         if ($resolver->isDefined('constraints') && class_exists(Length::class)) {
             $resolver->addNormalizer('constraints', static function (Options $o, mixed $value): mixed {
@@ -288,6 +339,75 @@ final class MilkdownEditorType extends AbstractType
                 return $constraints;
             });
         }
+    }
+
+    /**
+     * Validates the `comments` option (1.6): `url` (relative or http(s); the editor also requires the page origin),
+     * `csrf_token`, `can_create`, `panel` (`margin` / `sidebar` / `container` need `url`; `container` renders into the host's
+     * `container`, a CSS selector, or wherever the host calls `comments.mount()`) and `topic` (Mercure, needs `url`).
+     *
+     * @param array<mixed> $value The option
+     *
+     * @return array{url: string|null, csrf_token: string|null, can_create: bool, panel: string, container: string|null, topic: string|null}
+     */
+    public static function normaliseComments(array $value): array
+    {
+        foreach (array_keys($value) as $key) {
+            if (!in_array($key, ['url', 'csrf_token', 'can_create', 'panel', 'container', 'topic'], true)) {
+                throw new InvalidOptionsException(sprintf('Unknown "comments" option key "%s". Allowed: url, csrf_token, can_create, panel, container, topic.', (string) $key));
+            }
+        }
+        $url = $value['url'] ?? null;
+        if ($url !== null && (!is_string($url) || preg_match('#^(?:/(?![/\\\\])|https?://)#i', $url) !== 1)) {
+            throw new InvalidOptionsException('The "comments.url" option must be a path starting with "/" or an http(s) URL on the page origin.');
+        }
+        $panel = $value['panel'] ?? ($url === null ? 'none' : 'margin');
+        if (!in_array($panel, self::COMMENT_PANELS, true)) {
+            throw new InvalidOptionsException(sprintf('The "comments.panel" option must be one of: %s.', implode(', ', self::COMMENT_PANELS)));
+        }
+        if ($url === null && $panel !== 'none') {
+            throw new InvalidOptionsException('The "comments.panel" option needs "comments.url" (the thread component calls the host endpoints).');
+        }
+        $token = $value['csrf_token'] ?? null;
+        $topic = $value['topic'] ?? null;
+        if (($token !== null && !is_string($token)) || ($topic !== null && (!is_string($topic) || $url === null))) {
+            throw new InvalidOptionsException('The "comments.csrf_token" and "comments.topic" options must be strings ("topic" needs "url").');
+        }
+        $container = $value['container'] ?? null;
+        if ($container !== null && ($panel !== 'container' || !is_string($container) || $container === '' || strlen($container) > 200)) {
+            throw new InvalidOptionsException('The "comments.container" option is a CSS selector (1–200 characters) for "panel: container".');
+        }
+        $canCreate = $value['can_create'] ?? true;
+        if (!is_bool($canCreate)) {
+            throw new InvalidOptionsException('The "comments.can_create" option must be a boolean.');
+        }
+
+        return ['url' => $url, 'csrf_token' => $token, 'can_create' => $canCreate, 'panel' => $panel, 'container' => $container, 'topic' => $topic];
+    }
+
+    /**
+     * Validates the `version` option (1.6 `version_view`): `label` (text shown in the banner), `restore` and `copy`
+     * (show the buttons that emit `nowo-milkdown:version-restore` / `version-copy`; false removes them).
+     *
+     * @param array<mixed> $value The option
+     *
+     * @return array{label: string, restore: bool, copy: bool}
+     */
+    public static function normaliseVersion(array $value): array
+    {
+        foreach (array_keys($value) as $key) {
+            if (!in_array($key, ['label', 'restore', 'copy'], true)) {
+                throw new InvalidOptionsException(sprintf('Unknown "version" option key "%s". Allowed: label, restore, copy.', (string) $key));
+            }
+        }
+        $label   = $value['label'] ?? '';
+        $restore = $value['restore'] ?? true;
+        $copy    = $value['copy'] ?? true;
+        if (!is_string($label) || !is_bool($restore) || !is_bool($copy)) {
+            throw new InvalidOptionsException('The "version" option needs a string "label" and boolean "restore" / "copy".');
+        }
+
+        return ['label' => mb_substr($label, 0, 200), 'restore' => $restore, 'copy' => $copy];
     }
 
     /**
@@ -327,6 +447,9 @@ final class MilkdownEditorType extends AbstractType
             if ($feature->needsCodeMirror() && !isset($features[Feature::CodeMirror->value])) {
                 throw new InvalidOptionsException(sprintf('The "%s" feature renders in code blocks and needs "code_mirror".', $feature->value));
             }
+        }
+        if (isset($features[Feature::VersionView->value], $features[Feature::Comments->value])) {
+            throw new InvalidOptionsException('The "version_view" feature shows an old version: it never carries "comments".');
         }
         if (isset($features[Feature::BlockDrag->value]) && !isset($features[Feature::BlockActions->value])) {
             throw new InvalidOptionsException('The "block_drag" feature drags the block handle and needs "block_actions".');

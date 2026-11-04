@@ -53,7 +53,7 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
     private ?FootnoteSalt $footnoteSalt = null;
 
     /**
-     * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, footnotes?: bool, max_footnote_refs?: int, mention_display?: string, max_nesting_level?: int, max_input_length?: int, max_inline_markers?: int, max_references?: int, mark_colors?: list<string>} $options The `nowo_milkdown_editor.markdown` configuration
+     * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, footnotes?: bool, max_footnote_refs?: int, mention_display?: string, max_nesting_level?: int, max_input_length?: int, max_inline_markers?: int, max_references?: int, mark_colors?: list<string>, heading_ids?: bool} $options The `nowo_milkdown_editor.markdown` configuration
      * @param PageResolverInterface $pages Page link resolver (per viewer)
      * @param UserResolverInterface $users Mention resolver
      * @param IconResolverInterface $icons Icon allowlist and sprite
@@ -146,6 +146,10 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
             // After orphans become text (30), before numbering (20): per-document salt of the footnote ids (CZ-I7).
             $this->footnoteSalt = new FootnoteSalt($this->secret);
             $environment->addEventListener(DocumentParsedEvent::class, [$this->footnoteSalt, 'onDocumentParsed'], 25);
+        }
+        if ($this->options['heading_ids'] ?? false) {
+            // 1.6: prefixed heading ids, the same slugs as the editor (`heading_ids`).
+            $environment->addEventListener(DocumentParsedEvent::class, [new HeadingIds(), 'onDocumentParsed'], 0);
         }
         $environment->addExtension(new MilkdownDialectExtension(
             new DialectRenderer($this->icons, $this->directiveRenderers, $this->options['mark_colors'] ?? ['yellow'], $this->translator, $this->options['mention_display'] ?? 'handle'),

@@ -28,6 +28,10 @@ export const lazyFeatures = {
 export const COLOR_ICON =
   '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16l5-12 5 12"/><path d="M9 11h6"/><path d="M4 20h16"/></svg>';
 
+/** Static icon of the toolbar's comment button (a speech bubble); markup from the bundle, never from user data. */
+export const COMMENT_ICON =
+  '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>';
+
 export async function addFeatures(builder: CrepeBuilder, options: EditorOptions, runtime: Runtime): Promise<void> {
   const on = new Set(options.features);
   const [code, math, topBar] = await Promise.all([
@@ -40,20 +44,32 @@ export async function addFeatures(builder: CrepeBuilder, options: EditorOptions,
   if (on.has('link_tooltip')) builder.addFeature(linkTooltip);
   if (on.has('toolbar')) {
     // 1.4 `colors`: one more toolbar button opening the text / background colour menu (a lazy chunk).
+    // 1.6 `comments`: a *Comment* button (only while the viewer may create threads).
+    const comments = on.has('comments') && options.comments?.canCreate === true;
     builder.addFeature(
       toolbar,
-      on.has('colors')
+      on.has('colors') || comments
         ? {
             buildToolbar: (group) => {
-              group.addGroup('nowo-color', t(runtime, 'menu.color')).addItem('color', {
-                icon: COLOR_ICON,
-                label: t(runtime, 'menu.color'),
-                active: () => false,
-                onRun: (ctx) => {
-                  const view = ctx.get(editorViewCtx);
-                  void lazyFeatures.colors().then((m) => m.openColorMenu(view, runtime));
-                },
-              });
+              if (on.has('colors')) {
+                group.addGroup('nowo-color', t(runtime, 'menu.color')).addItem('color', {
+                  icon: COLOR_ICON,
+                  label: t(runtime, 'menu.color'),
+                  active: () => false,
+                  onRun: (ctx) => {
+                    const view = ctx.get(editorViewCtx);
+                    void lazyFeatures.colors().then((m) => m.openColorMenu(view, runtime));
+                  },
+                });
+              }
+              if (comments) {
+                group.addGroup('nowo-comment', t(runtime, 'comments.action')).addItem('comment', {
+                  icon: COMMENT_ICON,
+                  label: t(runtime, 'comments.action'),
+                  active: () => false,
+                  onRun: () => runtime.comment?.(),
+                });
+              }
             },
           }
         : undefined,

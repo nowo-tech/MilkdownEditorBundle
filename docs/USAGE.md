@@ -15,6 +15,9 @@
 - [Markdown clipboard](#markdown-clipboard)
 - [Block actions and colours](#block-actions-and-colours)
 - [Icons and the icon picker](#icons-and-the-icon-picker)
+- [Comments](#comments)
+- [Version view and diff](#version-view-and-diff)
+- [Heading ids](#heading-ids)
 - [Keyboard and accessibility](#keyboard-and-accessibility)
 - [Forms in Twig](#forms-in-twig)
 - [Overriding templates](#overriding-templates)
@@ -399,6 +402,106 @@ Since 1.7 (see [CONFIGURATION](CONFIGURATION.md#icons) for `menu_icons`, `toolba
   element has no text), then `<div class="nowo-md-callout__body">`. Emoji are Unicode text, never images.
 - **Search indexes.** Text extracted from the rendered HTML contains only the callout body. Text extracted from the
   Markdown should drop directive fences and `{…}` attributes, or icon names would match searches.
+## Comments
+
+`comments` (1.6) lets people comment on a selection. Comments are **not** in the Markdown: the editor draws them as
+highlights (decorations) from threads the host gives it, and **stores nothing**. The full host contract (anchor
+format, endpoints, events, security) is the 1.6 comments contract; the essentials:
+
+```php
+$builder->add('body', MilkdownEditorType::class, [
+    'features' => [...$features, 'comments'],
+    'comments' => ['url' => $commentsUrl, 'csrf_token' => $token, 'can_create' => $canComment, 'panel' => 'margin'],
+]);
+```
+
+```twig
+{# Readers with the comment right but not the edit right: a read-only mount #}
+{{ nowo_milkdown_view(page.body, {features: ['comments'], comments: {url: comments_url, can_create: true}}) }}
+```
+
+- **Start a comment:** select text, then the toolbar's *Comment* button, *Comment* in the context menu, or
+  **Ctrl / ⌘ + Alt + M**. The editor emits `nowo-milkdown:comment-create` (cancelable) with `{anchor, text}`; without
+  cancellation the built-in composer opens (when `url` is set). Not inside code blocks or math.
+- **Anchors** (`v: 1`): a text quote (`exact`, `prefix`, `suffix`), offsets, a block hint and, while co-editing, Yjs
+  relative positions. Validate them on the host with `Nowo\MilkdownEditorBundle\Comment\CommentAnchor::fromJson()`
+  (it throws `InvalidCommentAnchorException`; answer 422) and store the normalised `toJson()`.
+- **Resolution:** Yjs positions first, then the exact quote (context ranks duplicates); text that is gone makes the
+  thread **orphaned** (`comment-orphaned`), never attached elsewhere. When an anchor drifts the editor emits
+  `comment-anchors-changed`; the thread component PATCHes it with `base: updatedAt` (answer 409 when stale).
+- **API:** `handle.comments.set(threads)`, `upsert`, `remove`, `status`, `selectionAnchor`, `start`, `focus`, `next`,
+  `previous`, `showResolved`, `snapshot`, `refresh`, `open`, `reveal`, `count`, `mount`. Events: `comment-create`,
+  `comment-created`, `comment-open`, `comment-changed`, `comment-orphaned`, `comment-anchors-changed`, `comment-error`,
+  `comments-open-requested`, `comments-count` (all prefixed
+  `nowo-milkdown:` and dispatched on the widget root).
+- **Thread component** (with `url` and `panel` other than `none`): a *Comments* landmark beside the editor (`margin`
+  aligns cards with their text on wide screens) or `sidebar`; threads with replies, reactions, resolve / reopen,
+  edit / delete own, *Show resolved*, page-level comments. Endpoints under `url`: `GET /threads`,
+  `GET|POST /threads[/{id}]`, `POST /threads/{id}/comments`, `PATCH /threads/{id}`, `PATCH|DELETE /comments/{cid}`,
+  `PUT|DELETE /comments/{cid}/reactions/{emoji}`. Comment bodies are HTML rendered by the host with this bundle's
+  renderer; the component copies an allow-list of it with DOM APIs. Avatars (`author.avatarUrl`,
+  `resolvedBy.avatarUrl`) must be `https://` URLs without userinfo or same-origin paths starting with one `/`; anything
+  else shows the initial. The picture (`.nowo-milkdown-avatar__image`, lazy, `referrerpolicy="same-origin"`) lies over
+  the initial (`.nowo-milkdown-avatar`) and is removed if it fails to load. Serve inline images from your own URL
+  (no `data:`), and list the origins your avatar URLs redirect to in `img-src`. Never pass a user-entered URL: every
+  viewer's browser fetches it.
+- **In a host drawer** (`panel: 'container'`, `container: '#wiki-comments'`, or `handle.comments.mount(el)` later): the
+  selector takes the first match outside any editor, read view or contenteditable region (a heading or user content
+  with the same id is skipped; `mount()` returns false for such an element and after `destroy()`), and the
+  threads render into your element with no landmark, heading, layout or Escape handling of their own. Listen to
+  `nowo-milkdown:comments-open-requested` (`{id}`, `null` for a new comment) to open the drawer before the thread is
+  focused, and to `nowo-milkdown:comments-count` (`{open, resolved, orphaned, page, total}`, also
+  `handle.comments.count()`) for the tab badge. A thread card scrolls to its text and flashes it
+  (`handle.comments.reveal(id)`) without taking focus from the drawer; `handle.comments.focus(id)` instead selects
+  the text and moves focus into the editor. Opening a thread focuses its first control (a new comment: the composer's
+  textarea). A reply from someone else is announced only while the component is visible (not inside a `hidden`
+  drawer); the count is never announced. The component is `width: 100%` with no positioning or fixed heights, so it
+  fits a full-height drawer on phones; the host owns scrolling, Escape and focus restoration.
+- **`handle.comments.open(id)`** opens the built-in thread view and emits only
+  `nowo-milkdown:comments-open-requested` (`{id}`). It does **not** emit the cancelable `nowo-milkdown:comment-open`:
+  only a click or **Enter** on a highlight (or a card in the list) emits that. Hosts must not expect a cancelable event
+  from the API call; to draw your own thread view, cancel `comment-open` for user actions and do not call `open()`.
+- **Live updates:** with `topic` and co-editing, the component listens to the hub for `{"threads": [ids]}` and
+  refetches those threads; otherwise call `handle.comments.refresh(ids)`.
+- **Keyboard:** **Ctrl / ⌘ + Alt + PageDown / PageUp** next / previous comment (selected and announced), **Enter**
+  opens it, **Escape** leaves it. Highlights have a dotted underline as well as a background.
+
+## Version view and diff
+
+`version_view` (1.6) mounts an old version read-only with a banner:
+
+```twig
+{{ nowo_milkdown_view(revision.body, {features: ['version_view'], version: {label: revision.createdAt|date, restore: false, copy: false}}) }}
+```
+
+*Restore this version* and *Copy to a new page* only emit `nowo-milkdown:version-restore` / `version-copy` (the host
+does the write); `restore: false` / `copy: false` remove them. Collaboration, uploads and comments are off.
+
+`nowo_milkdown_diff(old, new)` (or the `Nowo\MilkdownEditorBundle\Diff\MarkdownDiffRendererInterface` service, whose
+`render()` returns `MarkdownDiff {html, changes, fallback}`) renders a diff of two **Markdown** versions with the
+bundle's renderer (per-viewer resolvers, nothing cached): blocks are matched (LCS), changed paragraphs get a word-level
+diff. Stable markup, for sanitiser allow-lists:
+
+| Element | Meaning |
+|---------|---------|
+| `div.nowo-md.nowo-md-diff[data-nowo-milkdown-diff]` | Wrapper |
+| `h2.nowo-md-diff-summary` | *N changes* / *No changes* |
+| `div.nowo-md-diff-block[data-change=added\|removed\|changed]` | A changed block |
+| `ins.nowo-md-diff-ins`, `del.nowo-md-diff-del` | Inserted / deleted content |
+| `span.nowo-md-diff-sr` | Visually hidden labels (*Inserted:*, *Deleted:*, *End of change.*) |
+| `pre.nowo-md-diff-raw` | Fallback (`fallback: true`): an escaped line diff when a version is over `max_input_length`, has more than 2000 blocks or more than 500 changed blocks |
+
+Blocks render one by one, so a footnote or reference-style link whose definition is in another block renders as
+text in the diff, and heading ids are only unique per block.
+
+## Heading ids
+
+`markdown.heading_ids: true` (renderer) and the `heading_ids` feature (editor) give headings the same ids:
+`nowo-h-` + a slug (lower case, runs of anything but letters, marks and digits become `-`, at most 80 characters,
+`section` when empty; repeats get `-2`, `-3`, …). The prefix keeps a heading from clobbering a host element id or a
+global. Only text and inline code count (mentions, page links, icons and raw HTML do not). Since 1.6 the editor
+prefixes its heading ids even without the feature (Milkdown's default was the bare text; repeats then get `-#2`).
+Ids are unique per document: two editors on one page, or both sides of a diff, can repeat an id.
 
 ## Keyboard and accessibility
 
@@ -411,6 +514,9 @@ Since 1.7 (see [CONFIGURATION](CONFIGURATION.md#icons) for `menu_icons`, `toolba
 - The context menu (`context_menu`) follows the WAI-ARIA menu pattern: Up / Down (wrap), Home / End, type-ahead,
   Right / Enter opens a submenu, Left / Escape closes it, Escape or Tab closes the menu and focus returns to the
   caret.
+- Comments (1.6): **Ctrl / ⌘ + Alt + M** comments on the selection, **Ctrl / ⌘ + Alt + PageDown / PageUp** move
+  between comments (selected and announced), **Enter** opens one, **Escape** returns; the thread list is a named
+  `complementary` region.
 - Every control is named (table handles, code-block buttons); task items are real checkboxes; focus rings are
   visible; token colours meet WCAG AA in light and dark.
 

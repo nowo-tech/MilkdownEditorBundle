@@ -4,6 +4,7 @@
 
 - [General procedure](#general-procedure)
 - [To 1.7.0 (unreleased)](#to-170-unreleased)
+- [To 1.6.0](#to-160)
 - [To 1.5.1](#to-151)
 - [1.5.0](#150)
 - [1.4.0](#140)
@@ -39,12 +40,42 @@ interfaces and `window.NowoMilkdownEditor`.
   keep the old one.
 - The catalog's search data is a **lazy, opt-in** chunk of about **79 kB gzip** (5,203 names, Tabler tags and
   categories in a compact dictionary form), loaded only with `icon_catalog` on the first picker or `:` use; it never
-  adds to the up-front JavaScript (+5.2 kB gzip in 1.7 for the glyphs and menus).
+  adds to the up-front JavaScript (+6.4 kB gzip over 1.6.0 for the glyphs, menus and the emoji rule).
 - `icon_catalog` (editor) and `markdown.icon_catalog` (renderer) are **opt-in**: with them, any `:tabler-NAME:` of the
   Tabler outline set renders as an icon (it was text unless allowlisted). Enable both together.
 - Callouts may carry `icon="…"`; renderers of other tools show the attribute as text, as for every directive attribute.
   Plain-text extraction that reads the Markdown (search indexes) should drop directive lines and attributes; extraction
   from the rendered HTML (`strip_tags`) only sees the body.
+## To 1.6.0
+
+From **1.5.1**:
+
+```bash
+composer update nowo-tech/milkdown-editor-bundle
+```
+
+- **New opt-in features:** `comments`, `version_view` (never together with `comments`) and `heading_ids`; new form
+  options `comments` and `version`; new renderer option `markdown.heading_ids` (default `false`). Fields and pages
+  without them keep the same widget JSON, DOM and HTML, except editor heading ids (below).
+- **New Twig functions** `nowo_milkdown_view()` (needs symfony/form enabled) and `nowo_milkdown_diff()`, and the
+  public services `MarkdownDiffRendererInterface` and `CommentAnchor` (a value class).
+- With `comments`, **Ctrl / ⌘ + Alt + M** and **Ctrl / ⌘ + Alt + PageDown / PageUp** are taken in the editor.
+- If you override translations, add the new `comments.*`, `version.*` and `diff.*` keys.
+- Hosts storing comments: validate anchors with `CommentAnchor::fromJson()` and read the security notes in
+  [SECURITY.md](SECURITY.md).
+- **Comments in a host drawer:** use `comments.panel: 'container'` with `comments.container` (a CSS selector, 1–200
+  characters) or call `handle.comments.mount(element)`. Open the drawer on `nowo-milkdown:comments-open-requested`
+  (`{id}`, `id: null` for a new comment), use `handle.comments.reveal(id)` to scroll to and flash a thread's text
+  without moving focus (`focus(id)` moves focus into the editor), and feed the tab badge from
+  `nowo-milkdown:comments-count` / `handle.comments.count()` (`{open, resolved, orphaned, page, total}`). In this mode
+  Escape, open / close and focus restoration belong to the host.
+- Comment avatars (`author.avatarUrl`, `resolvedBy.avatarUrl`) accept only `https://` URLs without userinfo or
+  same-origin paths starting with one `/`; `http:` and `data:` avatars show the initial.
+- Editor heading ids are now always `nowo-h-<slug>` (Milkdown used the bare heading text): update scripts or CSS
+  that targeted an editor heading by its old id. Do not give a comments container an id a heading could produce
+  either way.
+- Read-side heading ids are off by default; with `markdown.heading_ids: true` headings get `id="nowo-h-<slug>"`
+  (sanitiser allow-lists that strip `id` must allow that prefix).
 
 ## To 1.5.1
 

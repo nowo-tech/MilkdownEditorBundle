@@ -142,6 +142,7 @@ final class Configuration implements ConfigurationInterface
                 ->booleanNode('allow_remote_images')->info('Render images from other hosts; when false they become plain links.')->defaultFalse()->end()
                 ->booleanNode('math')->info('Parse $inline$ and $$block$$ math (rendered client-side with KaTeX).')->defaultTrue()->end()
                 ->enumNode('mention_display')->info('Rendered mentions show the @handle (default) or the resolved name, the handle kept in data-handle and title (1.2.1).')->values(['handle', 'name'])->defaultValue('handle')->end()
+                ->booleanNode('heading_ids')->info('Give headings ids (`nowo-h-<slug>`, the same slugs as the editor feature `heading_ids`) for links, the TOC and comment hints (1.6).')->defaultFalse()->end()
                 ->booleanNode('footnotes')->info('Render GFM footnotes ([^1] references and [^1]: definitions), as the editor writes them.')->defaultTrue()->end()
                 ->integerNode('max_footnote_refs')->info('More footnote references in one document render as literal [^label] text (each one expands to two links).')->min(1)->defaultValue(FootnoteGuard::DEFAULT_MAX_FOOTNOTE_REFS)->end()
                 ->integerNode('max_nesting_level')->min(1)->max(1000)->defaultValue(50)->end()

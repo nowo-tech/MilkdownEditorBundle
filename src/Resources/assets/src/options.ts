@@ -2,7 +2,7 @@
  * Reads and validates the widget options (`data-nowo-milkdown-options`, JSON written by the form type).
  */
 import { isIconName } from './dialect/patterns';
-import { FEATURES, type CollaborationOptions, type EditorOptions, type Feature, type Theme, type Trigger } from './types';
+import { FEATURES, type CollaborationOptions, type CommentsOptions, type EditorOptions, type Feature, type Theme, type Trigger } from './types';
 
 export const DEFAULT_FEATURES: Feature[] = ['toolbar', 'link_tooltip', 'table', 'code_mirror', 'placeholder', 'cursor', 'slash_menu'];
 
@@ -24,6 +24,8 @@ export function normaliseFeatures(value: unknown): Feature[] {
     set.delete('math');
     set.delete('mermaid');
   }
+  // An old version never carries comments (1.6).
+  if (set.has('version_view')) set.delete('comments');
   // Dragging uses the block handle (1.4).
   if (!set.has('block_actions')) set.delete('block_drag');
   // The Insert group lives in the context menu (1.5).
@@ -47,6 +49,47 @@ function collaboration(value: unknown): CollaborationOptions | null {
 }
 
 /**
+ * Whether a URL is relative or on this page's origin (the comment endpoints, contract section 9).
+ *
+ * @param value - The URL
+ * @returns True for same-origin URLs
+ */
+export function sameOrigin(value: string): boolean {
+  if (value.startsWith('//') || value.startsWith('\\')) return false;
+  try {
+    const url = new URL(value, window.location.href);
+    return url.origin === window.location.origin && (url.protocol === 'http:' || url.protocol === 'https:');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The `comments` options (1.6): only with the feature; a foreign or invalid URL means hooks only.
+ *
+ * @param value - The JSON value
+ * @param on - Whether the feature is enabled
+ * @returns The options, or null
+ */
+export function commentsOptions(value: unknown, on: boolean): CommentsOptions | null {
+  if (!on) return null;
+  const v = obj(value);
+  const raw = strOrNull(v.url);
+  const url = raw !== null && sameOrigin(raw) ? raw : null;
+  const panel = url !== null && (v.panel === 'margin' || v.panel === 'sidebar' || v.panel === 'container') ? v.panel : 'none';
+  const topic = strOrNull(v.topic);
+  const container = panel === 'container' ? strOrNull(v.container) : null;
+  return {
+    url,
+    csrfToken: strOrNull(v.csrfToken),
+    canCreate: v.canCreate !== false,
+    panel,
+    container: container !== null && container.length <= 200 ? container : null,
+    topic: url !== null ? topic : null,
+  };
+}
+
+/**
  * Parses and validates the widget JSON; invalid values fall back to safe defaults.
  *
  * @param raw - The `data-nowo-milkdown-options` attribute
@@ -65,15 +108,18 @@ export function parseOptions(raw: string | undefined | null): EditorOptions {
   }
   const upload = obj(data.upload);
   const theme = str(data.theme, 'auto');
+  const features = normaliseFeatures(data.features);
+  const versionOn = features.includes('version_view');
+  const version = obj(data.version);
   const messages: Record<string, string> = {};
   for (const [key, value] of Object.entries(obj(data.messages))) if (typeof value === 'string') messages[key] = value;
   return {
-    features: normaliseFeatures(data.features),
+    features,
     theme: (['light', 'dark', 'auto'].includes(theme) ? theme : 'auto') as Theme,
     placeholder: str(data.placeholder),
     label: str(data.label),
     minHeight: /^\d+(\.\d+)?(px|rem|em|vh)$/.test(str(data.minHeight)) ? str(data.minHeight) : '12rem',
-    readonly: data.readonly === true,
+    readonly: data.readonly === true || versionOn,
     suggestions,
     linkTitleUrl: strOrNull(data.linkTitleUrl),
     iconSpriteUrl: strOrNull(data.iconSpriteUrl),
@@ -82,7 +128,7 @@ export function parseOptions(raw: string | undefined | null): EditorOptions {
     iconCatalog: data.iconCatalog === true,
     toolbarIcons: data.toolbarIcons !== false,
     menuIcons: data.menuIcons !== false,
-    upload: strOrNull(upload.url)
+    upload: !versionOn && strOrNull(upload.url)
       ? {
           url: str(upload.url),
           csrfToken: strOrNull(upload.csrfToken),
@@ -90,10 +136,12 @@ export function parseOptions(raw: string | undefined | null): EditorOptions {
           accept: Array.isArray(upload.accept) ? upload.accept.filter((a): a is string => typeof a === 'string') : [],
         }
       : null,
-    collaboration: collaboration(data.collaboration),
+    collaboration: versionOn ? null : collaboration(data.collaboration),
     colors: Array.isArray(data.colors) ? data.colors.filter((c): c is string => typeof c === 'string') : [],
     mentionDisplay: data.mentionDisplay === 'name' ? 'name' : 'handle',
     userTitleUrl: strOrNull(data.userTitleUrl),
+    comments: commentsOptions(data.comments, features.includes('comments')),
+    version: versionOn ? { label: str(version.label).slice(0, 200), restore: version.restore !== false, copy: version.copy !== false } : null,
     nonce: str(data.nonce) || pageNonce(),
     messages,
   };

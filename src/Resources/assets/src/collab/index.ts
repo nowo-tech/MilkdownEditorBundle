@@ -5,7 +5,10 @@
 import type { Editor } from '@milkdown/kit/core';
 import { collab, collabServiceCtx } from '@milkdown/plugin-collab';
 import * as Y from 'yjs';
-import { MercureProvider, type Status } from './mercure-provider';
+import { absolutePositionToRelativePosition, relativePositionToAbsolutePosition, ySyncPluginKey } from 'y-prosemirror';
+import type { EditorState } from '@milkdown/kit/prose/state';
+import type { YjsAnchors } from '../comments/plugin';
+import { MercureProvider, fromBase64, toBase64, type Status } from './mercure-provider';
 import type { CollaborationOptions } from '../types';
 
 export { collab };
@@ -44,6 +47,39 @@ export const selectionBuilder = (user: Peer): { style: string; class: string } =
   style: `background-color: ${safeColor(user.color)}70`,
   class: 'ProseMirror-yjs-selection',
 });
+
+type SyncState = { type: Y.XmlFragment; doc: Y.Doc; binding: { mapping: Map<unknown, unknown> } | null } | undefined;
+
+/**
+ * Yjs relative positions for comment anchors (1.6): base64 of `Y.encodeRelativePosition`, decoded in a try / catch
+ * and only ever handed to Yjs. Null while no document is bound.
+ *
+ * @param state - Returns the current editor state
+ * @returns The adapter
+ */
+export function yjsAnchors(state: () => EditorState): YjsAnchors {
+  const sync = (): SyncState => ySyncPluginKey.getState(state()) as SyncState;
+  return {
+    encode: (pos) => {
+      const s = sync();
+      if (!s?.binding) return null;
+      try {
+        return toBase64(Y.encodeRelativePosition(absolutePositionToRelativePosition(pos, s.type, s.binding.mapping as never)));
+      } catch {
+        return null;
+      }
+    },
+    decode: (value) => {
+      const s = sync();
+      if (!s?.binding) return null;
+      try {
+        return relativePositionToAbsolutePosition(s.doc, s.type, Y.decodeRelativePosition(fromBase64(value)), s.binding.mapping as never);
+      } catch {
+        return null;
+      }
+    },
+  };
+}
 
 /** Delay before an editor whose document was replaced on the server reloads the page (ms). */
 export const RESET_RELOAD_DELAY = 1500;

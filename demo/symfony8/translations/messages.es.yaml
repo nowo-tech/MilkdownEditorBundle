@@ -9,3 +9,8 @@ demo.comment: Comentario
 demo.save: Guardar
 demo.preview: Renderizado por el renderer PHP
 demo.markdown: Markdown guardado
+demo.comments.nav: Comentarios e historial
+demo.comments.heading: Comentarios, vista de versión y diferencias
+demo.comments.lead: Selecciona texto y pulsa Ctrl+Alt+M (o usa la barra o el menú contextual) para comentar. Los hilos se guardan en tu sesión.
+demo.comments.version: Versión anterior
+demo.comments.diff: Cambios desde esa versión

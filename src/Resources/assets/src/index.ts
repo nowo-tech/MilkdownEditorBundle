@@ -150,8 +150,17 @@ export function bindCopyButtons(doc: Document = document): void {
  *
  * @param doc - The document to watch
  */
+/** Rendered diffs on the page (1.6): keyboard navigation from a lazy chunk, only when one is present. */
+export function bindDiffNavigation(scope: ParentNode = document): Promise<number> {
+  if (!scope.querySelector('[data-nowo-milkdown-diff]')) return Promise.resolve(0);
+  return import('./diff-nav').then((m) => m.bindDiffs(scope));
+}
+
 export function start(doc: Document = document): void {
-  const run = (): void => void mountAll(doc);
+  const run = (): void => {
+    void mountAll(doc);
+    void bindDiffNavigation(doc);
+  };
   bindCopyButtons(doc);
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', run, { once: true });
   else run();
@@ -163,6 +172,7 @@ export function start(doc: Document = document): void {
         if (!(node instanceof HTMLElement)) return;
         if (node.matches(SELECTOR)) void mount(node);
         mountAll(node);
+        void bindDiffNavigation(node.parentNode ?? node);
       });
     }
   });

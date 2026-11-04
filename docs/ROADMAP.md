@@ -209,6 +209,11 @@ are marked *default pending user confirmation*.
   menu (`insert_menu`) and the read-view "Copy as Markdown" button (owner requests, Beacon) — 1.5, PR #14
 - [x] Collaboration request rate (coalesced updates, throttled presence, 429 backoff; Beacon audit High), submenu
   flip at the right edge, transient copy status, icon variants of `nowo_milkdown_copy_markdown()` — 1.5.1 patch
+- [x] Comments (`comments`: anchors v1, highlights, orphans, anchor refresh, next / previous, thread component,
+  `CommentAnchor`), `version_view`, rendered diff (`MarkdownDiffRendererInterface`, `nowo_milkdown_diff()`),
+  `nowo_milkdown_view()` and heading ids (`heading_ids`, `markdown.heading_ids`) — 1.6 (the roadmap's "1.4 Comments and
+  history" row). Host contract agreed with WikiBundle 1.15 / 1.16 (contract v1.2). Presence avatars / follow user
+  moved to 1.6.x.
 - [x] Icons (owner request): decorative icons in menus, `/` and the action bar (`menu_icons`, `toolbar_icons`, on), the
   Tabler outline catalog (`icon_catalog`, opt-in) with a searchable icon picker, and the **callout icon picker**
   (`:::callout{icon=…}`, Tabler or emoji) — 1.7, PR #17
@@ -622,6 +627,10 @@ already assessed above; this list gives them a milestone.
 | Print styles of read pages | Clean printing / PDF via the browser | S | 1.5 |
 | Callout and toggle polish: ~~callout icon picker~~ (done in 1.7, Tabler or emoji), toggle headings (`:::details` with a heading summary) | Closer to Notion blocks | S | 1.5 |
 | Markdown import of Notion / Outline pastes (callouts, toggles) | Smooth migration | S | 1.7 |
+| Comments on a whole block or an image (block anchors, no text quote) | Notion comments on images, embeds and databases | S | 1.6.x |
+| `@` mentions and emoji picker in the comment composer | Notion / Outline composer parity | S | 1.6.1 |
+| Comment count badge in the margin and "Resolve all" for page owners | Outline margin badges; tidy reviews | S | 1.6.x |
+| Client-side diff view in the editor (`plugin-diff`, accept / reject per block) | Notion page history "Compare"; base for suggestion mode | M | 1.8 |
 
 ## Open decisions
 

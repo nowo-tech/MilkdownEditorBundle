@@ -36,6 +36,7 @@ export const ITEM_GLYPHS: Readonly<Record<string, string>> = {
   move_up: 'arrow-up',
   move_down: 'arrow-down',
   delete: 'trash',
+  comment: 'message-plus',
   // Blocks of the `/` menu (also *Turn into* and *Insert*)
   text: 'pilcrow',
   h1: 'h-1',
