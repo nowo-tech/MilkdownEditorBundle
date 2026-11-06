@@ -2,12 +2,13 @@
  * Reads and validates the widget options (`data-nowo-milkdown-options`, JSON written by the form type).
  */
 import { isIconName } from './dialect/patterns';
-import { FEATURES, type CollaborationOptions, type CommentsOptions, type EditorOptions, type Feature, type Theme, type Trigger } from './types';
+import { FEATURES, type ActionBarInsert, type CollaborationOptions, type CommentsOptions, type EditorOptions, type Feature, type Theme, type Trigger, type UploadOptions } from './types';
 
 export const DEFAULT_FEATURES: Feature[] = ['toolbar', 'link_tooltip', 'table', 'code_mirror', 'placeholder', 'cursor', 'slash_menu'];
 
 const str = (v: unknown, fallback = ''): string => (typeof v === 'string' ? v : fallback);
 const strOrNull = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
+const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((a): a is string => typeof a === 'string') : []);
 const obj = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
 
 /**
@@ -45,6 +46,28 @@ function collaboration(value: unknown): CollaborationOptions | null {
   if (typeof v.updateDelay === 'number') out.updateDelay = v.updateDelay;
   if (typeof v.awarenessDelay === 'number') out.awarenessDelay = v.awarenessDelay;
   if (typeof v.maxUpdateBytes === 'number') out.maxUpdateBytes = v.maxUpdateBytes;
+  return out;
+}
+
+/** The action-bar buttons (1.8): both by default, an array keeps the known ones in canonical order. */
+export function actionBarInsert(value: unknown): ActionBarInsert[] {
+  const all: ActionBarInsert[] = ['file', 'icon'];
+  return Array.isArray(value) ? all.filter((b) => value.includes(b)) : all;
+}
+
+/** The `upload` options, or null without a URL; 1.8: the per-kind lists only when sent. */
+export function uploadOptions(value: unknown): UploadOptions | null {
+  const upload = obj(value);
+  const url = strOrNull(upload.url);
+  if (!url) return null;
+  const out: UploadOptions = {
+    url,
+    csrfToken: strOrNull(upload.csrfToken),
+    maxSize: typeof upload.maxSize === 'number' && upload.maxSize > 0 ? upload.maxSize : 0,
+    accept: strings(upload.accept),
+  };
+  if (Array.isArray(upload.acceptImages)) out.acceptImages = strings(upload.acceptImages);
+  if (Array.isArray(upload.acceptFiles)) out.acceptFiles = strings(upload.acceptFiles);
   return out;
 }
 
@@ -106,7 +129,6 @@ export function parseOptions(raw: string | undefined | null): EditorOptions {
   for (const [trigger, url] of Object.entries(obj(data.suggestions))) {
     if ((trigger === '@' || trigger === '[[' || trigger === ':') && typeof url === 'string' && url !== '') suggestions[trigger] = url;
   }
-  const upload = obj(data.upload);
   const theme = str(data.theme, 'auto');
   const features = normaliseFeatures(data.features);
   const versionOn = features.includes('version_view');
@@ -128,14 +150,8 @@ export function parseOptions(raw: string | undefined | null): EditorOptions {
     iconCatalog: data.iconCatalog === true,
     toolbarIcons: data.toolbarIcons !== false,
     menuIcons: data.menuIcons !== false,
-    upload: !versionOn && strOrNull(upload.url)
-      ? {
-          url: str(upload.url),
-          csrfToken: strOrNull(upload.csrfToken),
-          maxSize: typeof upload.maxSize === 'number' && upload.maxSize > 0 ? upload.maxSize : 0,
-          accept: Array.isArray(upload.accept) ? upload.accept.filter((a): a is string => typeof a === 'string') : [],
-        }
-      : null,
+    upload: versionOn ? null : uploadOptions(data.upload),
+    actionBarInsert: actionBarInsert(data.actionBarInsert),
     collaboration: versionOn ? null : collaboration(data.collaboration),
     colors: Array.isArray(data.colors) ? data.colors.filter((c): c is string => typeof c === 'string') : [],
     mentionDisplay: data.mentionDisplay === 'name' ? 'name' : 'handle',

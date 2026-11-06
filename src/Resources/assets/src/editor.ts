@@ -11,8 +11,7 @@ import { CrepeBuilder } from '@milkdown/crepe/builder';
 import { editorViewCtx, editorViewOptionsCtx } from '@milkdown/kit/core';
 import { headingIdGenerator } from '@milkdown/kit/preset/commonmark';
 import { uploadConfig } from '@milkdown/kit/plugin/upload';
-import { replaceAll } from '@milkdown/kit/utils';
-import type { Schema } from '@milkdown/kit/prose/model';
+import { $prose, replaceAll } from '@milkdown/kit/utils';
 import type { EditorView } from '@milkdown/kit/prose/view';
 import { addFeatures } from './features';
 import { createPageResolver } from './link-titles';
@@ -30,7 +29,7 @@ import { assetUrl } from './assets';
 import { openPickerAtCaret } from './icons/open';
 import { buildTriggers, slashItems } from './triggers';
 import { insertItems, type InsertItem } from './commands/insert';
-import { createUploader } from './upload';
+import { createFileDrop } from './plugins/file-drop';
 import { HEADING_PREFIX, slug } from './plugins/heading-slug';
 import type { EditorOptions } from './types';
 import type { MercureProvider } from './collab/mercure-provider';
@@ -167,6 +166,27 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   if (options.version) root.insertBefore((await import('./version')).versionBanner(root, options.version, runtime), bar);
   const label = labelFor(textarea);
   const initial = textarea.value;
+  // 1.8 (ME-3): drop / paste of several files with a placeholder each; also cancels file drops on read-only editors
+  // and fields without uploads (a hint instead of the browser opening the file or Crepe inserting a blob: image).
+  const fileDrop = createFileDrop({ upload: options.upload, cards: options.features.includes('file_cards'), runtime, announce });
+  const upload = options.readonly ? null : options.upload;
+  /** Opens the file picker and uploads the files at the caret (action bar, `/file`, *Insert*). */
+  const pickFiles = (view: EditorView): void => {
+    if (!upload) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    if (upload.accept.length) input.accept = upload.accept.join(',');
+    input.addEventListener('change', () => {
+      const files = Array.from(input.files ?? []);
+      if (!files.length || view.isDestroyed) return;
+      void fileDrop.uploadFiles(view, files, view.state.selection.from).then(() => {
+        if (!view.isDestroyed) view.focus();
+      });
+    });
+    input.click();
+  };
+  if (upload) runtime.pickFiles = pickFiles;
 
   const builder = new CrepeBuilder({ root: surface, defaultValue: options.collaboration ? '' : initial });
   const editor = builder.editor;
@@ -194,10 +214,13 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
         ...prev,
         attributes: { ...editableAttributes(options.label || t(runtime, 'editor.label'), label?.id ?? null, options.readonly), id: `nowo-milkdown-${++sequence}` },
       }));
-      if (options.upload) {
-        const uploader = createUploader(options.upload, announce);
-        ctx.update(uploadConfig.key, (prev) => ({ ...prev, uploader: (files: FileList, schema: Schema) => uploader(files, schema) }));
-      }
+      // Milkdown's own upload plugin never inserts anything (the file drop props above run first; this is a backstop).
+      ctx.update(uploadConfig.key, (prev) => ({ ...prev, uploader: async () => [] }));
+      ctx.update(editorViewOptionsCtx, (prev) => ({
+        ...prev,
+        handleDOMEvents: { ...prev.handleDOMEvents, ...fileDrop.props.handleDOMEvents },
+        handlePaste: (view, event, slice) => fileDrop.props.handlePaste(view, event) || (prev.handlePaste?.(view, event, slice) ?? false),
+      }));
       if (clipboardModule) {
         // A view prop runs before Milkdown's clipboard plugin (which would take the HTML path).
         const smart = clipboardModule.smartPaste(clipboardModule.markdownIo(ctx));
@@ -214,7 +237,8 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     .use(directives)
     .use(taskListView)
     .use(suggestPlugin((ctx) => buildTriggers(ctx, { options, runtime, remember: pages.remember, rememberUser: users.remember })))
-    .use(keyboardPlugin);
+    .use(keyboardPlugin)
+    .use($prose(() => fileDrop.plugin));
   if (options.mentionDisplay === 'name') editor.use(mentionNameView);
   if (collabModule) editor.use(collabModule.collab);
   if (contextMenuModule) editor.use(contextMenuModule.contextMenuPlugin);
@@ -247,26 +271,6 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   label?.addEventListener('click', focus);
   const unwatch = watchControls(surface, runtime);
 
-  /** Opens the file picker and inserts the uploaded files at the caret. */
-  const pickFiles = (upload: NonNullable<EditorOptions['upload']>): void => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.multiple = true;
-    if (upload.accept.length) input.accept = upload.accept.join(',');
-    input.addEventListener('change', () => {
-      if (!input.files?.length) return;
-      const uploader = createUploader(upload, announce);
-      void editor.action(async (ctx) => {
-        const view = ctx.get(editorViewCtx);
-        const nodes = await uploader(input.files!, view.state.schema);
-        let tr = view.state.tr;
-        for (const node of nodes) tr = tr.replaceSelectionWith(node, false);
-        if (nodes.length) view.dispatch(tr.scrollIntoView());
-        view.focus();
-      });
-    });
-    input.click();
-  };
   /**
    * *Insert icon* / *Icon…*: the picker at the caret (1.7, inline, never a new block) when the field has icons or the
    * catalog; otherwise types `:` at the caret (a space first after a word), which opens the icon suggestions.
@@ -283,18 +287,17 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   };
   const iconsOffered = Boolean(options.suggestions[':'] || pickerAvailable(runtime));
 
-  if (options.upload && !options.readonly) {
-    const upload = options.upload;
-    actionButton(bar, t(runtime, 'upload.button'), () => pickFiles(upload), options.toolbarIcons ? 'file-upload' : null);
+  // 1.8 (ME-2) `action_bar_insert`: [] hides both buttons (`/file`, `/icon`, *Insert* and drop / paste stay).
+  if (upload && options.actionBarInsert.includes('file')) {
+    actionButton(bar, t(runtime, 'upload.button'), () => editor.action((ctx) => pickFiles(ctx.get(editorViewCtx))), options.toolbarIcons ? 'file-upload' : null);
   }
-  if (iconsOffered && !options.readonly) {
+  if (iconsOffered && !options.readonly && options.actionBarInsert.includes('icon')) {
     actionButton(bar, t(runtime, 'icon.button'), () => editor.action((ctx) => startIcon(ctx.get(editorViewCtx))), options.toolbarIcons ? 'icons' : null);
   }
   // 1.5 `insert_menu`: the *Insert* group of the context menu (file, icon, the `/` blocks of the field).
   if (options.features.includes('insert_menu') && !options.readonly) {
-    const upload = options.upload;
     const actions: InsertItem[] = [];
-    if (upload) actions.push({ id: 'file', label: t(runtime, 'menu.insert_file'), run: () => pickFiles(upload) });
+    if (upload) actions.push({ id: 'file', label: t(runtime, 'menu.insert_file'), run: pickFiles });
     if (iconsOffered) actions.push({ id: 'icon', label: t(runtime, 'slash.icon'), run: startIcon, inline: true });
     editor.action((ctx) => runtime.insert.push(...insertItems(slashItems(ctx, options, runtime), actions)));
   }

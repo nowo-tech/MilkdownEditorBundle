@@ -642,10 +642,35 @@
   color: var(--nowo-milkdown-text);
 }
 
+/*
+ * 1.8 (ME-1): popups render in the top layer (`popover="manual"`), placed in viewport coordinates through CSSOM; the
+ * z-index only matters for the fallback without the Popover API (then appended to <body> with the tokens copied).
+ * The UA popover defaults (inset: 0, margin: auto, Canvas colours) are reset; the theme tokens still inherit from the
+ * widget, which stays the popup's DOM parent.
+ */
+.nowo-milkdown-suggest[popover],
+.nowo-milkdown-menu[popover],
+.nowo-milkdown-picker[popover] {
+  inset: auto;
+  margin: 0;
+}
+.nowo-milkdown-picker[popover] {
+  overflow: visible;
+}
+.nowo-milkdown-suggest[popover]::backdrop,
+.nowo-milkdown-menu[popover]::backdrop,
+.nowo-milkdown-picker[popover]::backdrop {
+  background: transparent;
+}
+.nowo-milkdown-layer--detached {
+  font-family: var(--nowo-milkdown-font);
+  line-height: 1.4;
+}
+
 /* Suggestion listbox */
 .nowo-milkdown-suggest {
-  position: absolute;
-  z-index: 50;
+  position: fixed;
+  z-index: 2147483000;
   min-width: 16rem;
   max-width: min(28rem, calc(100vw - 2rem));
   max-height: 18rem;
@@ -688,7 +713,7 @@
 /* Context menu and block menu (1.3, APG menu pattern) */
 .nowo-milkdown-menu {
   position: fixed;
-  z-index: 60;
+  z-index: 2147483001;
   min-width: 14rem;
   max-width: min(22rem, calc(100vw - 1rem));
   max-height: min(28rem, calc(100vh - 1rem));
@@ -788,7 +813,7 @@
 /* Icon picker (combobox + listbox in a non-modal dialog) */
 .nowo-milkdown-picker {
   position: fixed;
-  z-index: 70;
+  z-index: 2147483002;
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
@@ -1208,3 +1233,138 @@ svg.nowo-md-callout__icon {
   .nowo-milkdown .nowo-milkdown-comment--flash { animation: nowo-milkdown-flash 0.5s ease-in-out 3; }
 }
 @keyframes nowo-milkdown-flash { 50% { background: var(--nowo-milkdown-comment-active); } }
+
+/*
+ * 1.8 (ME-3): upload placeholders (one per dropped file, a decoration) and file cards (`::file[name]{href size type}`)
+ * in the editor (.nowo-milkdown-file) and on read pages (.nowo-md-file). The badge colours reuse the highlight pairs
+ * (mark background + mark text), which are AA in both themes.
+ */
+.nowo-milkdown-upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+  margin: 0 0.125rem;
+  padding: 0.125rem 0.5rem;
+  border: 1px dashed var(--nowo-milkdown-border);
+  border-radius: var(--nowo-milkdown-radius-control);
+  background: var(--nowo-milkdown-surface);
+  color: var(--nowo-milkdown-muted);
+  font-size: 0.875em;
+  vertical-align: middle;
+}
+.nowo-milkdown-upload__name {
+  overflow: hidden;
+  max-width: 18rem;
+  color: var(--nowo-milkdown-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nowo-milkdown-upload--error {
+  border-style: solid;
+  border-color: var(--nowo-milkdown-danger);
+  color: var(--nowo-milkdown-danger);
+}
+.nowo-milkdown-upload__dismiss {
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+.nowo-milkdown-upload__dismiss:focus-visible {
+  outline: 2px solid var(--nowo-milkdown-focus);
+  outline-offset: 1px;
+}
+
+.nowo-milkdown-file,
+.nowo-md-file {
+  margin: 0.5rem 0;
+}
+.nowo-milkdown-file__link,
+.nowo-md-file__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  max-width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--nowo-milkdown-border);
+  border-radius: var(--nowo-milkdown-radius-control);
+  background: var(--nowo-milkdown-surface);
+  color: var(--nowo-milkdown-text);
+  text-decoration: none;
+}
+a.nowo-milkdown-file__link:hover,
+a.nowo-md-file__link:hover {
+  border-color: var(--nowo-milkdown-accent);
+}
+a.nowo-milkdown-file__link:focus-visible,
+a.nowo-md-file__link:focus-visible {
+  outline: 2px solid var(--nowo-milkdown-focus);
+  outline-offset: 2px;
+}
+.ProseMirror-selectednode > .nowo-milkdown-file__link,
+.nowo-milkdown-file.ProseMirror-selectednode .nowo-milkdown-file__link {
+  outline: 2px solid var(--nowo-milkdown-focus);
+}
+.nowo-milkdown-file__badge,
+.nowo-md-file__badge {
+  flex: 0 0 auto;
+  min-width: 2.5rem;
+  padding: 0.25rem 0.375rem;
+  border-radius: 0.25rem;
+  background: var(--nowo-milkdown-mark-gray);
+  color: var(--nowo-milkdown-mark-text);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+.nowo-milkdown-file__name,
+.nowo-md-file__name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nowo-milkdown-file__size,
+.nowo-md-file__size {
+  flex: 0 0 auto;
+  color: var(--nowo-milkdown-muted);
+  font-size: 0.8125em;
+}
+.nowo-milkdown-file--pdf .nowo-milkdown-file__badge,
+.nowo-md-file--pdf .nowo-md-file__badge {
+  background: var(--nowo-milkdown-mark-red);
+}
+.nowo-milkdown-file--image .nowo-milkdown-file__badge,
+.nowo-md-file--image .nowo-md-file__badge {
+  background: var(--nowo-milkdown-mark-purple);
+}
+.nowo-milkdown-file--audio .nowo-milkdown-file__badge,
+.nowo-md-file--audio .nowo-md-file__badge,
+.nowo-milkdown-file--video .nowo-milkdown-file__badge,
+.nowo-md-file--video .nowo-md-file__badge {
+  background: var(--nowo-milkdown-mark-pink);
+}
+.nowo-milkdown-file--archive .nowo-milkdown-file__badge,
+.nowo-md-file--archive .nowo-md-file__badge {
+  background: var(--nowo-milkdown-mark-brown);
+}
+.nowo-milkdown-file--sheet .nowo-milkdown-file__badge,
+.nowo-md-file--sheet .nowo-md-file__badge {
+  background: var(--nowo-milkdown-mark-green);
+}
+.nowo-milkdown-file--doc .nowo-milkdown-file__badge,
+.nowo-md-file--doc .nowo-md-file__badge {
+  background: var(--nowo-milkdown-mark-blue);
+}
+.nowo-milkdown-file--slides .nowo-milkdown-file__badge,
+.nowo-md-file--slides .nowo-md-file__badge {
+  background: var(--nowo-milkdown-mark-orange);
+}

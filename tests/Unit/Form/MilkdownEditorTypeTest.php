@@ -128,6 +128,61 @@ final class MilkdownEditorTypeTest extends TypeTestCase
     }
 
     #[Test]
+    public function theActionBarButtonsCanBeHidden(): void
+    {
+        $default = $this->factory->create(MilkdownEditorType::class)->createView()->vars['milkdown_options'];
+        self::assertIsArray($default);
+        self::assertArrayNotHasKey('actionBarInsert', $default);
+        $none = $this->factory->create(MilkdownEditorType::class, null, ['action_bar_insert' => []])->createView()->vars['milkdown_options'];
+        self::assertIsArray($none);
+        self::assertSame([], $none['actionBarInsert']);
+        $icon = $this->factory->create(MilkdownEditorType::class, null, ['action_bar_insert' => ['icon', 'icon']])->createView()->vars['milkdown_options'];
+        self::assertIsArray($icon);
+        self::assertSame(['icon'], $icon['actionBarInsert']);
+        $both = $this->factory->create(MilkdownEditorType::class, null, ['action_bar_insert' => ['icon', 'file']])->createView()->vars['milkdown_options'];
+        self::assertIsArray($both);
+        self::assertArrayNotHasKey('actionBarInsert', $both);
+
+        $this->expectException(InvalidOptionsException::class);
+        $this->expectExceptionMessage('Unknown "action_bar_insert" button "link"');
+        $this->factory->create(MilkdownEditorType::class, null, ['action_bar_insert' => ['file', 'link']]);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     *
+     * @return array<string, mixed>
+     */
+    private function uploadJson(array $options): array
+    {
+        $o = $this->factory->create(MilkdownEditorType::class, null, ['upload_url' => '/up'] + $options)->createView()->vars['milkdown_options'];
+        self::assertIsArray($o);
+        self::assertIsArray($o['upload']);
+
+        /** @var array<string, mixed> $upload */
+        $upload = $o['upload'];
+
+        return $upload;
+    }
+
+    #[Test]
+    public function uploadTypesCanBeSplitPerKind(): void
+    {
+        // Unchanged JSON without the lists (upload_accept of the profile: image/*).
+        self::assertSame(['url' => '/up', 'csrfToken' => null, 'maxSize' => 5, 'accept' => ['image/*']], $this->uploadJson([]));
+        // Files besides the profile's images: the union, both lists sent.
+        self::assertSame(
+            ['url' => '/up', 'csrfToken' => null, 'maxSize' => 5, 'accept' => ['image/*', 'application/pdf', 'text/csv'], 'acceptImages' => ['image/*'], 'acceptFiles' => ['application/pdf', 'text/csv']],
+            $this->uploadJson(['upload_accept_files' => ['application/pdf', 'text/csv']]),
+        );
+        self::assertSame(['image/png', 'image/*'], $this->uploadJson(['upload_accept_images' => ['image/png'], 'upload_accept_files' => ['image/*']])['accept']);
+        // upload_accept_files alone (audit GR-I3): only those files, never "any type".
+        $files = $this->uploadJson(['upload_accept' => [], 'upload_accept_files' => ['.pdf']]);
+        self::assertSame(['.pdf'], $files['accept']);
+        self::assertSame([], $files['acceptImages']);
+    }
+
+    #[Test]
     public function optionsOverrideTheProfile(): void
     {
         $view = $this->factory->create(MilkdownEditorType::class, null, [

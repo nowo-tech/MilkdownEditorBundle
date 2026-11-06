@@ -7,8 +7,10 @@
  * focus back to the caller, printable characters jump to the next item starting with them (type-ahead). Disabled
  * items stay focusable (`aria-disabled`) and show their hint. Built with DOM APIs only (no `innerHTML`).
  * With {@link Menu.icons} (1.7 `menu_icons`) every item gets an `aria-hidden` glyph before its label.
+ * 1.8 (ME-1): menus and submenus render in the top layer (`popover="manual"`, see `layer.ts`).
  */
 import { glyph, glyphFor } from './icons';
+import { hideLayer, placeLayer, showLayer } from './layer';
 
 export type MenuItem = {
   id: string;
@@ -62,7 +64,7 @@ export class Menu {
   };
 
   /**
-   * @param host - Element the menu is appended to (inside the widget, for its theme tokens)
+   * @param host - Element the menu is appended to (inside the widget, for its theme tokens; shown in the top layer)
    * @param label - Accessible name of the menu
    * @param onClose - Called once the root menu closed; `restoreFocus` is false for a click outside
    * @param parent - The parent menu of a submenu
@@ -97,14 +99,7 @@ export class Menu {
   }
 
   /**
-   * Opens the menu at viewport coordinates and focuses its first item.
-   *
-   * @param groups - Item groups (empty groups are skipped)
-   * @param x - Left edge (viewport px)
-   * @param y - Top edge (viewport px)
-   */
-  /**
-   * Opens the menu at viewport coordinates.
+   * Opens the menu at viewport coordinates (in the top layer) and focuses its first item.
    *
    * @param groups - Item groups
    * @param x - Left edge
@@ -129,9 +124,8 @@ export class Menu {
       }
       for (const item of group) this.addItem(item);
     }
-    if (!this.element.isConnected) this.host.append(this.element);
-    this.element.hidden = false;
-    this.place(x, y, flipX);
+    showLayer(this.element, this.host);
+    placeLayer(this.element, x, y, flipX);
     if (!this.parent) document.addEventListener('pointerdown', this.onOutside, true);
     this.focus(0);
   }
@@ -199,21 +193,6 @@ export class Menu {
     this.items.push(item);
     this.buttons.push(button);
     this.element.append(button);
-  }
-
-  /** Keeps the menu inside the viewport (CSSOM: allowed under a strict `style-src-attr`). */
-  private place(x: number, y: number, flipX?: number): void {
-    this.element.style.left = '0px';
-    this.element.style.top = '0px';
-    const rect = this.element.getBoundingClientRect();
-    const width = rect.width || 0;
-    const height = rect.height || 0;
-    const maxX = Math.max(0, window.innerWidth - width - 4);
-    // A submenu that does not fit on the right opens on the left of its parent (when that fits better).
-    if (flipX !== undefined && x > maxX && flipX - width >= 4) x = flipX - width;
-    const maxY = Math.max(0, window.innerHeight - height - 4);
-    this.element.style.left = `${Math.round(Math.min(Math.max(4, x), maxX))}px`;
-    this.element.style.top = `${Math.round(Math.min(Math.max(4, y), maxY))}px`;
   }
 
   /** Focuses the item at `index` (wrapping). */
@@ -338,7 +317,7 @@ export class Menu {
   closeAll(restoreFocus: boolean): void {
     if (this.element.hidden) return;
     this.closeChild();
-    this.element.hidden = true;
+    hideLayer(this.element);
     document.removeEventListener('pointerdown', this.onOutside, true);
     this.onClose(restoreFocus);
   }
@@ -346,6 +325,7 @@ export class Menu {
   destroy(): void {
     this.closeChild();
     document.removeEventListener('pointerdown', this.onOutside, true);
+    hideLayer(this.element);
     this.element.remove();
   }
 }

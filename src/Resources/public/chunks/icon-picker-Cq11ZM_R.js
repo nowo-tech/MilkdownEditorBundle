@@ -1,8 +1,8 @@
 import { n as e, r as t, t as n } from "./search-BYXNAND9.js";
-import { a as r, n as i } from "./runtime-CMxa1FKW.js";
-import { t as a } from "./icons-I0LZzmfJ.js";
+import { a as r, n as i } from "./runtime-BbjIB9ti.js";
+import { i as a, n as o, r as s, t as c } from "./layer-Br1XEYYk.js";
 // src/Resources/assets/src/ui/icon-picker.ts
-var o = 60, s = 64, c = 8, l = 0, u = null, d = class {
+var l = 60, u = 64, d = 8, f = 0, p = null, m = class {
 	opts;
 	element;
 	input;
@@ -14,7 +14,7 @@ var o = 60, s = 64, c = 8, l = 0, u = null, d = class {
 	index = 0;
 	catalog = [];
 	closed = !1;
-	id = `nowo-milkdown-picker-${++l}`;
+	id = `nowo-milkdown-picker-${++f}`;
 	onOutside = (e) => {
 		this.element.contains(e.target) || this.close(!1);
 	};
@@ -42,18 +42,13 @@ var o = 60, s = 64, c = 8, l = 0, u = null, d = class {
 		return !this.closed;
 	}
 	async show() {
-		this.opts.host.append(this.element), this.place(), document.addEventListener("pointerdown", this.onOutside, !0), this.select(this.tab, !1), this.input.focus();
+		s(this.element, this.opts.host), o(this.element, this.opts.x, this.opts.y), document.addEventListener("pointerdown", this.onOutside, !0), this.select(this.tab, !1), this.input.focus();
 		try {
 			this.catalog = await this.opts.entries();
 		} catch {
 			this.catalog = [];
 		}
 		this.closed || this.render();
-	}
-	place() {
-		this.element.style.left = "0px", this.element.style.top = "0px";
-		let e = this.element.getBoundingClientRect(), t = Math.max(4, window.innerWidth - (e.width || 0) - 4), n = Math.max(4, window.innerHeight - (e.height || 0) - 4);
-		this.element.style.left = `${Math.round(Math.min(Math.max(4, this.opts.x), t))}px`, this.element.style.top = `${Math.round(Math.min(Math.max(4, this.opts.y), n))}px`;
 	}
 	select(e, t) {
 		this.tab = e;
@@ -138,7 +133,7 @@ var o = 60, s = 64, c = 8, l = 0, u = null, d = class {
 				} else n = !1;
 				break;
 			case "PageDown":
-				this.move(c, !1);
+				this.move(d, !1);
 				break;
 			case "PageUp":
 				this.move(-8, !1);
@@ -166,12 +161,12 @@ var o = 60, s = 64, c = 8, l = 0, u = null, d = class {
 		this.closed || (this.teardown(), this.opts.onClose(e));
 	}
 	teardown() {
-		this.closed = !0, document.removeEventListener("pointerdown", this.onOutside, !0), this.element.remove(), u === this && (u = null);
+		this.closed = !0, document.removeEventListener("pointerdown", this.onOutside, !0), c(this.element), this.element.remove(), p === this && (p = null);
 	}
 };
-function f(e) {
-	u?.close(!1);
-	let t = new d(e);
-	return u = t, t.show(), t;
+function h(e) {
+	p?.close(!1);
+	let t = new m(e);
+	return p = t, t.show(), t;
 }
-export { d as IconPicker, o as MAX_OPTIONS, s as MAX_QUERY, f as open };
+export { m as IconPicker, l as MAX_OPTIONS, u as MAX_QUERY, h as open };

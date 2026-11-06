@@ -14,3 +14,13 @@ demo.comments.heading: Comments, version view and diff
 demo.comments.lead: Select text and press Ctrl+Alt+M (or use the toolbar or the context menu) to comment. Threads are kept in your session.
 demo.comments.version: Earlier version
 demo.comments.diff: Changes since that version
+demo.layers.nav: Layers
+demo.layers.heading: Menus above every layer
+demo.layers.lead: 'Right-click inside each editor: the menu, its submenus, the / list and the icon picker stay on top and at the pointer (top layer), even under a sticky header, inside a transformed box or a modal dialog.'
+demo.layers.sticky_bar: Sticky header (z-index 100)
+demo.layers.transformed: Inside a transformed ancestor
+demo.layers.sticky: Under the sticky header
+demo.layers.dialog: Inside a modal dialog
+demo.layers.open_dialog: Open the dialog
+demo.layers.dialog_title: Edit in a dialog
+demo.layers.close_dialog: Close

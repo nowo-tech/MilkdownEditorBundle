@@ -14,3 +14,13 @@ demo.comments.heading: Comentarios, vista de versión y diferencias
 demo.comments.lead: Selecciona texto y pulsa Ctrl+Alt+M (o usa la barra o el menú contextual) para comentar. Los hilos se guardan en tu sesión.
 demo.comments.version: Versión anterior
 demo.comments.diff: Cambios desde esa versión
+demo.layers.nav: Capas
+demo.layers.heading: Menús por encima de cualquier capa
+demo.layers.lead: 'Haz clic derecho en cada editor: el menú, sus submenús, la lista / y el selector de iconos quedan encima y junto al puntero (capa superior), incluso bajo una cabecera fija, dentro de una caja transformada o de un diálogo modal.'
+demo.layers.sticky_bar: Cabecera fija (z-index 100)
+demo.layers.transformed: Dentro de un ancestro transformado
+demo.layers.sticky: Bajo la cabecera fija
+demo.layers.dialog: Dentro de un diálogo modal
+demo.layers.open_dialog: Abrir el diálogo
+demo.layers.dialog_title: Editar en un diálogo
+demo.layers.close_dialog: Cerrar

@@ -11,6 +11,7 @@
 import { EMOJI } from '../emoji';
 import { iconSvg, t, type Runtime } from '../runtime';
 import { glyph } from './icons';
+import { hideLayer, placeLayer, showLayer } from './layer';
 import { mergeEntries, searchIcons, type IconEntry } from '../icons/search';
 
 /** Options rendered at most (the live region says how many match). */
@@ -22,7 +23,7 @@ const PAGE = 8;
 export type PickerTab = 'icons' | 'emoji';
 
 export type PickerOptions = {
-  /** Element the picker is appended to (inside the widget, for its theme tokens). */
+  /** Element the picker is appended to (inside the widget, for its theme tokens; shown in the top layer, 1.8). */
   host: HTMLElement;
   runtime: Runtime;
   /** Viewport position of the top-left corner. */
@@ -141,8 +142,8 @@ export class IconPicker {
 
   /** Shows the picker, focuses the search field and loads the catalog. */
   async show(): Promise<void> {
-    this.opts.host.append(this.element);
-    this.place();
+    showLayer(this.element, this.opts.host);
+    placeLayer(this.element, this.opts.x, this.opts.y);
     document.addEventListener('pointerdown', this.onOutside, true);
     this.select(this.tab, false);
     this.input.focus();
@@ -152,16 +153,6 @@ export class IconPicker {
       this.catalog = [];
     }
     if (!this.closed) this.render();
-  }
-
-  private place(): void {
-    this.element.style.left = '0px';
-    this.element.style.top = '0px';
-    const rect = this.element.getBoundingClientRect();
-    const maxX = Math.max(4, window.innerWidth - (rect.width || 0) - 4);
-    const maxY = Math.max(4, window.innerHeight - (rect.height || 0) - 4);
-    this.element.style.left = `${Math.round(Math.min(Math.max(4, this.opts.x), maxX))}px`;
-    this.element.style.top = `${Math.round(Math.min(Math.max(4, this.opts.y), maxY))}px`;
   }
 
   /** Switches the tab (callout picker) and re-renders. */
@@ -315,6 +306,7 @@ export class IconPicker {
   private teardown(): void {
     this.closed = true;
     document.removeEventListener('pointerdown', this.onOutside, true);
+    hideLayer(this.element);
     this.element.remove();
     if (current === this) current = null;
   }

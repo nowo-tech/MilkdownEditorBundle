@@ -23,3 +23,25 @@ if (!('IntersectionObserver' in window)) {
     }
   };
 }
+
+/**
+ * Popover API (1.8, ME-1): jsdom has none. A minimal stand-in so the menus take the top-layer path by default; tests
+ * of the fallback delete it (see layer.test.ts).
+ */
+const shown = new WeakSet<Element>();
+const popoverStub = {
+  showPopover(this: HTMLElement): void {
+    if (shown.has(this)) throw new DOMException('Already showing', 'InvalidStateError');
+    shown.add(this);
+  },
+  hidePopover(this: HTMLElement): void {
+    shown.delete(this);
+  },
+};
+Object.defineProperty(HTMLElement.prototype, 'showPopover', { value: popoverStub.showPopover, configurable: true, writable: true });
+Object.defineProperty(HTMLElement.prototype, 'hidePopover', { value: popoverStub.hidePopover, configurable: true, writable: true });
+// jsdom's UA stylesheet hides `[popover]:not(:popover-open)` and never matches `:popover-open`: a shown popup (the
+// layer clears `hidden`) is displayed, as in a browser after showPopover().
+const popoverStyle = document.createElement('style');
+popoverStyle.textContent = '[popover]:not([hidden]) { display: block !important; }';
+document.head.append(popoverStyle);

@@ -21,6 +21,68 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+Beacon request 2026-11-06 (*milkdown-menu-layer-and-file-drop*): menus in the top layer, optional action-bar insert
+buttons, Notion / Outline style drop and paste of any allowed file. No BC break; fields with the defaults keep the
+same widget JSON (only `messages` gains the new strings).
+
+### Fixed
+
+- **Menus under other layers or not shown (ME-1).** The context menu and its submenus, the block menu, the `/` and
+  suggestion lists and the icon picker now render in the browser's **top layer** (`popover="manual"`,
+  `showPopover()` / `hidePopover()`): a sticky header or drawer with a high `z-index`, a modal `<dialog>`, or an
+  ancestor that creates a containing block for fixed elements (`transform`, `filter`, `contain`, `container-type`,
+  `will-change`) no longer covers them or moves them off screen. They stay inside the widget in the DOM, so they keep
+  the `--nowo-milkdown-*` tokens and dark mode, and they are placed in viewport coordinates through CSSOM (no inline
+  `style` attribute, strict CSP unchanged). Keyboard, type-ahead, focus return and click-outside are unchanged
+  (`manual` popovers: the bundle keeps its own dismissal). Browsers without the Popover API get the popup appended to
+  `<body>` (or to the open modal dialog around the editor) with the computed theme tokens copied through CSSOM.
+- File drops on a **read-only** editor or a field **without `upload_url`** no longer let the browser open the file or
+  Crepe insert a `blob:` image: nothing is inserted and the status region says *Uploads are off in this editor*.
+
+### Added
+
+- **`action_bar_insert`** (profile key and form option, ME-2): the action-bar buttons shown above the editor, a list of
+  `file` (*Insert file*) and `icon` (*Insert icon*); default `[file, icon]` (unchanged), `[]` hides both. `/file`,
+  `/icon`, the context menu *Insert* group, Shift+F10 and drop / paste stay.
+- **Drop and paste of several files at once (ME-3).** Each file gets its own placeholder at the drop point (the drop
+  cursor shows where they land) with its progress; files upload one after the other and land **in order**. A failed
+  file leaves a **dismissible inline notice** in its place (a decoration, never saved; the error is also announced).
+  A clipboard with files and no HTML (screenshots, files copied in a file manager) behaves like a drop at the caret;
+  HTML with files (Word, Excel, a copied web image) keeps the normal paste.
+- **File cards** (`file_cards` feature, opt-in): uploads that are not images become a file card —
+  `::file[name]{href="…" size="…" type="…"}` in the Markdown, a card with a type badge, the name and the size in the
+  editor, and the same card from the PHP renderer (`.nowo-md-file`; a host `DirectiveRendererInterface` that supports
+  `file` still wins). Without the feature they stay links `[name](url)` as before.
+- **`/file`** (*Image or file…*) in the `/` menu when the field has uploads: the keyboard path of drag and drop
+  (WCAG 2.5.7).
+- **Upload answer `{url, name?, size?, type?, kind?: image|file, alt?}`.** The **host decides the kind** (from the bytes
+  it sniffed): `kind`, else the legacy `image` flag, and only an answer with neither falls back to the browser's guess.
+  The 1.0 answers `{url}` and `{url, name, image, alt}` keep working. HTTP 415 is announced as a type error.
+- **`upload_accept_images` / `upload_accept_files`** (profile keys and form options): accepted types per kind. Empty
+  by default: `upload_accept` keeps its meaning. With either list set, the editor accepts their union (images default
+  to `upload_accept`; `upload_accept_files` alone accepts only those files, never "any type") and the widget JSON
+  `upload` gains `acceptImages` / `acceptFiles`.
+- Demo: `/layers` (editors in a transformed box, under a sticky header with `z-index: 100` and in a modal dialog, with
+  `action_bar_insert: []`), file cards and per-kind types in the wiki profile, and an upload endpoint that answers
+  the 1.8 contract with the kind from the sniffed type (fileinfo; the old endpoint needed symfony/mime, which the demo
+  does not install). The demo endpoint is marked DEMO ONLY; it stores files outside `public/` and serves them with
+  `nosniff`, `Content-Security-Policy: sandbox` and `Content-Disposition: attachment` for documents (audit GR-L1). Playwright: `layers.spec.ts` (menu and submenu on top, at the pointer, keyboard, focus, axe, CSP)
+  and `files.spec.ts` (PNG + PDF + CSV dropped in order, save, reload, read side; refused type; `/file`).
+
+### Security
+
+- File cards: the name loses control and invisible format characters (Unicode Cc / Cf: bidi overrides and isolates,
+  ALM, zero-width characters, word joiner, BOM — no right-to-left override hiding an `.exe` extension) and square
+  brackets, and is cut at 200 characters, in the editor and in PHP; the link goes through
+  the link rules (`safeUrl()` / `DialectRenderer::safeUrl()`: relative or http(s) only, **even with
+  `allow_unsafe_links`**), quotes and brackets in the URL are percent-encoded before they reach the Markdown, and a card
+  without a usable URL renders without a link. Card links carry `rel="noopener noreferrer"`. The badge and category
+  come from the link target (its extension, else the MIME type), not from the label, so a PDF name on an `.exe` link
+  shows `EXE`.
+- Upload answers: `size` must be a non-negative integer and `type` a MIME type, otherwise the file's own values are
+  used; names are cleaned as above; the kind is the host's. Hosts must validate type and size on the server (see
+  SECURITY.md).
+
 ## [1.7.0] - 2026-11-04
 
 Icons: menus and toolbar, Tabler catalog and picker, callout icons.

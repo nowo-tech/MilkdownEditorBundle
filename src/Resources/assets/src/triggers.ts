@@ -200,6 +200,9 @@ export function slashItems(ctx: Ctx, options: EditorOptions, runtime: Runtime): 
   if (options.features.includes('math')) out.push(block('math', type('code_block', { language: 'LaTeX' })));
   if (options.suggestions['[[']) out.push(block('page_link', text('[[')));
   if (options.suggestions['@']) out.push(block('mention', text('@')));
+  // 1.8: *Image or file…* opens the file picker; the files upload at the caret (keyboard path of drag and drop).
+  const pick = runtime.pickFiles;
+  if (pick) out.push(block('file', (view) => pick(view)));
   // 1.7: *Icon…* opens the picker at the caret (inline) when there are icons to pick; otherwise it types `:`.
   if (pickerAvailable(runtime)) out.push(block('icon', (view) => void openPickerAtCaret(view, runtime)));
   else if (options.suggestions[':']) out.push(block('icon', text(':')));

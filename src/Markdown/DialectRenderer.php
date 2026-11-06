@@ -248,6 +248,10 @@ final readonly class DialectRenderer implements NodeRendererInterface
                 return $renderer->render($node);
             }
         }
+        // 1.8 (ME-3): file cards, unless a host renderer above handles `::file` itself.
+        if ($node->name === FileCard::NAME) {
+            return FileCard::render($node);
+        }
 
         return '<div class="nowo-md-directive nowo-md-directive--leaf" data-directive="' . self::e($node->name) . '"></div>';
     }

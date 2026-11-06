@@ -1,0 +1,215 @@
+{
+  "_comment": "Shared by the PHP (FileCardTest) and TypeScript (file-drop.test.ts) tests: category, badge and size text of ::file cards (1.8). The link target decides before the label (audit GR-I1).",
+  "cards": [
+    {
+      "name": "report.pdf",
+      "type": "application/pdf",
+      "size": "1258291",
+      "category": "pdf",
+      "badge": "PDF",
+      "sizeText": "1.2 MB",
+      "href": ""
+    },
+    {
+      "name": "data.CSV",
+      "type": "",
+      "size": "512",
+      "category": "sheet",
+      "badge": "CSV",
+      "sizeText": "512 B",
+      "href": ""
+    },
+    {
+      "name": "photo.jpeg",
+      "type": "image/jpeg",
+      "size": "2048",
+      "category": "image",
+      "badge": "JPEG",
+      "sizeText": "2 KB",
+      "href": ""
+    },
+    {
+      "name": "deck.pptx",
+      "type": "",
+      "size": "15728640",
+      "category": "slides",
+      "badge": "PPTX",
+      "sizeText": "15 MB",
+      "href": ""
+    },
+    {
+      "name": "notes",
+      "type": "text/plain",
+      "size": "0012",
+      "category": "text",
+      "badge": "FILE",
+      "sizeText": "12 B",
+      "href": ""
+    },
+    {
+      "name": "archive",
+      "type": "application/x-7z-compressed",
+      "size": "",
+      "category": "archive",
+      "badge": "FILE",
+      "sizeText": "",
+      "href": ""
+    },
+    {
+      "name": "book",
+      "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "size": "10239",
+      "category": "doc",
+      "badge": "FILE",
+      "sizeText": "10 KB",
+      "href": ""
+    },
+    {
+      "name": "sheet",
+      "type": "application/vnd.ms-excel",
+      "size": "1536",
+      "category": "sheet",
+      "badge": "FILE",
+      "sizeText": "1.5 KB",
+      "href": ""
+    },
+    {
+      "name": "talk",
+      "type": "application/vnd.ms-powerpoint",
+      "size": "-1",
+      "category": "slides",
+      "badge": "FILE",
+      "sizeText": "",
+      "href": ""
+    },
+    {
+      "name": "clip.webm",
+      "type": "",
+      "size": "5368709120",
+      "category": "video",
+      "badge": "WEBM",
+      "sizeText": "5 GB",
+      "href": ""
+    },
+    {
+      "name": "song",
+      "type": "audio/mpeg",
+      "size": "1x",
+      "category": "audio",
+      "badge": "FILE",
+      "sizeText": "",
+      "href": ""
+    },
+    {
+      "name": "blob.bin",
+      "type": "application/octet-stream",
+      "size": "1099511627776",
+      "category": "other",
+      "badge": "BIN",
+      "sizeText": "1 TB",
+      "href": ""
+    },
+    {
+      "name": "scan",
+      "type": "application/pdf",
+      "size": "1048576",
+      "category": "pdf",
+      "badge": "FILE",
+      "sizeText": "1 MB",
+      "href": ""
+    },
+    {
+      "name": "script.js",
+      "type": "",
+      "size": "1023",
+      "category": "code",
+      "badge": "JS",
+      "sizeText": "1023 B",
+      "href": ""
+    },
+    {
+      "name": "invoice.pdf",
+      "type": "application/pdf",
+      "href": "/u/setup.exe",
+      "size": "10",
+      "category": "other",
+      "badge": "EXE",
+      "sizeText": "10 B"
+    },
+    {
+      "name": "Q3.pdf",
+      "type": "text/csv",
+      "href": "/files/9b1c",
+      "size": "",
+      "category": "sheet",
+      "badge": "FILE",
+      "sizeText": ""
+    },
+    {
+      "name": "report.PDF",
+      "type": "",
+      "href": "https://cdn.example/a/report.PDF?x=1.exe#y.zip",
+      "size": "",
+      "category": "pdf",
+      "badge": "PDF",
+      "sizeText": ""
+    },
+    {
+      "name": "photo.png",
+      "type": "image/png",
+      "href": "/files/uuid",
+      "size": "",
+      "category": "image",
+      "badge": "PNG",
+      "sizeText": ""
+    },
+    {
+      "name": "notes.md",
+      "type": "application/x-unknown",
+      "href": "",
+      "size": "",
+      "category": "text",
+      "badge": "MD",
+      "sizeText": ""
+    },
+    {
+      "name": "letter",
+      "type": "text/rtf",
+      "href": "",
+      "size": "",
+      "category": "doc",
+      "badge": "FILE",
+      "sizeText": ""
+    }
+  ],
+  "names": [
+    [
+      "  invoice‮fdp.exe  ",
+      "invoicefdp.exe"
+    ],
+    [
+      "a [b] c",
+      "a (b) c"
+    ],
+    [
+      "line\nbreak\ttab",
+      "line break tab"
+    ],
+    [
+      "\u0000\u0007",
+      "file"
+    ],
+    [
+      "",
+      "file"
+    ],
+    [
+      "a؜b​c‍d⁠e﻿f.pdf",
+      "abcdef.pdf"
+    ],
+    [
+      "x­.exe",
+      "x.exe"
+    ]
+  ]
+}
