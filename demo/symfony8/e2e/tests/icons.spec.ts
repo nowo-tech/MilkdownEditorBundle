@@ -116,7 +116,7 @@ test.describe('icons (1.7)', () => {
     await caretAtEnd(page);
     await page.keyboard.press('Enter');
     await page.keyboard.type('/icon');
-    await expect(page.getByRole('listbox', { name: 'Blocks' }).getByRole('option', { name: 'Icon…' })).toBeVisible();
+    await expect(page.getByRole('listbox', { name: 'Blocks' }).getByRole('option', { name: 'Icon…', exact: true })).toBeVisible();
     await page.keyboard.press('Enter');
     await pick(page, 'bug', 'bug');
     await page.keyboard.type('after');

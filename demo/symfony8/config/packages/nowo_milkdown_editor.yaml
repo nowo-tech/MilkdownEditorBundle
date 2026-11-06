@@ -15,6 +15,13 @@ nowo_milkdown_editor:
             # 1.8: images become images, the other allowed types file cards (file_cards); the server decides the kind.
             upload_accept_images: ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
             upload_accept_files: ['application/pdf', 'text/csv', '.csv', 'text/plain', '.txt', '.md', 'application/zip', '.docx', '.xlsx']
+        # 1.9: host references (markdown.host_schemes), images with caption / width / alignment, file views, "+" button.
+        files:
+            features: [toolbar, link_tooltip, placeholder, cursor, slash_menu, context_menu, block_actions, image_block, insert_button, file_cards]
+            min_height: 12rem
+            upload_max_size: 2097152
+            upload_accept_images: ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
+            upload_accept_files: ['application/pdf', 'text/csv', '.csv', 'text/plain', '.txt']
         comment:
             features: [toolbar, link_tooltip, placeholder, cursor]
             min_height: 6rem
@@ -24,3 +31,10 @@ nowo_milkdown_editor:
         icon_sprite_url: /tabler-sprite.svg
         icons: *icons
         icon_catalog: true
+        # 1.9 (ME-5, ME-6): `demo-file:<id>` references; the preview endpoint is sandboxed by its own CSP.
+        image_block: true
+        host_schemes:
+            demo-file:
+                image: /uploads/{id}
+                file: /uploads/{id}
+                preview: /uploads/{id}/preview

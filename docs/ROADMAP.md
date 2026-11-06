@@ -235,13 +235,12 @@ Beacon's requests instead, so the numbers no longer match:
 | 1.5.0 / 1.5.1 | `markdown_clipboard`, `insert_menu`, read-view *Copy as Markdown* | owner requests (not in the table) |
 | 1.6.0 | `comments`, `version_view`, diff, `heading_ids` | 1.4 |
 | 1.7.0 | `menu_icons`, `toolbar_icons`, `icon_catalog`, icon picker, callout icons | owner request (callout icon picker was a 1.5 proposal) |
-| 1.8 (unreleased) | top-layer menus, `action_bar_insert`, file drop and `file_cards` | Beacon request 2026-11-06 |
+| 1.8.0 | top-layer menus, `action_bar_insert`, file drop and `file_cards` | Beacon request 2026-11-06 |
+| 1.9 (unreleased) | host references and resolvers (`host_schemes`), `image_block`, `insert_button`, file views and previews | Beacon request 2026-11-06 (ME-5, ME-6) |
 
-Still open from the table, in Beacon's order: **`image_block`** (caption, alt, width, alignment, lightbox, image
-source resolver — row 1.5), **`toc` / outline panel** and **`find_replace`** (row 1.7) and **`insert_button`** ("+" on
-empty lines — row 1.3, never built). Proposed next milestones (*pending owner confirmation*): **1.9** `image_block`
-(D9 syntax, resolver for host schemes, spec 183) and `insert_button`; **1.10** `toc` block + `outline_panel` and
-`find_replace` (+ `counts`).
+Still open from the table, in Beacon's order: the **lightbox** of `image_block` (the rest shipped in 1.9), **`toc` /
+outline panel** and **`find_replace`** (row 1.7). Proposed next milestone (*pending owner confirmation*): **1.10** `toc`
+block + `outline_panel` and `find_replace` (+ `counts`).
 
 ## Feature assessments
 

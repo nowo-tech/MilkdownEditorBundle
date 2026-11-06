@@ -7,9 +7,15 @@ namespace Nowo\MilkdownEditorBundle\Tests\Unit\DependencyInjection;
 use Nowo\MilkdownEditorBundle\DependencyInjection\Compiler\TwigPathsPass;
 use Nowo\MilkdownEditorBundle\DependencyInjection\NowoMilkdownEditorExtension;
 use Nowo\MilkdownEditorBundle\Form\MilkdownEditorType;
+use Nowo\MilkdownEditorBundle\Markdown\HostSchemes;
 use Nowo\MilkdownEditorBundle\Markdown\MilkdownMarkdownRenderer;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\AllowlistIconResolver;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\FilePreviewResolverInterface;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\HostFileResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TablerCatalog;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateFilePreviewResolver;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateHostFileResolver;
+use Nowo\MilkdownEditorBundle\Twig\MilkdownEditorTwig;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -102,5 +108,20 @@ final class ExtensionTest extends TestCase
         $plain->setDefinition('twig.loader.native_filesystem', new Definition());
         $pass->process($plain);
         self::assertCount(2, $plain->getDefinition('twig.loader.native_filesystem')->getMethodCalls());
+    }
+
+    /** 1.9: the configuration reaches the shared HostSchemes and the form type, and hosts can replace the resolvers. */
+    #[Test]
+    public function hostFilesAreWired(): void
+    {
+        $container = new ContainerBuilder();
+        (new NowoMilkdownEditorExtension())->load([['markdown' => ['host_schemes' => ['app-file' => ['file' => '/f/{id}']], 'host_image_origins' => ['https://cdn.example'], 'file_preview_sandbox' => ['allow-downloads', 'allow-popups']]]], $container);
+        $schemes = $container->getDefinition(HostSchemes::class);
+        self::assertSame(['app-file' => ['file' => '/f/{id}', 'image' => null, 'preview' => null]], $schemes->getArgument('$schemes'));
+        self::assertSame(['https://cdn.example'], $schemes->getArgument('$imageOrigins'));
+        self::assertSame('allow-downloads allow-popups', $container->getDefinition(MilkdownEditorTwig::class)->getArgument('$previewSandbox'));
+        self::assertSame(500, $container->getDefinition(MilkdownEditorTwig::class)->getArgument('$maxPreviews'));
+        self::assertSame(TemplateHostFileResolver::class, (string) $container->getAlias(HostFileResolverInterface::class));
+        self::assertSame(TemplateFilePreviewResolver::class, (string) $container->getAlias(FilePreviewResolverInterface::class));
     }
 }

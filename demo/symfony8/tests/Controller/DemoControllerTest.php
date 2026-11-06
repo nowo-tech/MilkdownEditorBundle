@@ -101,4 +101,33 @@ final class DemoControllerTest extends WebTestCase
         $client->request('GET', '/uploads/..%2F..%2Fcomposer.json');
         self::assertResponseStatusCodeSame(404);
     }
+
+    /** 1.9 (ME-5, ME-6): the upload may answer with a host reference; the preview endpoint is sandboxed and only for text. */
+    #[Test]
+    public function hostReferencesAndThePreviewEndpoint(): void
+    {
+        $client  = self::createClient();
+        $crawler = $client->request('GET', '/files');
+        self::assertResponseIsSuccessful();
+        $options = json_decode((string) $crawler->filter('[data-nowo-milkdown-options]')->first()->attr('data-nowo-milkdown-options'), true);
+        self::assertArrayNotHasKey('hostSchemes', $options);
+        $config = json_decode($crawler->filter('script[data-nowo-milkdown-config]')->first()->text(null, false), true);
+        self::assertSame(['image' => '/uploads/{id}', 'file' => '/uploads/{id}', 'preview' => '/uploads/{id}/preview'], $config['hostSchemes']['demo-file']);
+        $path = tempnam(sys_get_temp_dir(), 'up');
+        file_put_contents($path, "<b>hello</b> plain\n");
+        $client->request('POST', '/api/upload?reference=1', [], ['file' => new UploadedFile($path, 'a.txt', 'text/plain', null, true)], ['HTTP_X_CSRF_TOKEN' => $options['upload']['csrfToken']]);
+        self::assertResponseIsSuccessful();
+        $url = json_decode((string) $client->getResponse()->getContent(), true)['url'];
+        self::assertMatchesRegularExpression('/^demo-file:[0-9a-f]{16}\.\w+$/', $url);
+
+        $client->request('GET', '/uploads/' . substr($url, 10) . '/preview');
+        if ($client->getResponse()->getStatusCode() === 200) {
+            $headers = $client->getResponse()->headers;
+            self::assertStringStartsWith('sandbox', (string) $headers->get('Content-Security-Policy'));
+            self::assertSame('nosniff', $headers->get('X-Content-Type-Options'));
+            self::assertStringContainsString('&lt;b&gt;hello', (string) $client->getResponse()->getContent());
+        }
+        $client->request('GET', '/uploads/0000000000000000.txt/preview');
+        self::assertResponseStatusCodeSame(404);
+    }
 }

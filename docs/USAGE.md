@@ -7,6 +7,10 @@
 - [Suggestions](#suggestions)
 - [Page titles per viewer](#page-titles-per-viewer)
 - [Uploads](#uploads)
+- [Host references](#host-references)
+- [Images](#images)
+- [File views and previews](#file-views-and-previews)
+  - [Previews](#previews)
 - [Collaboration](#collaboration)
 - [Rendering Markdown in PHP](#rendering-markdown-in-php)
 - [Rendering Mermaid and math on read pages](#rendering-mermaid-and-math-on-read-pages)
@@ -159,6 +163,99 @@ size again, detect the type from the content (do not trust the client's type or 
 `X-Content-Type-Options: nosniff`, `Content-Disposition: attachment` for non-images and
 `Content-Security-Policy: sandbox`, or from a separate cookie-less origin (see
 [SECURITY](SECURITY.md#permissions)).
+
+## Host references
+
+A host can store references instead of URLs: `![Plan](app-file:9b1c…)`, `[Plan](app-file:9b1c…)`,
+`::file[Plan.pdf]{href="app-file:9b1c…"}`. Declare the scheme ([configuration](CONFIGURATION.md#host-references)); the
+editor and the renderer build the URLs from the same templates, so images preview everywhere. An upload endpoint may
+answer `{"url": "app-file:9b1c…"}`: the reference is what gets stored.
+
+An id is 1–200 characters of `[A-Za-z0-9._~-]` without a leading dot. Anything else with that scheme is inert: no request and
+no link. With the default resolvers every valid reference gets a URL, so **your endpoint must check the viewer**. To
+check in PHP, in one batch per document, and to give per-viewer URLs or sizes:
+
+```php
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\HostFileResolverInterface;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\ResolvedFile;
+
+final class AppFileResolver implements HostFileResolverInterface
+{
+    /** @param list<string> $references `scheme:id`, at most `max_references` */
+    public function resolveFiles(array $references): array
+    {
+        $out = [];
+        foreach ($this->files->readableBy($this->viewer(), $references) as $reference => $file) {
+            $out[$reference] = new ResolvedFile('/files/' . $file->id, $file->thumbnailUrl, $file->width, $file->height);
+        }
+
+        return $out; // missing = not visible
+    }
+}
+```
+
+```yaml
+# config/services.yaml
+Nowo\MilkdownEditorBundle\Markdown\Resolver\HostFileResolverInterface: '@App\Markdown\AppFileResolver'
+```
+
+`resolveFiles()` runs once per document, and a rendered diff (`nowo_milkdown_diff()`) renders block by block: expect one
+call per side of each changed block there. `ResolvedFile` may also carry the real `name` and `type`: a reference has no
+extension, so otherwise the author's label and `type` decide what a card shows.
+
+A reference missing from the answer, a resolver that throws (logged, without document content) or a URL that is not
+relative or http(s): images and file cards render *Content not visible*, without their name or caption; links keep their text
+without a target. Hosts mounting editors from JavaScript pass `hostSchemes` to `createEditor()`; auto-mounted editors take
+it only from the page's data block, never from a widget's `data-*` JSON. The resolver must be safe for worker mode like every other (no per-request state in properties
+without `ResetInterface`). In the editor, the browser requests the templates: an image that fails to load shows *Image
+not available*.
+
+## Images
+
+With the `image_block` feature and `markdown.image_block: true`:
+`![alt](src "caption"){width=50% align=center}`. The title is the caption. Width is `25%`, `50%`, `75%`, `100%` or `<n>px`
+(16–2000); align is `left`, `center` or `right`. Only a block with these keys and valid values, on one line, counts,
+directly after the image; anything else stays text. Without the feature the block is text in the editor too. A paragraph holding only an image renders as
+`<figure class="nowo-md-figure nowo-md-figure--center nowo-md-figure--w50">` with a `<figcaption>`; an image inside a
+sentence stays inline, where only a px width applies. Widths and alignment are classes (or the `width` HTML attribute),
+never a `style`.
+
+Clicking an image shows a toolbar (alternative text, caption, width, alignment). From the keyboard: *Edit image…* in the
+block menu or the context menu (Shift+F10) moves the focus to it, Tab moves through it and Escape returns to the text.
+
+## File views and previews
+
+`::file[name]{href="…" view="…" height="…"}`, with the `file_cards` feature in the editor and always on read pages:
+
+| `view` | Shows |
+|---|---|
+| `link` | A plain link with the name |
+| `icon` | A link with the file-type icon (PDF, Word, Excel, PowerPoint, CSV, text, archive, image, audio, video, code, generic) |
+| `card` | The file card (badge, name, size): the default, also for unknown values |
+| `preview` | The card with *Open* and *Download* over a sandboxed preview; `height` in px from 160 to 1200 (default 480) |
+
+*View* and *Preview height* are in the block menu and the context menu of the selected file; `/` offers *File as a link…*,
+*File as a link with icon…* and *File with preview…*.
+
+### Previews
+
+The bundle never fetches or parses files: a preview is a page of yours, from the scheme's `preview` template or from a
+`FilePreviewResolverInterface` (which also says per file whether a preview exists and the viewer may see it; a file it
+leaves out shows its card). Plain URLs have no preview by default. In the editor only the template is used, and your
+endpoint answers for the viewer. Frames load when they come near the viewport, and one editor shows at most
+`max_references` distinct previews (the other files are cards).
+
+The endpoint must send:
+
+- `Content-Security-Policy: sandbox; default-src 'none'; frame-ancestors 'self'` (add what the page needs, e.g. `style-src`);
+- `X-Content-Type-Options: nosniff`, the real `Content-Type`, and `Content-Disposition: inline`;
+- only an escaped or sanitized rendering of the file, never the upload as your origin's HTML or SVG; and a 404 for types it
+  cannot preview or files the viewer may not read.
+
+The page that embeds it needs `frame-src` to allow that origin. The frame's `sandbox` is empty by default (no scripts, an
+opaque origin). A browser's built-in PDF viewer does not run in a sandboxed frame; add tokens with
+`markdown.file_preview_sandbox` only for a preview origin you trust, and prefer rendering PDFs to images or HTML in that
+case. `allow-scripts` is refused together with `allow-same-origin` or `allow-popups-to-escape-sandbox`.
 
 ## Collaboration
 

@@ -6,7 +6,9 @@ namespace Nowo\MilkdownEditorBundle\DependencyInjection;
 
 use Nowo\MilkdownEditorBundle\Feature;
 use Nowo\MilkdownEditorBundle\Markdown\DocumentProcessor;
+use Nowo\MilkdownEditorBundle\Markdown\FileCard;
 use Nowo\MilkdownEditorBundle\Markdown\FootnoteGuard;
+use Nowo\MilkdownEditorBundle\Markdown\HostSchemes;
 use Nowo\MilkdownEditorBundle\Markdown\MilkdownMarkdownRenderer;
 use Nowo\MilkdownEditorBundle\Theme;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
@@ -14,10 +16,14 @@ use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 
+use function array_filter;
+use function implode;
 use function in_array;
 use function is_array;
 use function is_string;
+use function preg_match;
 use function sprintf;
+use function strlen;
 
 /**
  * Configuration tree of `nowo_milkdown_editor` (REQ-CFG-001 / REQ-SF-006).
@@ -183,6 +189,45 @@ final class Configuration implements ConfigurationInterface
                 ->scalarNode('icon_sprite_url')->info('Sprite URL for :tabler-NAME: icons in rendered HTML.')->defaultNull()->end()
                 ->append($this->iconsNode('Icon names the renderer turns into SVG (others stay text).'))
                 ->booleanNode('icon_catalog')->info('1.7: also render any icon of the bundled Tabler outline catalog (sprite shards under /bundles/nowomilkdowneditor/icons/).')->defaultFalse()->end()
+                ->arrayNode('host_schemes')
+                    ->info('1.9 (ME-5): host references the renderer and the editor resolve, e.g. app-file: {image: "/files/{id}/preview", file: "/files/{id}", preview: "/files/{id}/embed"}. Templates are paths starting with "/" or http(s) URLs with {id}; only these schemes are resolved, anything else stays inert. A host HostFileResolverInterface / FilePreviewResolverInterface may check the viewer and replace the templates.')
+                    // Scheme names keep their "-" (Symfony would turn it into "_").
+                    ->normalizeKeys(false)
+                    ->useAttributeAsKey('scheme')
+                    ->arrayPrototype()
+                        ->children()
+                            ->scalarNode('image')->defaultNull()->end()
+                            ->scalarNode('file')->defaultNull()->end()
+                            ->scalarNode('preview')->defaultNull()->end()
+                        ->end()
+                    ->end()
+                    ->defaultValue([])
+                    ->validate()
+                        ->ifTrue(static fn (array $v): bool => self::invalidHostSchemes($v) !== null)
+                        ->then(static function (array $v): never {
+                            throw new InvalidConfigurationException((string) self::invalidHostSchemes($v));
+                        })
+                    ->end()
+                ->end()
+                ->arrayNode('host_image_origins')
+                    ->info('1.9: origins (https://cdn.example.com) host images may load from while allow_remote_images is off. Any other remote URL from a template or a resolver renders as a link. Author images never use this list.')
+                    ->scalarPrototype()->end()
+                    ->defaultValue([])
+                    ->validate()
+                        ->ifTrue(static fn (array $v): bool => array_filter($v, static fn (mixed $o): bool => !is_string($o) || preg_match('~^https?://[a-z0-9.-]+(?::\d{1,5})?$~i', $o) !== 1) !== [])
+                        ->thenInvalid('host_image_origins accepts http(s) origins without a path (%s).')
+                    ->end()
+                ->end()
+                ->booleanNode('image_block')->info('1.9: a paragraph holding only an image renders as a figure: caption from the title, {width=… align=…} block (classes and the width attribute, no style). Enable with the editor feature image_block.')->defaultFalse()->end()
+                ->arrayNode('file_preview_sandbox')
+                    ->info('1.9 (ME-6): tokens added to the sandbox attribute of file preview frames (empty: the strictest sandbox). allow-scripts is never accepted with allow-same-origin or allow-popups-to-escape-sandbox.')
+                    ->scalarPrototype()->end()
+                    ->defaultValue([])
+                    ->validate()
+                        ->ifTrue(static fn (array $v): bool => array_filter($v, static fn (mixed $t): bool => !in_array($t, FileCard::SANDBOX_TOKENS, true)) !== [] || (in_array('allow-scripts', $v, true) && (in_array('allow-same-origin', $v, true) || in_array('allow-popups-to-escape-sandbox', $v, true))))
+                        ->thenInvalid('file_preview_sandbox accepts ' . implode(', ', FileCard::SANDBOX_TOKENS) . ', never allow-scripts with allow-same-origin or allow-popups-to-escape-sandbox (%s).')
+                    ->end()
+                ->end()
                 ->arrayNode('mark_colors')
                     ->info('Colour names accepted by :mark[text]{bg=… text=…} (legacy color= is bg) and coloured blocks ::: {bg=… text=…}; the first is the default highlight.')
                     ->scalarPrototype()->end()
@@ -195,6 +240,32 @@ final class Configuration implements ConfigurationInterface
             ->end();
 
         return $node;
+    }
+
+    /**
+     * The error of a `host_schemes` value, or null when it is valid: scheme names (not the browser's own) and templates
+     * (a path starting with one "/" or an http(s) URL, with {id} after the first "/" of the path, at most 500 characters).
+     *
+     * @param array<mixed> $schemes
+     */
+    public static function invalidHostSchemes(array $schemes): ?string
+    {
+        foreach ($schemes as $scheme => $templates) {
+            $scheme = (string) $scheme;
+            if (preg_match(HostSchemes::SCHEME_PATTERN, $scheme) !== 1 || in_array($scheme, HostSchemes::RESERVED, true)) {
+                return sprintf('Invalid host scheme "%s": lower-case letters, digits, "+", "." and "-", not a browser scheme.', $scheme);
+            }
+            foreach (is_array($templates) ? $templates : [] as $kind => $template) {
+                if ($template === null) {
+                    continue;
+                }
+                if (!is_string($template) || strlen($template) > 500 || preg_match('~^(?:/(?![/\\\\])|https?://[^/?#{}\\\\]+/).*\{id\}~is', $template) !== 1) {
+                    return sprintf('Invalid %s template of the host scheme "%s": a path starting with "/" or an http(s) URL, with {id} after the first "/" of the path.', (string) $kind, $scheme);
+                }
+            }
+        }
+
+        return null;
     }
 
     private function iconsNode(string $info): ArrayNodeDefinition

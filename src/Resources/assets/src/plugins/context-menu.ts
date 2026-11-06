@@ -8,7 +8,7 @@
  * event dispatched on the widget root.
  */
 import { $prose } from '@milkdown/kit/utils';
-import { Plugin, PluginKey, TextSelection, type EditorState, type Transaction } from '@milkdown/kit/prose/state';
+import { NodeSelection, Plugin, PluginKey, TextSelection, type EditorState, type Transaction } from '@milkdown/kit/prose/state';
 import type { EditorView } from '@milkdown/kit/prose/view';
 import type { Mark, MarkType } from '@milkdown/kit/prose/model';
 import { addColumnAfter, addColumnBefore, addRowAfter, addRowBefore, deleteColumn, deleteRow, deleteTable } from '@milkdown/kit/prose/tables';
@@ -17,7 +17,9 @@ import { Menu, type MenuGroups, type MenuItem } from '../ui/menu';
 import { TURN_INTO, currentBlock, deleteBlock, duplicateBlock, insertPlainText, moveBlock, selectionRunner, turnInto } from '../commands/blocks';
 import { flushSelection, tabContext } from './keyboard';
 import { colorItems } from '../commands/colors';
-import { safeUrl } from '../link-titles';
+import { fileViewItems } from '../commands/file-view';
+import { imageItems } from '../nodes/image';
+import { targetUrl } from '../host';
 import { hostItems, type ContextMenuContext } from '../context-menu-registry';
 import { copyMarkdown, markdownIo, pasteMarkdown, type MarkdownIo } from '../commands/markdown-clipboard';
 import { prepareInsertPoint } from '../commands/insert';
@@ -96,7 +98,10 @@ export class ContextMenuView {
     const { from, to } = view.state.selection;
     // Like the native menu: a click outside the selection moves the caret there first.
     if (at && (at.pos < from || at.pos > to)) {
-      view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(at.pos))));
+      // 1.9: a file card, or an image with `image_block`, under the pointer is what the menu acts on.
+      const under = at.inside >= 0 ? view.state.doc.nodeAt(at.inside) : null;
+      const pick = under && ((under.type.name === 'leafDirective' && under.attrs.name === 'file') || (under.type.name === 'image' && this.runtime.features.has('image_block')));
+      view.dispatch(view.state.tr.setSelection(pick ? NodeSelection.create(view.state.doc, at.inside) : TextSelection.near(view.state.doc.resolve(at.pos))));
     }
     event.preventDefault();
     this.open(event.clientX, event.clientY);
@@ -175,7 +180,8 @@ export class ContextMenuView {
     if (editable) {
       const link = state.schema.marks.link ? markRange(state, state.selection.head, state.schema.marks.link) : null;
       if (link) {
-        const href = safeUrl(String(link.mark.attrs.href ?? ''));
+        // 1.9 (ME-5): a host reference opens through its template.
+        const href = targetUrl(String(link.mark.attrs.href ?? ''), 'file', runtime.hostSchemes);
         groups.push([
           item('link_open', () => window.open(href, '_blank', 'noopener,noreferrer'), { disabled: href === '' }),
           item('link_copy', () => void cb.writeText?.(href), { disabled: href === '' || !cb.writeText }),
@@ -214,6 +220,9 @@ export class ContextMenuView {
       if (runtime.features.has('colors')) {
         block.push({ id: 'color', label: t(runtime, 'menu.color'), items: colorItems(state, runtime, !empty, (cmd) => command(cmd)()) });
       }
+      // 1.9 (ME-6): view and preview height of a file card.
+      block.push(...fileViewItems(state, runtime, (cmd) => command(cmd)()));
+      block.push(...imageItems(view, runtime));
       block.push(
         item('duplicate', command(duplicateBlock)),
         item('move_up', command(moveBlock(-1)), { disabled: !moveBlock(-1)(state) }),

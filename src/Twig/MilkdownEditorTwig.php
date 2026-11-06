@@ -8,6 +8,8 @@ use Nowo\MilkdownEditorBundle\Csp\CspNonceProviderInterface;
 use Nowo\MilkdownEditorBundle\DependencyInjection\Configuration;
 use Nowo\MilkdownEditorBundle\Form\MilkdownEditorType;
 use Nowo\MilkdownEditorBundle\Markdown\DialectRenderer;
+use Nowo\MilkdownEditorBundle\Markdown\DocumentProcessor;
+use Nowo\MilkdownEditorBundle\Markdown\HostSchemes;
 use Nowo\MilkdownEditorBundle\Markdown\MarkdownRendererInterface;
 use Symfony\Component\Asset\Packages;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -15,6 +17,14 @@ use Twig\Attribute\AsTwigFilter;
 use Twig\Attribute\AsTwigFunction;
 
 use function is_string;
+use function json_encode;
+
+use const JSON_HEX_AMP;
+use const JSON_HEX_APOS;
+use const JSON_HEX_QUOT;
+use const JSON_HEX_TAG;
+use const JSON_THROW_ON_ERROR;
+use const JSON_UNESCAPED_SLASHES;
 
 /**
  * Twig API (REQ-SF-003 attributes): the `milkdown_markdown` filter (safe HTML of the dialect) and
@@ -36,12 +46,18 @@ final readonly class MilkdownEditorTwig
      * @param Packages $packages Asset packages (`nowo_milkdown_editor`)
      * @param CspNonceProviderInterface|null $nonceProvider Nonce of the current response
      * @param TranslatorInterface|null $translator Translates the "Copy as Markdown" button (1.5)
+     * @param HostSchemes $hostSchemes `markdown.host_schemes` for the page's editors (1.9)
+     * @param string $previewSandbox `markdown.file_preview_sandbox` tokens, space separated (1.9)
+     * @param int $maxPreviews Previews per editor: `markdown.max_references` (1.9)
      */
     public function __construct(
         private MarkdownRendererInterface $renderer,
         private Packages $packages,
         private ?CspNonceProviderInterface $nonceProvider = null,
         private ?TranslatorInterface $translator = null,
+        private HostSchemes $hostSchemes = new HostSchemes(),
+        private string $previewSandbox = '',
+        private int $maxPreviews = DocumentProcessor::DEFAULT_MAX_REFERENCES,
     ) {
     }
 
@@ -58,6 +74,9 @@ final readonly class MilkdownEditorTwig
 
     /**
      * The `<link>` and `<script type="module">` tags of the editor bundle (each nonce-stamped when a nonce is known).
+     * 1.9: with `markdown.host_schemes`, also the page's editor configuration (`script[data-nowo-milkdown-config]`, a
+     * nonce-stamped data block): auto-mounted editors take host references and the preview sandbox only from it, never
+     * from a widget's `data-*` attribute (audit GX-L2).
      *
      * @param string|null $nonce Nonce to use (null: the provider's)
      */
@@ -69,7 +88,14 @@ final readonly class MilkdownEditorTwig
         $css  = DialectRenderer::e($this->packages->getUrl(self::STYLESHEET, Configuration::ALIAS));
         $js   = DialectRenderer::e($this->packages->getUrl(self::SCRIPT, Configuration::ALIAS));
 
-        return '<link rel="stylesheet" href="' . $css . '"' . $attr . '><script type="module" src="' . $js . '"' . $attr . '></script>';
+        $config = '';
+        if (!$this->hostSchemes->isEmpty()) {
+            // A data block: never executed, and `<`, `&` and quotes cannot end it.
+            $json   = json_encode(['hostSchemes' => $this->hostSchemes->toArray(), 'previewSandbox' => $this->previewSandbox, 'maxPreviews' => $this->maxPreviews], JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES);
+            $config = '<script type="application/json" data-nowo-milkdown-config' . $attr . '>' . $json . '</script>';
+        }
+
+        return $config . '<link rel="stylesheet" href="' . $css . '"' . $attr . '><script type="module" src="' . $js . '"' . $attr . '></script>';
     }
 
     /**

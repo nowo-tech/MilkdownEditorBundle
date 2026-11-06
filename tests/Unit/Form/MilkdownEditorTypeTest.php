@@ -8,17 +8,20 @@ use Nowo\MilkdownEditorBundle\Csp\CspNonceProviderInterface;
 use Nowo\MilkdownEditorBundle\Feature;
 use Nowo\MilkdownEditorBundle\Form\DataTransformer\MarkdownNewlineTransformer;
 use Nowo\MilkdownEditorBundle\Form\MilkdownEditorType;
+use Nowo\MilkdownEditorBundle\Markdown\HostSchemes;
 use Nowo\MilkdownEditorBundle\ProfileRegistry;
 use Nowo\MilkdownEditorBundle\Theme;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
+use Symfony\Component\Form\Forms;
 use Symfony\Component\Form\PreloadedExtension;
 use Symfony\Component\Form\Test\TypeTestCase;
 use Symfony\Component\OptionsResolver\Exception\InvalidOptionsException;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Validation;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class MilkdownEditorTypeTest extends TypeTestCase
 {
@@ -329,5 +332,53 @@ final class MilkdownEditorTypeTest extends TypeTestCase
         self::assertContains('slash_menu', Feature::values());
         self::assertTrue(Feature::Mermaid->needsCodeMirror());
         self::assertFalse(Feature::Table->needsCodeMirror());
+    }
+
+    /** 1.9 (ME-5, ME-6): the feature strings follow the features and the host schemes. */
+    #[Test]
+    public function hostSchemesAndSandboxInTheWidget(): void
+    {
+        $profiles   = new ProfileRegistry(['default' => ['features' => ['image_block', 'insert_button', 'file_cards']] + self::PROFILE], 'default');
+        $translator = new class implements TranslatorInterface {
+            /**
+             * @param array<mixed> $parameters
+             */
+            public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
+            {
+                return 'T:' . $id;
+            }
+
+            public function getLocale(): string
+            {
+                return 'en';
+            }
+        };
+        $build = static function (MilkdownEditorType $type): array {
+            $form = Forms::createFormFactoryBuilder()->addType($type)->getFormFactory()->create(MilkdownEditorType::class);
+            $view = $form->createView();
+            self::assertIsArray($view->vars['milkdown_options']);
+
+            return $view->vars['milkdown_options'];
+        };
+        $on = $build(new MilkdownEditorType($profiles, null, $translator, 10, [], new HostSchemes(['app-file' => ['file' => '/f/{id}']])));
+        // Never in the widget JSON (audit GX-L2): the page's data block carries them.
+        self::assertArrayNotHasKey('hostSchemes', $on);
+        self::assertArrayNotHasKey('previewSandbox', $on);
+        $messages = (array) $on['messages'];
+        foreach (['image.alt', 'menu.image_edit', 'insert.button', 'file.view.preview', 'slash.file_preview'] as $key) {
+            self::assertArrayHasKey($key, $messages, $key);
+        }
+
+        // Without configuration or features: the same JSON as before.
+        $off = $build(new MilkdownEditorType(new ProfileRegistry(['default' => self::PROFILE], 'default'), null, $translator, 10, [], new HostSchemes()));
+        self::assertArrayNotHasKey('hostSchemes', $off);
+        self::assertArrayNotHasKey('previewSandbox', $off);
+        $messages = (array) $off['messages'];
+        foreach (['image.hidden', 'image.alt', 'insert.button', 'file.open'] as $key) {
+            self::assertArrayNotHasKey($key, $messages, $key);
+        }
+        // Host schemes without the feature: the placeholder text only.
+        $hosted = $build(new MilkdownEditorType(new ProfileRegistry(['default' => self::PROFILE], 'default'), null, $translator, 10, [], new HostSchemes(['app-file' => ['file' => '/f/{id}']])));
+        self::assertArrayHasKey('image.hidden', (array) $hosted['messages']);
     }
 }

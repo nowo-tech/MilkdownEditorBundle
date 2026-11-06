@@ -146,8 +146,9 @@ export function createFileDrop(options: FileDropOptions) {
    * @param target - The editor
    * @param files - Files in drop order
    * @param pos - Document position where they land
+   * @param fileView - 1.9: view of new file cards (`/file` variants)
    */
-  async function uploadFiles(target: EditorView, files: File[], pos: number): Promise<void> {
+  async function uploadFiles(target: EditorView, files: File[], pos: number, fileView = 'card'): Promise<void> {
     view = target;
     const upload = options.upload;
     if (!upload || !files.length) return;
@@ -159,7 +160,7 @@ export function createFileDrop(options: FileDropOptions) {
         if (!el) return;
         el.dataset.state = 'uploading';
         el.lastElementChild!.textContent = `${percent}%`;
-      });
+      }, fileView);
       if (target.isDestroyed) return;
       const at = find(target.state, job.id);
       if (at === null) continue;

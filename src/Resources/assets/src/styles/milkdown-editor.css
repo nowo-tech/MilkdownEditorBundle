@@ -1368,3 +1368,188 @@ a.nowo-md-file__link:focus-visible {
 .nowo-md-file--slides .nowo-md-file__badge {
   background: var(--nowo-milkdown-mark-orange);
 }
+
+/*
+ * 1.9: images in the editor (.nowo-milkdown-image, `image_block` toolbar) and figures on read pages (.nowo-md-figure).
+ * Widths and alignment are classes; a px width is the image's width attribute (read side) or CSSOM (editor).
+ */
+.nowo-milkdown-image {
+  display: inline-block;
+  max-width: 100%;
+}
+.nowo-milkdown-image--left,
+.nowo-milkdown-image--center,
+.nowo-milkdown-image--right,
+.nowo-milkdown-image--w25,
+.nowo-milkdown-image--w50,
+.nowo-milkdown-image--w75,
+.nowo-milkdown-image--w100 {
+  display: block;
+}
+.nowo-milkdown-image img,
+.nowo-md-figure img {
+  max-width: 100%;
+  height: auto;
+}
+.nowo-milkdown-image--left,
+.nowo-md-figure--left { text-align: left; }
+.nowo-milkdown-image--center,
+.nowo-md-figure--center { text-align: center; }
+.nowo-milkdown-image--right,
+.nowo-md-figure--right { text-align: right; }
+.nowo-milkdown-image--w25 img,
+.nowo-md-figure--w25 img { width: 25%; }
+.nowo-milkdown-image--w50 img,
+.nowo-md-figure--w50 img { width: 50%; }
+.nowo-milkdown-image--w75 img,
+.nowo-md-figure--w75 img { width: 75%; }
+.nowo-milkdown-image--w100 img,
+.nowo-md-figure--w100 img { width: 100%; }
+.nowo-milkdown-image.ProseMirror-selectednode img {
+  outline: 2px solid var(--nowo-milkdown-focus);
+  outline-offset: 1px;
+}
+.nowo-md-figure {
+  margin: 1rem 0;
+}
+.nowo-milkdown-image__caption,
+.nowo-md-figure figcaption {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--nowo-milkdown-muted);
+  font-size: 0.875em;
+}
+.nowo-milkdown-image__hidden {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border: 1px dashed var(--nowo-milkdown-border);
+  border-radius: var(--nowo-milkdown-radius-control);
+  color: var(--nowo-milkdown-muted);
+  font-size: 0.875em;
+}
+.nowo-milkdown-image__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.375rem;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--nowo-milkdown-border);
+  border-radius: var(--nowo-milkdown-radius-control);
+  background: var(--nowo-milkdown-surface);
+  color: var(--nowo-milkdown-text);
+  font-size: 0.875rem;
+  text-align: left;
+}
+.nowo-milkdown-image__field {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+.nowo-milkdown-image__field input {
+  min-height: 1.75rem;
+  padding: 0 0.375rem;
+  border: 1px solid var(--nowo-milkdown-border);
+  border-radius: 0.25rem;
+  background: var(--nowo-milkdown-background);
+  color: inherit;
+  font: inherit;
+}
+.nowo-milkdown-image__group {
+  display: inline-flex;
+  gap: 0.125rem;
+}
+.nowo-milkdown-image__toggle {
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  padding: 0 0.375rem;
+  border: 1px solid var(--nowo-milkdown-border);
+  border-radius: 0.25rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.nowo-milkdown-image__toggle[aria-pressed='true'] {
+  border-color: var(--nowo-milkdown-focus);
+  font-weight: 600;
+}
+.nowo-milkdown-image__field input:focus-visible,
+.nowo-milkdown-image__toggle:focus-visible,
+.nowo-milkdown-insert-button:focus-visible {
+  outline: 2px solid var(--nowo-milkdown-focus);
+  outline-offset: 1px;
+}
+
+/* 1.9 `insert_button`: "+" beside the empty line (positioned with CSSOM inside the widget). */
+.nowo-milkdown-insert-button {
+  position: absolute;
+  z-index: 6;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 1px solid var(--nowo-milkdown-border);
+  border-radius: 0.25rem;
+  background: var(--nowo-milkdown-surface);
+  color: var(--nowo-milkdown-muted);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+.nowo-milkdown-insert-button[hidden] { display: none; }
+.nowo-milkdown-insert-button:hover { color: var(--nowo-milkdown-text); }
+
+/* 1.9 (ME-6): file views: link, link with icon, preview (the card is above). */
+.nowo-milkdown-file__icon,
+.nowo-md-file__icon {
+  flex: none;
+  width: 1.125em;
+  height: 1.125em;
+  vertical-align: -0.2em;
+}
+.nowo-milkdown-file__inline,
+.nowo-md-file__inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375em;
+  max-width: 100%;
+}
+.nowo-milkdown-file--preview-view,
+.nowo-md-file--preview-view {
+  margin: 0.5rem 0;
+  overflow: hidden;
+  border: 1px solid var(--nowo-milkdown-border);
+  border-radius: var(--nowo-milkdown-radius-control);
+}
+.nowo-milkdown-file__head,
+.nowo-md-file__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--nowo-milkdown-border);
+}
+.nowo-milkdown-file__head .nowo-milkdown-file__link,
+.nowo-md-file__head .nowo-md-file__link {
+  border: 0;
+  background: transparent;
+}
+.nowo-milkdown-file__actions,
+.nowo-md-file__actions {
+  display: inline-flex;
+  gap: 0.75rem;
+  font-size: 0.875em;
+}
+.nowo-milkdown-file__frame,
+.nowo-md-file__frame {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: var(--nowo-milkdown-background);
+}
+.nowo-milkdown-file[data-view].ProseMirror-selectednode {
+  outline: 2px solid var(--nowo-milkdown-focus);
+  outline-offset: 1px;
+}

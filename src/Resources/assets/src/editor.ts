@@ -16,8 +16,9 @@ import type { EditorView } from '@milkdown/kit/prose/view';
 import { addFeatures } from './features';
 import { createPageResolver } from './link-titles';
 import { createUserResolver } from './user-names';
-import { parseOptions } from './options';
+import { pageHostConfig, parseOptions } from './options';
 import { directives } from './nodes/directives';
+import { hostLinkSchema, imageAttributesSchema, imageLiftRemark, imageView } from './nodes/image';
 import { inlineRefs, mentionNameView } from './nodes/inline-refs';
 import { taskListView } from './nodes/task-list';
 import { editableAttributes, watchControls } from './plugins/a11y';
@@ -30,6 +31,7 @@ import { openPickerAtCaret } from './icons/open';
 import { buildTriggers, slashItems } from './triggers';
 import { insertItems, type InsertItem } from './commands/insert';
 import { createFileDrop } from './plugins/file-drop';
+import { insertButtonPlugin } from './plugins/insert-button';
 import { HEADING_PREFIX, slug } from './plugins/heading-slug';
 import type { EditorOptions } from './types';
 import type { MercureProvider } from './collab/mercure-provider';
@@ -140,7 +142,7 @@ function actionButton(bar: HTMLElement, label: string, onClick: () => void, icon
 export async function createEditor(root: HTMLElement, overrides: Partial<EditorOptions> = {}): Promise<MilkdownEditorHandle> {
   const textarea = root.querySelector<HTMLTextAreaElement>('textarea');
   if (!textarea) throw new Error('nowo-milkdown: the widget has no textarea');
-  const options: EditorOptions = { ...parseOptions(root.dataset.nowoMilkdownOptions), ...overrides };
+  const options: EditorOptions = { ...parseOptions(root.dataset.nowoMilkdownOptions), ...pageHostConfig(root.ownerDocument), ...overrides };
   const pages = createPageResolver(options.linkTitleUrl);
   const users = createUserResolver(options.mentionDisplay === 'name' ? options.userTitleUrl : null);
   const runtime: Runtime = {
@@ -156,6 +158,9 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     colors: options.colors,
     nonce: options.nonce,
     dark: () => isDark(root),
+    hostSchemes: options.hostSchemes,
+    previewSandbox: options.previewSandbox,
+    maxPreviews: options.maxPreviews,
   };
   root.classList.add('nowo-milkdown');
   root.dataset.theme = options.theme;
@@ -166,12 +171,14 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   if (options.version) root.insertBefore((await import('./version')).versionBanner(root, options.version, runtime), bar);
   const label = labelFor(textarea);
   const initial = textarea.value;
+  // 1.9 (ME-5): an upload may answer with a host reference instead of a URL.
+  if (options.upload) options.upload.hostSchemes = options.hostSchemes;
   // 1.8 (ME-3): drop / paste of several files with a placeholder each; also cancels file drops on read-only editors
   // and fields without uploads (a hint instead of the browser opening the file or Crepe inserting a blob: image).
   const fileDrop = createFileDrop({ upload: options.upload, cards: options.features.includes('file_cards'), runtime, announce });
   const upload = options.readonly ? null : options.upload;
   /** Opens the file picker and uploads the files at the caret (action bar, `/file`, *Insert*). */
-  const pickFiles = (view: EditorView): void => {
+  const pickFiles = (view: EditorView, fileView?: string): void => {
     if (!upload) return;
     const input = document.createElement('input');
     input.type = 'file';
@@ -180,7 +187,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     input.addEventListener('change', () => {
       const files = Array.from(input.files ?? []);
       if (!files.length || view.isDestroyed) return;
-      void fileDrop.uploadFiles(view, files, view.state.selection.from).then(() => {
+      void fileDrop.uploadFiles(view, files, view.state.selection.from, fileView).then(() => {
         if (!view.isDestroyed) view.focus();
       });
     });
@@ -228,18 +235,26 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
           ...prev,
           handlePaste: (view, event, slice) => smart(view, event) || (prev.handlePaste?.(view, event, slice) ?? false),
           // DN-L1: every other paste path drops unsafe link and image targets the same way.
-          transformPasted: (slice, view, plain) => clipboardModule.cleanPasted(prev.transformPasted ? prev.transformPasted(slice, view, plain) : slice),
+          transformPasted: (slice, view, plain) => clipboardModule.cleanPasted(prev.transformPasted ? prev.transformPasted(slice, view, plain) : slice, options.hostSchemes),
         }));
       }
     })
     .use(runtimeCtx)
     .use(inlineRefs)
     .use(directives)
+    .use(imageAttributesSchema)
     .use(taskListView)
     .use(suggestPlugin((ctx) => buildTriggers(ctx, { options, runtime, remember: pages.remember, rememberUser: users.remember })))
     .use(keyboardPlugin)
     .use($prose(() => fileDrop.plugin));
   if (options.mentionDisplay === 'name') editor.use(mentionNameView);
+  // 1.9: other fields keep Milkdown's plain `<img>`.
+  const hosted = Object.keys(options.hostSchemes).length > 0;
+  if (hosted || options.features.includes('image_block')) editor.use(imageView);
+  if (hosted) editor.use(hostLinkSchema);
+  // Without the feature `{width=…}` stays text, as the renderer without `markdown.image_block` shows it (audit GX-I5).
+  if (options.features.includes('image_block')) editor.use(imageLiftRemark);
+  if (options.features.includes('insert_button') && !options.readonly) editor.use(insertButtonPlugin);
   if (collabModule) editor.use(collabModule.collab);
   if (contextMenuModule) editor.use(contextMenuModule.contextMenuPlugin);
   if (blockActionsModule) editor.use(blockActionsModule.blockActionsPlugin(options.features.includes('block_drag')));
@@ -297,7 +312,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   // 1.5 `insert_menu`: the *Insert* group of the context menu (file, icon, the `/` blocks of the field).
   if (options.features.includes('insert_menu') && !options.readonly) {
     const actions: InsertItem[] = [];
-    if (upload) actions.push({ id: 'file', label: t(runtime, 'menu.insert_file'), run: pickFiles });
+    if (upload) actions.push({ id: 'file', label: t(runtime, 'menu.insert_file'), run: (view) => pickFiles(view) });
     if (iconsOffered) actions.push({ id: 'icon', label: t(runtime, 'slash.icon'), run: startIcon, inline: true });
     editor.action((ctx) => runtime.insert.push(...insertItems(slashItems(ctx, options, runtime), actions)));
   }
