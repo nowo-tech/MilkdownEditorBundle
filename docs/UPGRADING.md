@@ -4,6 +4,7 @@
 
 - [General procedure](#general-procedure)
 - [Unreleased (1.8.0)](#unreleased-180)
+- [To 1.8.0](#to-180)
 - [To 1.7.0](#to-170)
 - [To 1.6.0](#to-160)
 - [To 1.5.1](#to-151)
@@ -30,6 +31,14 @@ names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialec
 interfaces and `window.NowoMilkdownEditor`.
 
 ## Unreleased (1.8.0)
+
+## To 1.8.0
+
+From **1.7.0**:
+
+```bash
+composer update nowo-tech/milkdown-editor-bundle
+```
 
 - No BC break; run `assets:install` (the editor module and its chunks change). Fields with the defaults keep the same
   widget JSON except `messages` (new strings: `upload.off`, `upload.waiting`, `upload.dismiss`, `slash.file`).

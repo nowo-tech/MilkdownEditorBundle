@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format foll
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.8.0] - 2026-11-06](#180---2026-11-06)
 - [[1.7.0] - 2026-11-04](#170---2026-11-04)
 - [[1.6.0] - 2026-11-04](#160---2026-11-04)
 - [[1.5.1] - 2026-11-04](#151---2026-11-04)
@@ -20,6 +21,10 @@ All notable changes to this project are documented in this file. The format foll
 - [[1.0.0] - 2026-10-31](#100---2026-10-31)
 
 ## [Unreleased]
+
+## [1.8.0] - 2026-11-06
+
+Menus open in the top layer, the action bar's insert buttons are configurable (`action_bar_insert`), and several files can be dropped or pasted at once: images become image nodes, other files become file cards (`file_cards`).
 
 Beacon request 2026-11-06 (*milkdown-menu-layer-and-file-drop*): menus in the top layer, optional action-bar insert
 buttons, Notion / Outline style drop and paste of any allowed file. No BC break; fields with the defaults keep the
