@@ -4530,7 +4530,6 @@ function sl(e, t, n = Date.now()) {
 }
 var cl = class extends Error {}, ll = (e) => [e.state, ...Array.isArray(e.updates) ? e.updates : []].filter((e) => typeof e == "string" && e !== "");
 async function ul(e) {
-	if (!e.ok) throw new cl(`state ${e.status}`);
 	let t;
 	try {
 		t = await e.json();
@@ -4550,6 +4549,9 @@ var dl = class {
 	status = "connecting";
 	seed = !1;
 	failed = !1;
+	quiet = !1;
+	skippedPresence = !1;
+	retryHint = 0;
 	wasOnline = !1;
 	es = null;
 	dirty = !1;
@@ -4644,7 +4646,7 @@ var dl = class {
 			credentials: "same-origin",
 			headers: e
 		});
-		if (!t.ok) throw new cl(`token ${t.status}`);
+		if (!t.ok) throw this.httpError("token", t);
 		let n = new URL(this.hubUrl, location.href);
 		n.searchParams.append("topic", this.topic);
 		let r = new EventSource(n, { withCredentials: !0 });
@@ -4658,26 +4660,39 @@ var dl = class {
 				this.onMessage(JSON.parse(e.data));
 			} catch {}
 		};
-		let i = await ul(await fetch(`${this.base}/state`, {
+		let i = await fetch(`${this.base}/state`, {
 			credentials: "same-origin",
 			headers: e
-		}));
+		});
+		if (!i.ok) throw this.httpError("state", i);
+		let a = await ul(i);
 		if (this.closed) return;
-		this.seed = i.seed === !0, this.seq = typeof i.seq == "number" && Number.isInteger(i.seq) ? i.seq : 0;
-		let a = new ai();
+		this.seed = a.seed === !0, this.seq = typeof a.seq == "number" && Number.isInteger(a.seq) ? a.seq : 0;
+		let o = new ai();
 		try {
-			for (let e of ll(i)) xi(a, el(e)), xi(this.doc, el(e), this);
+			for (let e of ll(a)) xi(o, el(e)), xi(this.doc, el(e), this);
 		} catch {
-			a.destroy(), await this.reportCorrupt();
+			o.destroy(), await this.reportCorrupt();
 			return;
 		}
-		let o = wi(this.doc, Ai(a));
-		a.destroy(), this.pending = [], this.unconfirmed = null, o.length > 2 && await this.post("update", o), i.compact === !0 && typeof i.seq == "number" && Number.isInteger(i.seq) && await this.compact(i.seq), this.dirty = !1, this.retry = 0, this.wasOnline = !0, this.setStatus("online"), this.closed || await this.post("awareness", Ns(this.awareness, [this.doc.clientID]));
+		let s = wi(this.doc, Ai(o));
+		o.destroy(), this.pending = [], this.unconfirmed = null, s.length > 2 && await this.post("update", s), this.dirty = !1, this.retry = 0, this.wasOnline = !0, this.setStatus("online"), this.closed || (this.quiet ? this.skippedPresence = !0 : (a.compact === !0 && typeof a.seq == "number" && Number.isInteger(a.seq) && await this.compact(a.seq), await this.post("awareness", Ns(this.awareness, [this.doc.clientID]))));
+	}
+	httpError(e, t) {
+		let n = `${e} ${t.status}`;
+		return [
+			401,
+			403,
+			404
+		].includes(t.status) ? new cl(n) : (t.status === 429 && (this.retryHint = sl(t.headers.get("Retry-After"), 0)), Error(n));
+	}
+	join() {
+		this.quiet = !1, this.skippedPresence && this.scheduleAwareness(), this.skippedPresence = !1;
 	}
 	scheduleReconnect() {
 		if (this.closed) return;
-		let e = Math.min(5e3, 250 * 2 ** this.retry++);
-		window.setTimeout(() => void this.connect().catch(() => void 0), e);
+		let e = Math.max(this.retryHint, Math.min(5e3, 250 * 2 ** this.retry++));
+		this.retryHint = 0, window.setTimeout(() => void this.connect().catch(() => void 0), e);
 	}
 	onMessage(e) {
 		if (e.t === "r") {
@@ -4741,7 +4756,7 @@ var dl = class {
 		this.inFlight = !1, i === "sent" && n.includes(this.unconfirmed) && (this.unconfirmed = null, this.dirty = !1), i === "throttled" ? (this.pending.unshift(r), n.includes(this.unconfirmed) && (this.unconfirmed = r), this.scheduleUpdates(0)) : this.pending.length && this.scheduleUpdates(this.updateDelay);
 	}
 	scheduleAwareness() {
-		if (this.awarenessDue = !0, this.awarenessTimer || this.closed) return;
+		if (this.quiet || (this.awarenessDue = !0, this.awarenessTimer || this.closed)) return;
 		let e = Math.max(this.awarenessDelay, this.blockedUntil.awareness - Date.now());
 		this.awarenessTimer = setTimeout(() => {
 			this.awarenessTimer = null, this.awarenessDue && this.status === "online" && (this.awarenessDue = !1, this.post("awareness", Ns(this.awareness, [this.doc.clientID])).then((e) => {
@@ -4750,7 +4765,7 @@ var dl = class {
 		}, e);
 	}
 	onAwarenessUpdate = ({ added: e, updated: t, removed: n }, r) => {
-		if (r === this || this.status !== "online") return;
+		if (r === this || this.status !== "online" || this.quiet) return;
 		let i = [
 			...e,
 			...t,
@@ -4854,61 +4869,77 @@ function xl(e, t = bl(), n = Date.now()) {
 	} catch {}
 	return !0;
 }
-var Sl = 5e3, Cl = 6e4;
-function wl(e) {
-	return e.toArray().every((e) => e instanceof G && e.nodeName === "paragraph" && e.length === 0);
+var Sl = 5e3, Cl = 6e4, wl = 31e3, Tl = (e) => e instanceof G && e.nodeName === "paragraph" && e.toArray().every((e) => e instanceof K && e.toString().trim() === "");
+function El(e) {
+	return e.toArray().every(Tl);
 }
-var Tl = (e) => new p({ filterTransaction: (t) => !t.docChanged || !e() || t.getMeta(Q) !== void 0 || t.getMeta("addToHistory") === !1 });
-function El(e, t, n, r) {
+var Dl = (e, t = () => void 0) => new p({
+	filterTransaction: (t) => !t.docChanged || !e(),
+	view: () => ({ update: (e, n) => {
+		e.state.doc.eq(n.doc) || t();
+	} })
+});
+function Ol(e, t, n, r) {
 	let i = new ai(), a = i.getXmlFragment("prosemirror"), o = new dl(i, t.url, t.hubUrl, t.topic, {
 		updateDelay: t.updateDelay,
 		awarenessDelay: t.awarenessDelay,
 		maxUpdateBytes: t.maxUpdateBytes
 	});
-	o.awareness.setLocalStateField("user", t.user);
-	let s = "waiting", c = !1, l = () => void 0, u = new Promise((e) => {
-		l = e;
-	}), d = () => {
-		c || (c = !0, i.off("update", p), o.disconnect());
-	}, f = () => {
-		s === "waiting" && (s = "standalone", window.clearTimeout(te), r.onReady(), r.onStatus("standalone"), l());
-	}, ee = () => {
-		if (!(s === "bound" || c || o.status !== "online") && (o.seed || !wl(a) || n.trim() === "")) {
-			if (s === "standalone" && !r.isUntouched()) d();
+	o.awareness.setLocalStateField("user", t.user), o.quiet = !0;
+	let s = "waiting", c = !1, l = !1, u = 0, d = 0, f = () => void 0, ee = new Promise((e) => {
+		f = e;
+	}), p = () => {
+		c || (c = !0, window.clearTimeout(u), i.off("update", ie), o.disconnect());
+	}, m = () => {
+		s === "waiting" && (s = "standalone", window.clearTimeout(ae), r.onReady(), r.onStatus("standalone"), f());
+	}, te = () => !o.seed && El(a) && n.trim() !== "", ne = () => {
+		window.clearTimeout(u), u = window.setTimeout(() => {
+			s === "bound" || c || (o.status === "online" && te() && o.connect().catch(() => void 0), ne());
+		}, wl);
+	}, re = () => {
+		if (!(s === "bound" || c || o.status !== "online")) {
+			if (te()) u || ne();
+			else if (s === "standalone" && !r.isUntouched()) p();
 			else {
+				r.onReady(), l = !0;
 				try {
 					e.action((e) => {
 						let t = e.get(Xc);
 						t.setOptions({ yCursorOpts: {
 							cursorBuilder: pl,
 							selectionBuilder: ml
-						} }), t.bindDoc(i).setAwareness(o.awareness), o.seed && t.applyTemplate(n, () => wl(a)), t.connect();
+						} }), t.bindDoc(i).setAwareness(o.awareness), o.seed && t.applyTemplate(n, () => El(a)), t.connect();
 					});
 				} catch (e) {
-					console.error("nowo-milkdown", e), f(), d();
+					console.error("nowo-milkdown", e), l = !1, m(), p();
 					return;
 				}
-				s = "bound", window.clearTimeout(te), i.off("update", p), r.onReady(), r.onStatus(o.status), l();
+				l = !1, s = "bound", window.clearTimeout(ae), window.clearTimeout(u), i.off("update", ie), o.join(), r.onStatus(o.status), f();
 			}
 		}
-	}, p = () => queueMicrotask(ee);
-	i.on("update", p), o.onStatus((e) => {
+	}, ie = () => queueMicrotask(re);
+	i.on("update", ie), o.onStatus((e) => {
 		if (e === "reset") {
 			if (s === "standalone" && !r.isUntouched()) {
-				d();
+				p();
 				return;
 			}
-			r.onStatus(e), xl(t.topic) ? window.setTimeout(() => _l.reload(), gl) : (f(), r.onReloadPaused());
-		} else s === "bound" ? r.onStatus(e) : o.failed ? (f(), d()) : o.corrupt ? f() : e === "online" ? ee() : s === "waiting" && r.onStatus("connecting");
+			r.onStatus(e), xl(t.topic) ? d = window.setTimeout(() => {
+				s === "standalone" && !r.isUntouched() ? (p(), r.onStatus("standalone")) : _l.reload();
+			}, gl) : (m(), r.onReloadPaused());
+		} else s === "bound" ? r.onStatus(e) : o.failed ? (m(), p()) : o.corrupt ? m() : e === "online" ? re() : s === "waiting" && r.onStatus("connecting");
 	});
-	let m = typeof t.connectTimeout == "number" && Number.isFinite(t.connectTimeout) ? Math.min(Cl, Math.max(0, Math.round(t.connectTimeout))) : Sl, te = window.setTimeout(f, m);
+	let h = typeof t.connectTimeout == "number" && Number.isFinite(t.connectTimeout) ? Math.min(Cl, Math.max(0, Math.round(t.connectTimeout))) : Sl, ae = window.setTimeout(m, h);
 	return o.connect().catch(() => void 0), {
 		provider: o,
-		ready: u,
+		ready: ee,
 		bound: () => s === "bound",
+		edited: () => {
+			s === "standalone" && !l && !r.isUntouched() && p();
+		},
 		stop: () => {
-			window.clearTimeout(te), s === "bound" && e.action((e) => e.get(Xc).disconnect()), d(), l();
+			window.clearTimeout(ae), window.clearTimeout(d), s === "bound" && e.action((e) => e.get(Xc).disconnect()), p(), f();
 		}
 	};
 }
-export { Sl as DEFAULT_CONNECT_TIMEOUT, Cl as MAX_CONNECT_TIMEOUT, vl as RELOAD_CAP, yl as RELOAD_WINDOW, gl as RESET_RELOAD_DELAY, xl as allowReload, Qc as collab, pl as cursorBuilder, wl as isBlank, _l as page, fl as safeColor, ml as selectionBuilder, El as startCollaboration, Tl as waitPlugin, hl as yjsAnchors };
+export { Sl as DEFAULT_CONNECT_TIMEOUT, Cl as MAX_CONNECT_TIMEOUT, vl as RELOAD_CAP, yl as RELOAD_WINDOW, gl as RESET_RELOAD_DELAY, wl as SEED_RECHECK, xl as allowReload, Qc as collab, pl as cursorBuilder, El as isBlank, _l as page, fl as safeColor, ml as selectionBuilder, Ol as startCollaboration, Dl as waitPlugin, hl as yjsAnchors };

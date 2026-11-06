@@ -74,6 +74,12 @@ export function isDark(root: HTMLElement): boolean {
   return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
+/** The last visible control before an element in tab order. */
+function previousStop(element: HTMLElement): HTMLElement | undefined {
+  const stops = element.ownerDocument.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+  return [...stops].filter((stop) => stop.offsetParent !== null && element.compareDocumentPosition(stop) & Node.DOCUMENT_POSITION_PRECEDING).pop();
+}
+
 /** The form label of the textarea becomes the editable's name (`aria-labelledby`); a click on it focuses the editor. */
 function labelFor(textarea: HTMLTextAreaElement): HTMLLabelElement | null {
   if (!textarea.id) return null;
@@ -195,7 +201,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   };
   if (upload) runtime.pickFiles = pickFiles;
 
-  // 1.9.1: with collaboration too the editor starts on the field's content, read-only until the wait is over.
+  // 1.10: with collaboration too the editor starts on the field's content, read-only until the wait is over.
   const builder = new CrepeBuilder({ root: surface, defaultValue: initial });
   const editor = builder.editor;
   const collabModule = options.collaboration ? await import('./collab/index') : null;
@@ -256,8 +262,11 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   // Without the feature `{width=…}` stays text, as the renderer without `markdown.image_block` shows it (audit GX-I5).
   if (options.features.includes('image_block')) editor.use(imageLiftRemark);
   if (options.features.includes('insert_button') && !options.readonly) editor.use(insertButtonPlugin);
-  let waiting = collabModule !== null;
-  if (collabModule) editor.use(collabModule.collab).use($prose(() => collabModule.waitPlugin(() => waiting)));
+  // Set once the editor exists: what it does on its own while it is created (heading ids) is not an edit.
+  let waiting = false;
+  let clicked = false;
+  let documentChanged = (): void => undefined;
+  if (collabModule) editor.use(collabModule.collab).use($prose(() => collabModule.waitPlugin(() => waiting, () => documentChanged())));
   if (contextMenuModule) editor.use(contextMenuModule.contextMenuPlugin);
   if (blockActionsModule) editor.use(blockActionsModule.blockActionsPlugin(options.features.includes('block_drag')));
   if (colorsModule) editor.use(colorsModule.colorMenuPlugin);
@@ -266,7 +275,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   if (commentsModule && commentsHost) commentsModule.useComments(editor, commentsHost, () => threadUi);
   await addFeatures(builder, options, runtime);
 
-  // 1.9.1: what collaboration writes to the field. Null: nothing, while there is no document to write from.
+  // 1.10: what collaboration writes to the field. Null: nothing, while there is no document to write from.
   let fieldValue: (markdown: string) => string | null = (markdown) => markdown;
   builder.on((api) =>
     api.markdownUpdated((_ctx, markdown) => {
@@ -279,6 +288,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   );
   if (options.readonly || collabModule) builder.setReadonly(true);
   await builder.create();
+  waiting = collabModule !== null;
 
   const getMarkdown = (): string => builder.getMarkdown();
   const sync = (): void => {
@@ -288,7 +298,15 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   const form = textarea.form;
   form?.addEventListener('submit', sync, true);
   form?.addEventListener('formdata', sync, true);
-  const focus = (): void => editor.action((ctx) => ctx.get(editorViewCtx).focus());
+  const focus = (): void => {
+    // Read-only, the editor cannot take the focus: the surface holds it until the wait ends.
+    if (waiting) {
+      clicked = true;
+      surface.focus({ preventScroll: true });
+      return;
+    }
+    editor.action((ctx) => ctx.get(editorViewCtx).focus());
+  };
   label?.addEventListener('click', focus);
   const unwatch = watchControls(surface, runtime);
 
@@ -343,41 +361,86 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
       return standalone && markdown === untouched ? initial : markdown;
     };
 
-    // 1.9.1: a save while waiting waits too, at most until the deadline, and then goes on by itself (see USAGE).
-    let held: { submitter: HTMLElement | null } | null = null;
+    // 1.10: a save while waiting waits too, at most until the deadline, and then goes on by itself (see USAGE).
+    let held: { submitter: HTMLButtonElement | HTMLInputElement | null; name: string; value: string } | null = null;
     const holdSubmit = (event: Event): void => {
       if (!waiting) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      held = { submitter: (event as SubmitEvent).submitter ?? null };
+      const submitter = ((event as SubmitEvent).submitter ?? null) as HTMLButtonElement | HTMLInputElement | null;
+      held = { submitter, name: submitter?.name ?? '', value: submitter?.value ?? '' };
       announce('collab.save_waiting', {});
     };
     const releaseSubmit = (): void => {
       const pending = held;
       held = null;
       if (!pending || !form?.isConnected) return;
-      try {
-        form.requestSubmit(pending.submitter);
-      } catch {
-        form.requestSubmit();
+      const { submitter, name, value } = pending;
+      if (submitter?.isConnected && !submitter.disabled && submitter.form === form) {
+        form.requestSubmit(submitter);
+        return;
       }
+      // The host disabled or removed the button meanwhile: its name and value still go.
+      if (name) {
+        const carried = document.createElement('input');
+        carried.type = 'hidden';
+        carried.name = name;
+        carried.value = value;
+        form.append(carried);
+        form.addEventListener('formdata', () => window.setTimeout(() => carried.remove(), 0), { once: true });
+      }
+      form.requestSubmit();
     };
     form?.addEventListener('submit', holdSubmit, true);
-    // A click while read-only gives no focus: remember it, so that the keys after the wait reach the editor.
-    let clicked = false;
+    // Read-only, a click would leave the focus on the page and keys would reach the host's shortcuts or scroll it. The
+    // surface takes the focus and keeps them, except Tab and Escape: nobody is trapped. Browser shortcuts still work.
+    surface.setAttribute('tabindex', '-1');
     const noteClick = (): void => {
       clicked = true;
+      surface.focus({ preventScroll: true });
     };
     surface.addEventListener('pointerdown', noteClick);
+    const keepKey = (event: KeyboardEvent): void => {
+      // Firefox does not move backwards out of an element with tabindex -1: move for it.
+      if (event.key === 'Tab' && event.shiftKey && event.type === 'keydown') {
+        const stop = previousStop(surface);
+        if (stop) {
+          event.preventDefault();
+          stop.focus();
+        }
+        return;
+      }
+      if (event.key === 'Tab' || event.key === 'Escape') return;
+      event.stopPropagation();
+      if (!event.ctrlKey && !event.metaKey && !event.altKey && !/^F\d+$/.test(event.key)) event.preventDefault();
+    };
+    const keyEvents = ['keydown', 'keypress', 'keyup'] as const;
+    keyEvents.forEach((type) => surface.addEventListener(type, keepKey, true));
+    const releaseKeys = (): void => {
+      surface.removeEventListener('pointerdown', noteClick);
+      keyEvents.forEach((type) => surface.removeEventListener(type, keepKey, true));
+    };
+    let notice: HTMLElement | null = null;
 
     const collaboration = collabModule.startCollaboration(editor, options.collaboration, initial, {
       onStatus: (s) => {
         root.dataset.collab = s;
-        if (s === 'online') standalone = false;
+        if (s === 'online') {
+          standalone = false;
+          notice?.remove();
+          notice = null;
+        }
         if (s === 'standalone') {
           standalone = true;
           status.textContent = '';
-          announce('collab.standalone', {}, true);
+          // Its own element: later statuses must not clear it.
+          if (!notice) {
+            notice = document.createElement('div');
+            notice.className = 'nowo-milkdown__notice';
+            notice.setAttribute('role', 'alert');
+            notice.textContent = t(runtime, 'collab.standalone');
+            status.before(notice);
+          }
         } else {
           announce(`collab.${s}`, {});
         }
@@ -397,15 +460,22 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
         builder.setReadonly(options.readonly);
         root.removeAttribute('aria-busy');
         actions.forEach((button) => (button.disabled = false));
-        surface.removeEventListener('pointerdown', noteClick);
+        releaseKeys();
         // Not when the person has moved on to another control.
-        if (clicked && (!document.activeElement || document.activeElement === document.body)) focus();
+        const active = document.activeElement;
+        const backToEditor = clicked && (!active || active === document.body || active === surface);
         clicked = false;
-        // After the current call: the status comes next, and a save must leave from the settled state.
-        window.setTimeout(releaseSubmit, 0);
+        // After the current call: binding reconfigures the view and would drop the focus, the status comes next, and a save
+        // must leave from the settled state.
+        window.setTimeout(() => {
+          surface.removeAttribute('tabindex');
+          if (backToEditor) focus();
+          releaseSubmit();
+        }, 0);
       },
       isUntouched: () => getMarkdown() === untouched,
     });
+    documentChanged = collaboration.edited;
     provider = collaboration.provider;
     collabReady = collaboration.ready;
     if (commentsModule) yjs = collabModule.yjsAnchors(() => editor.action((ctx) => ctx.get(editorViewCtx).state));
@@ -482,7 +552,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
       form?.removeEventListener('formdata', sync, true);
       label?.removeEventListener('click', focus);
       await builder.destroy();
-      root.querySelectorAll('.nowo-milkdown__version, .nowo-milkdown__actions, .nowo-milkdown__surface, .nowo-milkdown__status, .nowo-milkdown__alert, .nowo-milkdown__reload').forEach((el) => el.remove());
+      root.querySelectorAll('.nowo-milkdown__version, .nowo-milkdown__actions, .nowo-milkdown__surface, .nowo-milkdown__status, .nowo-milkdown__alert, .nowo-milkdown__notice, .nowo-milkdown__reload').forEach((el) => el.remove());
       textarea.hidden = false;
     },
   };

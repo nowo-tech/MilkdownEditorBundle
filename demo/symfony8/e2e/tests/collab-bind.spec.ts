@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { violations, watch } from './helpers';
 
 /**
- * 1.9.1: nothing is lost around the moment the Yjs document is bound, whatever the hub does. The four scenarios measured
+ * 1.10: nothing is lost around the moment the Yjs document is bound, whatever the hub does. The four scenarios measured
  * on WikiBundle (6 tries each) and the hub that never opens repeat `COLLAB_REPEAT` times.
  *
  * The demo's hub answers 404. `fakeHub` replaces EventSource with one that opens after a delay (no messages: one client,
@@ -48,7 +48,8 @@ async function fakeHub(page: Page, opensAfter: number | null): Promise<void> {
 
 async function savedText(page: Page): Promise<string> {
   await save(page).click();
-  await expect(saved(page)).toBeVisible({ timeout: 15000 });
+  // Attached, not visible: an empty <pre> is "hidden", and an empty save must read as that, not as a slow page.
+  await expect(saved(page)).toBeAttached({ timeout: 15000 });
   return (await saved(page).innerText()).trim();
 }
 
@@ -75,12 +76,14 @@ const mostTyped = (page: Page): Promise<number> => page.evaluate(() => (window a
 
 /** The connection drops after it was online; from here on the hub is down. */
 async function dropHub(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    const w = window as unknown as { __hub: { onerror: ((e: unknown) => void) | null }; __hubDown: boolean };
-    w.__hubDown = true;
-    w.__hub.onerror?.({});
-  });
-  await expect(widget(page)).toHaveAttribute('data-collab', /offline|connecting/);
+  await expect(async () => {
+    await page.evaluate(() => {
+      const w = window as unknown as { __hub: { onerror: ((e: unknown) => void) | null }; __hubDown: boolean };
+      w.__hubDown = true;
+      w.__hub.onerror?.({});
+    });
+    expect(await widget(page).getAttribute('data-collab')).toMatch(/offline|connecting/);
+  }).toPass({ timeout: 5000 });
 }
 
 test.describe.configure({ timeout: 45000 });
@@ -226,7 +229,7 @@ for (let run = 1; run <= BEACON_REPEAT; run++) {
       await page.route('**/collab/hub**', (route) => route.abort());
       await open(page);
       await expect(widget(page)).toHaveAttribute('data-collab', 'standalone', { timeout: 8000 });
-      await expect(page.locator('.nowo-milkdown__alert')).toContainText('without live co-editing');
+      await expect(page.locator('.nowo-milkdown__notice')).toContainText('without live co-editing');
       await surface(page).click();
       await page.keyboard.press('ControlOrMeta+End');
       await page.keyboard.type(MARKER);
@@ -286,7 +289,7 @@ test.describe('hub that fails', () => {
     await expect(widget(page)).toHaveAttribute('aria-busy', 'true');
     await expect(surface(page)).toContainText(ORIGINAL);
     await expect(widget(page)).toHaveAttribute('data-collab', 'standalone', { timeout: 8000 });
-    await expect(page.locator('.nowo-milkdown__alert')).toContainText('without live co-editing');
+    await expect(page.locator('.nowo-milkdown__notice')).toContainText('without live co-editing');
     await expect(page.locator('.nowo-milkdown .ProseMirror[contenteditable="true"]')).toBeVisible();
     await surface(page).click();
     await page.keyboard.press('ControlOrMeta+End');
@@ -310,13 +313,58 @@ test.describe('hub that fails', () => {
     expect(await savedText(page)).toBe(ORIGINAL);
   });
 
-  test('the state answers 429 JSON: never an empty document', async ({ page }) => {
+  test('the state answers 429 JSON and keeps doing so: retried, then standalone, never an empty document', async ({ page }) => {
     await fakeHub(page, 0);
     await page.route('**/collab/api/state', (route) => route.fulfill({ status: 429, contentType: 'application/json', body: '{"error":"rate_limited"}' }));
-    await open(page, '&connect_timeout=30000');
-    await expect(widget(page)).toHaveAttribute('data-collab', 'standalone', { timeout: 3000 });
+    await open(page, '&connect_timeout=1500');
+    await expect(widget(page)).toHaveAttribute('data-collab', 'connecting');
+    await expect(widget(page)).toHaveAttribute('data-collab', 'standalone', { timeout: 8000 });
     await expect(surface(page)).toContainText(ORIGINAL);
     expect(await savedText(page)).toBe(ORIGINAL);
+  });
+
+  test('a passing 503 on the token: retried, joins the session', async ({ page }) => {
+    let first = true;
+    await fakeHub(page, 0);
+    await page.route('**/collab/api/token', (route) => {
+      if (!first) return route.fallback();
+      first = false;
+      return route.fulfill({ status: 503, body: '' });
+    });
+    await open(page, '&connect_timeout=30000');
+    await expect(widget(page)).toHaveAttribute('data-collab', 'online', { timeout: 8000 });
+  });
+
+  test('keys while waiting stay in the surface: host listeners see nothing, the page does not scroll, Tab leaves', async ({ page }) => {
+    await fakeHub(page, null);
+    await open(page, '&connect_timeout=30000');
+    await page.evaluate(() => {
+      const w = window as unknown as { __keys: string[] };
+      w.__keys = [];
+      document.body.style.minHeight = '5000px';
+      document.addEventListener('keydown', (e) => w.__keys.push(e.key));
+      window.scrollTo(0, 0);
+    });
+    await surface(page).click();
+    await expect(page.locator('.nowo-milkdown__surface')).toBeFocused();
+    const scrolled = await page.evaluate(() => window.scrollY);
+    await page.keyboard.type('digit');
+    for (const key of [' ', 'PageDown', 'End']) await page.keyboard.press(key);
+    await page.waitForTimeout(150);
+    expect(await page.evaluate(() => (window as unknown as { __keys: string[] }).__keys)).toEqual([]);
+    expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
+    expect(page.url()).toContain('/collab');
+    await page.keyboard.press('Tab');
+    await expect(page.locator('.nowo-milkdown__surface')).not.toBeFocused();
+    expect(await page.evaluate(() => (window as unknown as { __keys: string[] }).__keys)).toEqual(['Tab']);
+    // And backwards, from the surface again.
+    await surface(page).click();
+    await expect(page.locator('.nowo-milkdown__surface')).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await page.waitForTimeout(100);
+    const after = await page.evaluate(() => `${document.activeElement?.tagName}.${document.activeElement?.className}`);
+    console.log(`SHIFTTAB ${test.info().project.name} ${after}`);
+    expect(after, 'Shift+Tab stays on the surface').not.toContain('nowo-milkdown__surface');
   });
 
   test('another client holds the seed and an empty state comes back: this client never saves it', async ({ page }) => {
@@ -351,7 +399,7 @@ test.describe('hub that fails', () => {
     await open(page, '&connect_timeout=800');
     await expect(widget(page)).toHaveAttribute('data-collab', 'standalone', { timeout: 8000 });
     await expect(widget(page)).toHaveAttribute('data-collab', 'online', { timeout: 8000 });
-    await expect(page.locator('.nowo-milkdown__alert')).toBeEmpty();
+    await expect(page.locator('.nowo-milkdown__notice')).toHaveCount(0);
     await expect(surface(page)).toContainText(ORIGINAL);
     await surface(page).click();
     await page.keyboard.press('ControlOrMeta+End');

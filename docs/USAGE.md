@@ -274,19 +274,20 @@ them. `GET <url>/state` answers `{"state": "<base64 Yjs update>", "seed": true|f
 an empty document from the field's Markdown. The client that saves still submits Markdown (the server never reads Y
 state). Readers without edit rights must not get the options at all.
 
-**Connecting, and when it fails (1.9.1).** Nothing is lost while the shared document is on its way:
+**Connecting, and when it fails (1.10).** Nothing is lost while the shared document is on its way:
 
 | `data-collab` | Editor | A save |
 | --- | --- | --- |
 | `connecting` (first time) | Shows the field's content, read-only; `aria-busy="true"`; the action buttons are disabled | Waits, says so, and goes on by itself when the wait ends (at most `connect_timeout_ms`) |
 | `online` | Bound to the shared document, editable | Writes the document; carries `_nowo_milkdown_collab` |
 | `offline`, `connecting` (after being online) | Still bound, editable; edits are kept and sent when the connection returns | Writes the document; no session field |
-| `standalone` | Not bound: edits the field's content, and an alert says so | Writes the edited text, or the field's exact bytes if untouched; no session field |
+| `standalone` | Not bound: edits the field's content, and an alert (`.nowo-milkdown__notice`) says so | Writes the edited text, or the field's exact bytes if untouched; no session field |
 | `reset` | Reloading with the new content | As `online` |
 
-The wait ends at the bind or after `connect_timeout_ms` (0–60000, default **5000**). A refused token or state (any
-non-2xx, a body that is not JSON, JSON without `state` or `updates`) or a corrupt log goes `standalone` at once. A hub that
-errors is retried during the wait. Without a usable answer the editor never binds an empty document over a non-empty field.
+The wait ends at the bind or after `connect_timeout_ms` (0–60000, default **5000**). A token or state answering 401, 403 or
+404, a 2xx state that is not JSON or has no `state` or `updates`, or a corrupt log goes `standalone` at once. A 429 (honouring
+`Retry-After`), a 5xx or a hub error is retried during the wait, and afterwards while the content is untouched. Keys pressed
+in the editor while it waits stay there; Tab and Escape pass. Without a usable answer the editor never binds an empty document over a non-empty field.
 
 **Why a save waits instead of leaving at once.** It would keep the field either way, but a save outside the session makes
 a host with a shared log drop it (see below), taking the unsaved work of anyone editing live. Waiting a bounded time
@@ -294,11 +295,12 @@ lets the save join the session in the normal case. It can never hang: the deadli
 goes on with the field's value.
 
 **A standalone editor that connects late** binds only while the content is untouched (it then shows the shared document).
-Once the person has typed, the session ends for that page view: nothing replaces their text, nothing is sent, and the form
-saves it like any save outside a session. They rejoin by reloading after saving.
+The first edit ends the session for that page view: nothing replaces their text, nothing is sent, and the form saves it like
+any save outside a session. Until a client joins, it posts no presence and no compaction. They rejoin by reloading after saving.
 
 **An empty state.** `state` empty and `seed` not true, with a non-empty field, means another client holds the seed (or it
-has gone): the editor waits for the content instead of showing nothing, within the same deadline. Tell exactly one client
+has gone): the editor waits for the content instead of showing nothing, within the same deadline, and asks again every 31 s
+(`POST token`, `GET state`) so that a stale claim can be taken over. The same goes for a log whose text was deleted. Tell exactly one client
 to seed: two clients told to seed at once duplicate the content, because Yjs merges both.
 
 ```php

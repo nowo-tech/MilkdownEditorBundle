@@ -3,7 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
-- [To 1.9.1](#to-191)
+- [To 1.10.0](#to-1100)
 - [To 1.9.0](#to-190)
 - [To 1.8.0](#to-180)
 - [To 1.7.0](#to-170)
@@ -31,7 +31,7 @@ Public API covered by Semantic Versioning: the configuration tree, profile keys,
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
 
-## To 1.9.1
+## To 1.10.0
 
 **Upgrade if you use `collaboration`:** versions 1.0.0 to 1.9.0 can save an empty document (see the
 [CHANGELOG](CHANGELOG.md)). `composer update nowo-tech/milkdown-editor-bundle`, then run `assets:install`. Fields without
@@ -39,7 +39,8 @@ interfaces and `window.NowoMilkdownEditor`.
 
 Until you upgrade, the only complete mitigation is to turn collaboration off: drop the `collaboration` option (WikiBundle:
 `nowo_wiki.collaboration.enabled: false`). A server check that refuses an empty body on a save without the
-`_nowo_milkdown_collab` field stops the empty saves but not the loss of typed text.
+`_nowo_milkdown_collab` field stops the empty saves (6 of 6, measured) but not the loss of typed text, and it also refuses
+a person clearing a page on purpose.
 
 **Finding and repairing empty saves.** The bundle keeps no history; it depends on the host. Measured on WikiBundle (5 of 5,
 v1.9.0): the empty save adds a revision with an empty body, the earlier revision stays intact, restoring it brings the body
@@ -53,10 +54,15 @@ Behaviour changes with collaboration on:
   that never appear. Tests that type into the editor should wait for
   `.ProseMirror[contenteditable="true"]`, or for `data-collab` to leave `connecting`.
 - **`data-collab` has one new value, `standalone`.** The existing ones keep their meaning, except that `online` now means
-  bound too. `aria-busy="true"` is on the widget while it waits.
-- **A submit while waiting is held**: the `submit` event is cancelled and `requestSubmit()` runs again when the wait ends,
-  so a `submit` listener registered after the editor mounted sees only the second one. A listener registered before it
-  sees both: `event.defaultPrevented` tells them apart in the bubble phase.
+  bound too. `aria-busy="true"` is on the widget while it waits. The standalone warning is its own element,
+  `.nowo-milkdown__notice` (`role="alert"`).
+- **A submit while waiting is held**: the `submit` event is cancelled in the capture phase on the form, and
+  `requestSubmit()` runs when the wait ends. Listeners in the bubble phase, on the form or above, see only the second event.
+  Capture listeners on `document` or `window` see both, and `defaultPrevented` is false on both, so one that sends the form
+  itself sends twice: use the bubble phase. A submit button that is disabled or removed during the wait still sends its name
+  and value, through a hidden field; its `formaction` is lost.
+- **Keys pressed in the editor while it waits stay there**, so host shortcuts do not fire and the page does not scroll.
+  Tab and Escape pass, and browser shortcuts keep working. A `keydown` capture listener on `document` still sees them.
 - **A standalone save carries no `_nowo_milkdown_collab`**, like an offline save: a host with a shared log treats it as a
   replacement (WikiBundle drops the log and live editors reload). The person is told before they save.
 - **`createEditor()` and `nowo-milkdown:ready` always finish**, at the bind or at the deadline. They used to wait forever
@@ -64,7 +70,11 @@ Behaviour changes with collaboration on:
 - **A host answering `seed: false` to everybody** with an empty state and a non-empty field no longer gets an empty
   document: the editor goes standalone at the deadline. One client must be told to seed (see
   [USAGE](USAGE.md#collaboration)).
-- **`GET state` must answer 2xx with a `state` string or an `updates` list.** Anything else is a refusal.
+- **`token` and `state` answers:** 401, 403 and 404 fall back at once. A 429 (its `Retry-After` is honoured), a 5xx or any
+  other error is retried, during the wait and after it while the content is untouched. A 2xx `state` must have a `state`
+  string or an `updates` list; anything else falls back at once.
+- **A client waiting on another's seed asks again every 31 s** (`POST token`, `GET state`), so a host's stale seed claim gets
+  taken over. An editor that has been edited while standalone asks nothing and claims nothing.
 
 ## To 1.9.0
 

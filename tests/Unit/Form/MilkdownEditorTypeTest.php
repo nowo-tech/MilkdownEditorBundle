@@ -320,7 +320,7 @@ final class MilkdownEditorTypeTest extends TypeTestCase
             ['url' => '/c', 'hubUrl' => '/h', 'topic' => 't', 'user' => ['name' => 'Anonymous', 'color' => '#1f6f54'], 'updateDelay' => 150, 'awarenessDelay' => 1000, 'maxUpdateBytes' => 131072],
             MilkdownEditorType::normaliseCollaboration(['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'update_delay_ms' => 150, 'awareness_delay_ms' => 1000, 'max_update_bytes' => 131072]),
         );
-        // 1.9.1: the wait for the shared document, only when set (0 is a value: no wait).
+        // 1.10: the wait for the shared document, only when set (0 is a value: no wait).
         self::assertSame(0, MilkdownEditorType::normaliseCollaboration(['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'connect_timeout_ms' => 0])['connectTimeout'] ?? null);
         self::assertSame(60000, MilkdownEditorType::normaliseCollaboration(['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'connect_timeout_ms' => 60000])['connectTimeout'] ?? null);
     }
@@ -385,7 +385,7 @@ final class MilkdownEditorTypeTest extends TypeTestCase
         // Host schemes without the feature: the placeholder text only.
         $hosted = $build(new MilkdownEditorType(new ProfileRegistry(['default' => self::PROFILE], 'default'), null, $translator, 10, [], new HostSchemes(['app-file' => ['file' => '/f/{id}']])));
         self::assertArrayHasKey('image.hidden', (array) $hosted['messages']);
-        // 1.9.1: the strings of the collaboration states only with collaboration: other fields keep the same JSON.
+        // 1.10: the strings of the collaboration states only with collaboration: other fields keep the same JSON.
         self::assertArrayNotHasKey('collab.standalone', (array) $hosted['messages']);
         self::assertArrayNotHasKey('collab.save_waiting', (array) $hosted['messages']);
         $form = Forms::createFormFactoryBuilder()

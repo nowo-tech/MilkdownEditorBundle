@@ -15,7 +15,7 @@ use Symfony\Component\HttpKernel\Profiler\Profiler;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * 1.9.1 demo: a form with collaboration on and a hub that does not answer (`/collab/hub` is a 404), so the page shows the
+ * 1.10 demo: a form with collaboration on and a hub that does not answer (`/collab/hub` is a 404), so the page shows the
  * connecting state and then the fallback to editing without collaboration. The endpoints are stateless: an empty
  * document this client is told to seed. A real host (WikiBundle) stores the Yjs log and publishes through Mercure; the
  * e2e replaces the hub and the state answer to cover the other cases.

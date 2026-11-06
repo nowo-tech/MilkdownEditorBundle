@@ -4,11 +4,11 @@ import { prosemirrorToYDoc } from 'y-prosemirror';
 import { editorViewCtx } from '@milkdown/kit/core';
 import { createEditor, type MilkdownEditorHandle } from '../src/editor';
 import { fromBase64, toBase64 } from '../src/collab/mercure-provider';
-import { DEFAULT_CONNECT_TIMEOUT, MAX_CONNECT_TIMEOUT, isBlank, page as collabPage, startCollaboration, waitPlugin } from '../src/collab/index';
+import { DEFAULT_CONNECT_TIMEOUT, MAX_CONNECT_TIMEOUT, SEED_RECHECK, isBlank, page as collabPage, startCollaboration, waitPlugin } from '../src/collab/index';
 import { editor, tick, widget } from './helpers';
 
 /**
- * 1.9.1: nothing is lost around the bind. A small host: a Yjs log, one seed claim, a hub that relays what is posted and
+ * 1.10: nothing is lost around the bind. A small host: a Yjs log, one seed claim, a hub that relays what is posted and
  * that the test opens by hand. The states are `waiting`, `bound` and `standalone`.
  */
 type Answer = { status?: number; body?: string; json?: unknown };
@@ -94,7 +94,7 @@ const keep = (handle: MilkdownEditorHandle): MilkdownEditorHandle => {
 };
 const editable = (root: HTMLElement): string | null | undefined => root.querySelector('.ProseMirror')?.getAttribute('contenteditable');
 const text = (root: HTMLElement): string => root.querySelector('.ProseMirror')?.textContent ?? '';
-const alertOf = (root: HTMLElement): string => root.querySelector('.nowo-milkdown__alert')?.textContent ?? '';
+const alertOf = (root: HTMLElement): string => root.querySelector('.nowo-milkdown__notice')?.textContent ?? '';
 const statusOf = (root: HTMLElement): string => root.querySelector('.nowo-milkdown__status')?.textContent ?? '';
 const session = (form: HTMLFormElement): string | null => form.querySelector<HTMLInputElement>('input[name="_nowo_milkdown_collab"]')?.value ?? null;
 
@@ -196,6 +196,63 @@ describe('waiting for the document', () => {
     expect(values).toEqual(['Original body', null]);
   });
 
+  it('keys stay in the surface: the host sees nothing and scrolling keys do nothing; Tab and Escape pass (HF-L2)', async () => {
+    host.autoOpen = false;
+    const { root, handle } = await mounted('Body', { connectTimeout: 60_000 });
+    const seen: string[] = [];
+    const listener = (e: Event): void => void seen.push(`${e.type}:${(e as KeyboardEvent).key}`);
+    for (const type of ['keydown', 'keypress', 'keyup']) document.addEventListener(type, listener);
+    const surface = root.querySelector<HTMLElement>('.nowo-milkdown__surface')!;
+    expect(surface.getAttribute('tabindex')).toBe('-1');
+    const press = (key: string, init: KeyboardEventInit = {}, type = 'keydown'): KeyboardEvent => {
+      const event = new KeyboardEvent(type, { key, bubbles: true, cancelable: true, ...init });
+      surface.dispatchEvent(event);
+      return event;
+    };
+    expect(press('g').defaultPrevented).toBe(true);
+    expect(press('g', {}, 'keypress').defaultPrevented).toBe(true);
+    expect(press('g', {}, 'keyup').defaultPrevented).toBe(true);
+    expect(press(' ').defaultPrevented).toBe(true);
+    expect(press('PageDown').defaultPrevented).toBe(true);
+    // Browser shortcuts keep working, without reaching the host.
+    expect(press('r', { ctrlKey: true }).defaultPrevented).toBe(false);
+    expect(press('F5').defaultPrevented).toBe(false);
+    expect(seen).toEqual([]);
+    expect(press('Tab').defaultPrevented).toBe(false);
+    expect(press('Escape').defaultPrevented).toBe(false);
+    expect(seen).toEqual(['keydown:Tab', 'keydown:Escape']);
+    host.hubs[0]!.open();
+    await handle;
+    await until(() => !surface.hasAttribute('tabindex'));
+    seen.length = 0;
+    press('g');
+    expect(seen).toEqual(['keydown:g']);
+    for (const type of ['keydown', 'keypress', 'keyup']) document.removeEventListener(type, listener);
+  });
+
+  it('a button disabled or removed during the hold still sends its name and value (HF-I2)', async () => {
+    host.autoOpen = false;
+    const { form, handle } = await mounted('Body', { connectTimeout: 60_000 });
+    const button = document.createElement('button');
+    button.name = 'action';
+    button.value = 'publish';
+    form.append(button);
+    const sent: (FormDataEntryValue | null)[] = [];
+    form.addEventListener('submit', (e) => {
+      sent.push(new FormData(form).get('action'));
+      e.preventDefault();
+    });
+    submit(form, button);
+    button.disabled = true;
+    host.hubs[0]!.open();
+    await handle;
+    await until(() => sent.length === 1);
+    expect(sent).toEqual(['publish']);
+    form.dispatchEvent(new Event('formdata'));
+    await tick(5);
+    expect(form.querySelector('input[name="action"]')).toBeNull();
+  });
+
   it('a click while read-only gives the editor the focus after the wait; otherwise it never takes it', async () => {
     host.autoOpen = false;
     const focus = vi.spyOn(HTMLElement.prototype, 'focus');
@@ -203,11 +260,12 @@ describe('waiting for the document', () => {
     clicked.root.querySelector('.nowo-milkdown__surface')!.dispatchEvent(new Event('pointerdown', { bubbles: true }));
     host.hubs[0]!.open();
     await clicked.handle;
-    expect(focus.mock.contexts).toContain(clicked.root.querySelector('.ProseMirror'));
+    await until(() => focus.mock.contexts.includes(clicked.root.querySelector('.ProseMirror') as never));
     focus.mockClear();
     const quiet = await mounted('Body', { connectTimeout: 60_000 });
     host.hubs.at(-1)!.open();
     await quiet.handle;
+    await tick(5);
     expect(focus.mock.contexts).not.toContain(quiet.root.querySelector('.ProseMirror'));
   });
 
@@ -221,7 +279,7 @@ describe('waiting for the document', () => {
     expect(button.disabled).toBe(false);
   });
 
-  it('refuses document changes, except binding and bookkeeping', () => {
+  it('refuses every document change, however it is marked (HF-I1)', () => {
     let locked = true;
     const filter = waitPlugin(() => locked).spec.filterTransaction as (tr: unknown) => boolean;
     const tr = (docChanged: boolean, metas: Record<string, unknown> = {}): unknown => ({
@@ -230,8 +288,7 @@ describe('waiting for the document', () => {
     });
     expect(filter(tr(true))).toBe(false);
     expect(filter(tr(false))).toBe(true);
-    expect(filter(tr(true, { addToHistory: false }))).toBe(true);
-    expect(filter(tr(true, { 'y-sync$': { isChangeOrigin: true } }))).toBe(true);
+    expect(filter(tr(true, { addToHistory: false }))).toBe(false);
     locked = false;
     expect(filter(tr(true))).toBe(true);
   });
@@ -299,6 +356,23 @@ describe('bound', () => {
     expect(text(handle.root)).not.toContain('Field');
   });
 
+  it('isBlank tests the text: a paragraph whose text was deleted is blank, an image in one is not (HF-L1)', () => {
+    const deleted = new Y.Doc().getXmlFragment('prosemirror');
+    const paragraph = new Y.XmlElement('paragraph');
+    const content = new Y.XmlText('text');
+    paragraph.insert(0, [content]);
+    deleted.insert(0, [paragraph]);
+    expect(isBlank(deleted)).toBe(false);
+    content.delete(0, 4);
+    expect(paragraph.length).toBe(1);
+    expect(isBlank(deleted)).toBe(true);
+    const image = new Y.Doc().getXmlFragment('prosemirror');
+    const holder = new Y.XmlElement('paragraph');
+    holder.insert(0, [new Y.XmlElement('image')]);
+    image.insert(0, [holder]);
+    expect(isBlank(image)).toBe(false);
+  });
+
   it('isBlank: nothing or empty paragraphs only', () => {
     const fragment = new Y.Doc().getXmlFragment('prosemirror');
     expect(isBlank(fragment)).toBe(true);
@@ -339,6 +413,21 @@ describe('an empty state and no order to seed', () => {
     expect(root.dataset.collab).toBe('standalone');
     expect(editorHandle.getMarkdown()).toBe('Original body\n');
     expect(textarea.value).toBe('Original body');
+  });
+
+  it('a peer deleted all the text: the next editor does not bind it, the field and a save keep the body (HF-L1)', async () => {
+    const doc = new Y.Doc();
+    const paragraph = new Y.XmlElement('paragraph');
+    const content = new Y.XmlText('Original body');
+    paragraph.insert(0, [content]);
+    doc.getXmlFragment('prosemirror').insert(0, [paragraph]);
+    content.delete(0, content.length);
+    host.log.push(toBase64(Y.encodeStateAsUpdate(doc)));
+    const handle = keep(await editor('Original body', collab({ connectTimeout: 30 })));
+    expect(handle.root.dataset.collab).toBe('standalone');
+    expect(text(handle.root)).toBe('Original body');
+    submit(handle.textarea.form!);
+    expect(handle.textarea.value).toBe('Original body');
   });
 
   it('nobody seeds: standalone at the deadline, content intact in the field and in getMarkdown()', async () => {
@@ -401,8 +490,8 @@ describe('standalone', () => {
   it.each([
     ['the token is refused (403)', () => (host.token = { status: 403 })],
     ['the token is missing (404)', () => (host.token = { status: 404 })],
-    ['the state is an error with a JSON body (429)', () => (host.state = { status: 429, json: { error: 'rate_limited' } })],
-    ['the state is a server error', () => (host.state = { status: 500, body: '<html>' })],
+    ['the token needs a login (401)', () => (host.token = { status: 401 })],
+    ['the state is refused (403)', () => (host.state = { status: 403, json: { error: 'denied' } })],
     ['the state is a login page answered 200', () => (host.state = { body: '<html>login' })],
     ['the state has no state', () => (host.state = { json: { seed: false } })],
     ['the state is null', () => (host.state = { json: null })],
@@ -420,6 +509,54 @@ describe('standalone', () => {
     const before = host.requests.length;
     await tick(300);
     expect(host.requests.length).toBe(before);
+  });
+
+  it.each([
+    ['a token 429', () => (host.token = { status: 429 }), () => (host.token = {})],
+    ['a token 503', () => (host.token = { status: 503 }), () => (host.token = {})],
+    ['a state 429 with a JSON body', () => (host.state = { status: 429, json: { error: 'rate_limited' } }), () => (host.state = null)],
+    ['a state 500', () => (host.state = { status: 500, body: '<html>' }), () => (host.state = null)],
+  ])('%s is retried: the editor keeps waiting and binds when it passes (HF-L3)', async (_name, breakIt, repair) => {
+    host.store('Shared');
+    breakIt();
+    const { root, handle } = await mounted('Shared', { connectTimeout: 60_000 });
+    const asked = (): number => host.requests.filter((r) => r === 'token').length;
+    await until(() => host.requests.includes(host.token.status ? 'token' : 'state'));
+    await tick(5);
+    expect(root.dataset.collab).toBe('connecting');
+    expect(editable(root)).toBe('false');
+    const before = asked();
+    await until(() => asked() > before, 4000);
+    repair();
+    await handle;
+    expect(root.dataset.collab).toBe('online');
+  });
+
+  it('errors past the deadline: standalone with the body, and a late recovery still joins an untouched editor (HF-L3)', async () => {
+    host.store('Shared');
+    host.state = { status: 503, body: '' };
+    const handle = keep(await editor('Original body', collab({ connectTimeout: 30 })));
+    expect(handle.root.dataset.collab).toBe('standalone');
+    expect(handle.getMarkdown()).toBe('Original body\n');
+    host.state = null;
+    await until(() => handle.root.dataset.collab === 'online', 6000);
+    expect(text(handle.root)).toBe('Shared');
+  });
+
+  it('a Retry-After on a 429 is honoured', async () => {
+    host.store('Shared');
+    const times: number[] = [];
+    let refused = 1;
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/token')) {
+        times.push(Date.now());
+        if (refused-- > 0) return new Response('', { status: 429, headers: { 'Retry-After': '2' } });
+      }
+      return host.fetch(url, init);
+    }));
+    const handle = keep(await editor('Shared', collab({ connectTimeout: 60_000 })));
+    expect(handle.root.dataset.collab).toBe('online');
+    expect(times[1]! - times[0]!).toBeGreaterThanOrEqual(1900);
   });
 
   it('a corrupt log: standalone, reported once, and the host reset reloads an untouched editor', async () => {
@@ -516,6 +653,73 @@ describe('standalone', () => {
     expect(opened.provider?.status).toBe('offline');
   });
 
+  it('text typed in the 1.5 s between a reset and the reload is not reloaded away (HF-L4)', async () => {
+    const reload = vi.spyOn(collabPage, 'reload').mockImplementation(() => undefined);
+    host.seedClaim = 'someone else';
+    const handle = keep(await editor('Original body', collab({ connectTimeout: 20 })));
+    expect(handle.root.dataset.collab).toBe('standalone');
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    host.broadcast({ t: 'r', c: 0, d: '' });
+    expect(handle.root.dataset.collab).toBe('reset');
+    handle.setMarkdown('Typed in the window');
+    vi.advanceTimersByTime(1500);
+    vi.useRealTimers();
+    expect(reload).not.toHaveBeenCalled();
+    expect(handle.root.dataset.collab).toBe('standalone');
+    expect(text(handle.root)).toBe('Typed in the window');
+    expect(alertOf(handle.root)).toContain('without live co-editing');
+  });
+
+  it('a later status does not clear the standalone warning (HF-I6)', async () => {
+    vi.spyOn(collabPage, 'reload').mockImplementation(() => undefined);
+    host.seedClaim = 'someone else';
+    const handle = keep(await editor('Original body', collab({ connectTimeout: 20 })));
+    expect(alertOf(handle.root)).toContain('without live co-editing');
+    host.broadcast({ t: 'r', c: 0, d: '' });
+    expect(statusOf(handle.root)).toContain('reloading');
+    expect(alertOf(handle.root)).toContain('without live co-editing');
+  });
+
+  it('not in the session: no presence and no compaction; joining starts presence (HF-I5)', async () => {
+    host.seedClaim = 'someone else';
+    host.state = { json: { state: 'AAA=', updates: [], seq: 5, compact: true, seed: false } };
+    const opened = keep(await editor('Original body', collab({ connectTimeout: 20, awarenessDelay: 0 })));
+    expect(opened.root.dataset.collab).toBe('standalone');
+    await tick(20);
+    const other = new Y.Doc();
+    const { Awareness, encodeAwarenessUpdate } = await import('y-protocols/awareness');
+    const peer = new Awareness(other);
+    peer.setLocalStateField('user', { name: 'Peer' });
+    host.broadcast({ t: 'a', c: other.clientID, d: toBase64(encodeAwarenessUpdate(peer, [other.clientID])) });
+    await tick(20);
+    expect(host.requests).not.toContain('awareness');
+    expect(host.requests).not.toContain('compact');
+    host.state = null;
+    host.store('Shared');
+    const content = new Y.Doc();
+    const paragraph = new Y.XmlElement('paragraph');
+    paragraph.insert(0, [new Y.XmlText('Shared')]);
+    content.getXmlFragment('prosemirror').insert(0, [paragraph]);
+    host.broadcast({ t: 'u', c: 999, d: toBase64(Y.encodeStateAsUpdate(content)) });
+    await until(() => opened.root.dataset.collab === 'online');
+    await until(() => host.requests.includes('awareness'));
+    peer.destroy();
+  });
+
+  it('the first edit ends a standalone session at once, before any later event (HF-I5, HF-I4)', async () => {
+    host.autoOpen = false;
+    const { root, handle } = await mounted('Original body', { connectTimeout: 20 });
+    const opened = await handle;
+    expect(root.dataset.collab).toBe('standalone');
+    opened.setMarkdown('Typed offline');
+    expect(opened.provider?.status).toBe('offline');
+    expect(host.hubs[0]!.closed).toBe(true);
+    const before = host.requests.length;
+    window.dispatchEvent(new Event('online'));
+    await tick(300);
+    expect(host.requests.length).toBe(before);
+  });
+
   it('a host reset does not reload away text typed offline; an untouched editor reloads', async () => {
     const reload = vi.spyOn(collabPage, 'reload').mockImplementation(() => undefined);
     host.seedClaim = 'someone else';
@@ -568,6 +772,36 @@ describe('the wait is bounded', () => {
     expect(h.onStatus).toHaveBeenCalledWith('standalone');
     expect(h.onReady).toHaveBeenCalledTimes(1);
     await session.ready;
+    session.stop();
+  });
+
+  it('a client waiting on a seed asks again, and takes over a stale claim (HF-I4)', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    host.seedClaim = 'someone else';
+    const h = hooks();
+    const action = vi.fn();
+    const session = startCollaboration({ action } as never, { ...COLLAB, connectTimeout: 100 }, 'x', h);
+    await vi.advanceTimersByTimeAsync(150);
+    expect(h.onStatus).toHaveBeenCalledWith('standalone');
+    expect(action).not.toHaveBeenCalled();
+    host.seedClaim = null;
+    await vi.advanceTimersByTimeAsync(SEED_RECHECK);
+    expect(host.requests.filter((r) => r === 'token').length).toBeGreaterThan(1);
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(session.bound()).toBe(true);
+    session.stop();
+  });
+
+  it('a touched client asks nothing more (HF-I4)', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    host.seedClaim = 'someone else';
+    const h = { ...hooks(), isUntouched: () => false };
+    const session = startCollaboration(fakeEditor, { ...COLLAB, connectTimeout: 100 }, 'x', h);
+    await vi.advanceTimersByTimeAsync(150);
+    session.edited();
+    const before = host.requests.length;
+    await vi.advanceTimersByTimeAsync(SEED_RECHECK * 2);
+    expect(host.requests.length).toBe(before);
     session.stop();
   });
 

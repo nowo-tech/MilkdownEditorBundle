@@ -87,7 +87,7 @@ final class MilkdownEditorType extends AbstractType
     ];
 
     /**
-     * UI strings of the states of 1.9.1, sent only to fields with `collaboration`, so other fields keep the same widget
+     * UI strings of the states of 1.10, sent only to fields with `collaboration`, so other fields keep the same widget
      * JSON as before.
      *
      * @var list<string>
@@ -564,7 +564,7 @@ final class MilkdownEditorType extends AbstractType
      * Collaboration needs `url`, `hub_url`, `topic` and a `user` name; the colour defaults to the accent. 1.5.1:
      * optional `update_delay_ms` (0–2000, coalescing window of document updates) and `awareness_delay_ms` (0–5000,
      * presence throttle) and `max_update_bytes` (1024–64 MiB, largest merged update per POST: the host's limit), sent
-     * only when set so the widget JSON is unchanged otherwise. 1.9.1: optional `connect_timeout_ms` (0–60000, longest wait
+     * only when set so the widget JSON is unchanged otherwise. 1.10: optional `connect_timeout_ms` (0–60000, longest wait
      * for the shared document before the person edits without it), also only when set.
      *
      * @param array<mixed> $value The option

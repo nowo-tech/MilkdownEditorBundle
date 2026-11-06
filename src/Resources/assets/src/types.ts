@@ -102,7 +102,7 @@ export type CollaborationOptions = {
   awarenessDelay?: number;
   /** 1.5.1 (DS-I1): largest merged update per POST, raw Yjs bytes (default 256 KiB, the host's limit). */
   maxUpdateBytes?: number;
-  /** 1.9.1: how long the editor waits for the shared document before it offers editing without it (ms, default 5000). */
+  /** 1.10: how long the editor waits for the shared document before it offers editing without it (ms, default 5000). */
   connectTimeout?: number;
 };
 
