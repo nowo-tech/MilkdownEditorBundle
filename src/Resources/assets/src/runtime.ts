@@ -33,6 +33,8 @@ export type Runtime = {
   dark: () => boolean;
   /** 1.5 `insert_menu`: the *Insert* group of the context menu, filled once the editor is created. */
   insert: InsertItem[];
+  /** 1.8: opens the file picker and uploads at the caret (`/file`); null without uploads or when read-only. */
+  pickFiles: ((view: import('@milkdown/kit/prose/view').EditorView) => void) | null;
 };
 
 export const defaultRuntime = (): Runtime => ({
@@ -49,6 +51,7 @@ export const defaultRuntime = (): Runtime => ({
   comment: null,
   dark: () => false,
   insert: [],
+  pickFiles: null,
 });
 
 export const runtimeCtx = $ctx<Runtime, 'nowoMilkdownRuntime'>(defaultRuntime(), 'nowoMilkdownRuntime');

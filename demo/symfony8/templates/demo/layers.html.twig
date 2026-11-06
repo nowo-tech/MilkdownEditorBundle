@@ -1,0 +1,30 @@
+{% extends 'base.html.twig' %}
+
+{#
+  1.8 (ME-1): the same editor under three host layouts that used to cover or move its menus: a sticky header with
+  z-index 100, an ancestor with transform (a containing block for fixed elements) and a modal <dialog>. The menus,
+  the `/` list and the icon picker render in the top layer (popover="manual"), so they stay on top, at the pointer.
+#}
+{% block title %}{{ 'demo.layers.heading'|trans }}{% endblock %}
+
+{% block body %}
+    <div class="demo-sticky" data-testid="sticky-header">{{ 'demo.layers.sticky_bar'|trans }}</div>
+    <h1>{{ 'demo.layers.heading'|trans }}</h1>
+    <p class="demo-lead">{{ 'demo.layers.lead'|trans }}</p>
+
+    {{ form_start(form) }}
+        <section class="demo-transformed" data-testid="transformed">
+            {{ form_row(form.transformed) }}
+        </section>
+        <section class="demo-under-sticky" data-testid="under-sticky">
+            {{ form_row(form.sticky) }}
+        </section>
+        <button type="button" class="demo-open-dialog" data-demo-open-dialog>{{ 'demo.layers.open_dialog'|trans }}</button>
+        <dialog class="demo-dialog" aria-labelledby="demo-dialog-title" data-testid="dialog">
+            <h2 id="demo-dialog-title">{{ 'demo.layers.dialog_title'|trans }}</h2>
+            {{ form_row(form.dialog) }}
+            <button type="button" data-demo-close-dialog>{{ 'demo.layers.close_dialog'|trans }}</button>
+        </dialog>
+    {{ form_end(form) }}
+    <script src="{{ asset('demo-layers.js') }}" defer></script>
+{% endblock %}

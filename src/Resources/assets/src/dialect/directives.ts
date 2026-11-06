@@ -7,6 +7,7 @@
  *   ::: {align=center}                             container without a name (alignment)
  *   :mark[text]{bg=<colour> text=<colour>}         text directive (background / text colour; legacy color= is bg)
  *   ::: {bg=<colour> text=<colour>}                container without a name (block colour, 1.4; with align=)
+ *   ::file[name]{href="…" size="…" type="…"}       1.8: file card (uploads that are not images, `file_cards`)
  *   ::name{…}                                      leaf directive kept as an embedded block (e.g. live host blocks)
  */
 import { ICON } from './patterns';

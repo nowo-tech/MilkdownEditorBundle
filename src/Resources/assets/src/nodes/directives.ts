@@ -23,6 +23,7 @@ import type { MdNode } from '../dialect/remark-dialect';
 import { iconSvg, pickerAvailable, runtimeCtx, t, type Runtime } from '../runtime';
 import { glyph } from '../ui/icons';
 import { catalogEntries, lazyIcons } from '../icons/open';
+import { fileCard } from '../dialect/file-card';
 
 const nameOf = (node: MdNode): string => (typeof node.name === 'string' && isDirectiveName(node.name) ? node.name : 'div');
 const isLabel = (node: MdNode | undefined): boolean => node?.type === 'paragraph' && node.data?.directiveLabel === true;
@@ -325,6 +326,13 @@ export const containerDirectiveView = $view(containerDirectiveSchema.node, (ctx)
 
 export const leafDirectiveView = $view(leafDirectiveSchema.node, (ctx) => (node) => {
   const runtime = ctx.get(runtimeCtx.key);
+  // 1.8 (ME-3): `::file[name]{href size type}` is a file card.
+  if (node.attrs.name === 'file') {
+    const card = fileCard(node.attrs.label as string, decodeAttributes(node.attrs.attributes));
+    card.contentEditable = 'false';
+    card.dataset.leafDirective = 'file';
+    return { dom: card, ignoreMutation: () => true, stopEvent: (event: Event) => event.type === 'click' && (event.target as Element).closest?.('a') !== null };
+  }
   const dom = document.createElement('div');
   dom.className = 'nowo-milkdown-leaf';
   dom.contentEditable = 'false';

@@ -25,7 +25,8 @@ export type Feature =
   | 'insert_menu'
   | 'comments'
   | 'version_view'
-  | 'heading_ids';
+  | 'heading_ids'
+  | 'file_cards';
 
 export const FEATURES: readonly Feature[] = [
   'toolbar',
@@ -47,7 +48,23 @@ export const FEATURES: readonly Feature[] = [
   'comments',
   'version_view',
   'heading_ids',
+  'file_cards',
 ];
+
+/** Buttons of the action bar (1.8 `action_bar_insert`). */
+export type ActionBarInsert = 'file' | 'icon';
+
+/** Upload options (FR-045; 1.8: accepted types per kind). */
+export type UploadOptions = {
+  url: string;
+  csrfToken: string | null;
+  maxSize: number;
+  /** Every accepted type (the file picker's `accept` and the check before a request); empty: any. */
+  accept: string[];
+  /** 1.8: types expected to come back as images / as attachments (only when the host splits them). */
+  acceptImages?: string[];
+  acceptFiles?: string[];
+};
 
 /** Suggestion triggers of the FR-075 dialect: `@` mentions, `[[` page links, `:` icons and emoji. */
 export type Trigger = '@' | '[[' | ':';
@@ -120,7 +137,9 @@ export type EditorOptions = {
   /** 1.7 `toolbar_icons` / `menu_icons`: decorative glyphs before action-bar and menu labels (default true). */
   toolbarIcons: boolean;
   menuIcons: boolean;
-  upload: { url: string; csrfToken: string | null; maxSize: number; accept: string[] } | null;
+  upload: UploadOptions | null;
+  /** 1.8 (ME-2) `action_bar_insert`: the action-bar buttons shown (default both; `[]` hides the bar's insert buttons). */
+  actionBarInsert: ActionBarInsert[];
   collaboration: CollaborationOptions | null;
   /** Colours the editor offers (`markdown.mark_colors`, 1.4); empty: the whole palette. */
   colors: string[];

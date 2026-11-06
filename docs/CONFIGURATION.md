@@ -21,7 +21,7 @@ nowo_milkdown_editor:
     profiles:
         default:
             # toolbar, top_bar, link_tooltip, table, code_mirror, math, mermaid, placeholder, cursor, slash_menu,
-            # context_menu (1.3), block_actions, block_drag, colors (1.4)
+            # context_menu (1.3), block_actions, block_drag, colors (1.4), file_cards (1.8)
             features: [toolbar, link_tooltip, table, code_mirror, placeholder, cursor, slash_menu]
             theme: auto                 # light | dark | auto
             min_height: 12rem           # CSS length: px, rem, em or vh
@@ -32,6 +32,9 @@ nowo_milkdown_editor:
             menu_icons: true            # 1.7: decorative icons in the context, block and `/` menus
             upload_max_size: 10485760   # bytes, checked in the browser before uploading (0: no limit)
             upload_accept: []           # MIME types, `type/*` or `.ext` (empty: any)
+            upload_accept_images: []    # 1.8: types expected as images (empty: upload_accept)
+            upload_accept_files: []     # 1.8: other types accepted as attachments (empty: none besides upload_accept)
+            action_bar_insert: [file, icon]  # 1.8: action-bar buttons Insert file / Insert icon; [] hides both
             mention_display: handle     # handle | name: mention chips show @handle or the name (1.2.1)
     markdown:
         html_input: escape              # escape | strip — raw HTML in Markdown is never rendered
@@ -106,6 +109,7 @@ the `Nowo\MilkdownEditorBundle\ProfileRegistry` service.
 | `comments` | Inline comment anchors, highlights, **Ctrl / ⌘ + Alt + M**, next / previous comment, events; optional thread component with `comments.url` (1.6, see [USAGE](USAGE.md#comments)) | lazy |
 | `version_view` | Read-only view of an old version with a banner (*Restore* / *Copy to a new page* events); never with `comments` (1.6, see [USAGE](USAGE.md#version-view-and-diff)) | lazy |
 | `heading_ids` | Headings get ids `nowo-h-<slug>`, the same as the renderer's `markdown.heading_ids` (1.6) | lazy |
+| `file_cards` | Uploads that are not images become file cards `::file[name]{href size type}` instead of links (1.8, see [USAGE](USAGE.md#uploads)); `::file` is always rendered as a card | entry |
 
 Lists, task lists, blockquotes, headings, links, images and the dialect nodes are always available.
 
@@ -153,7 +157,10 @@ With the defaults the worst input measured peaks at about 39 MB (process total) 
 | `upload_url` | `?string` | `null` | POST target (multipart `file`) |
 | `upload_csrf_token` | `?string` | `null` | Sent as `X-CSRF-Token` |
 | `upload_max_size` | `int` | profile | Bytes |
-| `upload_accept` | `list<string>` | profile | |
+| `upload_accept` | `list<string>` | profile | Accepted types (empty: any) |
+| `upload_accept_images` | `list<string>` | profile (`[]`) | 1.8: types expected as images; with `upload_accept_files` the editor accepts their union (see [USAGE](USAGE.md#uploads)) |
+| `upload_accept_files` | `list<string>` | profile (`[]`) | 1.8: other types accepted as attachments (file cards with `file_cards`) |
+| `action_bar_insert` | `list<'file'\|'icon'>` | profile (`[file, icon]`) | 1.8: action-bar buttons; `[]` hides *Insert file* and *Insert icon* (sent in the widget JSON only when not the default) |
 | `collaboration` | `?array{url, hub_url, topic, user?: {name, color}, update_delay_ms?: int, awareness_delay_ms?: int, max_update_bytes?: int}` | `null` | Opt-in Yjs over Mercure; send windows in ms and the largest update per POST (1.5.1, defaults 200 / 750 / 256 KiB, see [USAGE](USAGE.md#collaboration)) |
 | `csp_nonce` | `?string` | `null` | Null: `CspNonceProviderInterface`; stamped on the module `<script>` and `<link>` only |
 | `max_length` | `?int` | `markdown.max_input_length` | Bytes; adds a `Length` constraint when symfony/validator is installed (null: none) |

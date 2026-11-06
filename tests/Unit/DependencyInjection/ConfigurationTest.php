@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\MilkdownEditorBundle\Tests\Unit\DependencyInjection;
 
 use Nowo\MilkdownEditorBundle\DependencyInjection\Configuration;
+use Nowo\MilkdownEditorBundle\Feature;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -47,6 +48,19 @@ final class ConfigurationTest extends TestCase
         $profile = $c['profiles']['default'];
         self::assertSame([false, true, true], [$profile['icon_catalog'] ?? null, $profile['toolbar_icons'] ?? null, $profile['menu_icons'] ?? null]);
         self::assertFalse($c['markdown']['icon_catalog'] ?? null);
+        // 1.8: both action-bar buttons, no per-kind upload lists.
+        self::assertSame([['file', 'icon'], [], []], [$profile['action_bar_insert'] ?? null, $profile['upload_accept_images'] ?? null, $profile['upload_accept_files'] ?? null]);
+        self::assertContains('file_cards', Feature::values());
+    }
+
+    #[Test]
+    public function actionBarAndUploadKindsAreConfigurable(): void
+    {
+        $profile = $this->process(['profiles' => ['default' => ['features' => ['file_cards'], 'action_bar_insert' => [], 'upload_accept_images' => ['image/png'], 'upload_accept_files' => ['application/pdf', '.csv']]]])['profiles']['default'];
+        self::assertSame(['file_cards'], $profile['features']);
+        self::assertSame([], $profile['action_bar_insert'] ?? null);
+        self::assertSame(['image/png'], $profile['upload_accept_images'] ?? null);
+        self::assertSame(['application/pdf', '.csv'], $profile['upload_accept_files'] ?? null);
     }
 
     #[Test]
@@ -83,6 +97,8 @@ final class ConfigurationTest extends TestCase
         yield 'bad mark colour' => [['markdown' => ['mark_colors' => ['Red!']]]];
         yield 'bad renderer icon' => [['markdown' => ['icons' => ['a b']]]];
         yield 'negative upload size' => [['profiles' => ['default' => ['upload_max_size' => -1]]]];
+        yield 'unknown action bar button' => [['profiles' => ['default' => ['action_bar_insert' => ['file', 'link']]]]];
+        yield 'empty accept entry' => [['profiles' => ['default' => ['upload_accept_files' => ['']]]]];
     }
 
     /**

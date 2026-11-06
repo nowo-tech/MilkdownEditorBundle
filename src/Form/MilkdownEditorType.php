@@ -23,8 +23,11 @@ use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+use function array_filter;
 use function array_key_exists;
 use function array_keys;
+use function array_unique;
+use function array_values;
 use function class_exists;
 use function implode;
 use function in_array;
@@ -43,7 +46,8 @@ use function strlen;
  *
  * Options: `profile`, `features`, `theme`, `min_height`, `placeholder`, `suggestions` (`@`, `[[`, `:` → candidate
  * URL), `link_title_url`, `icon_sprite_url`, `icons`, `upload_url`, `upload_csrf_token`, `upload_max_size`,
- * `upload_accept`, `collaboration`, `csp_nonce`, `max_length` (bytes; with symfony/validator a `Length` constraint is
+ * `upload_accept`, `upload_accept_images`, `upload_accept_files` (1.8), `action_bar_insert` (1.8), `collaboration`,
+ * `csp_nonce`, `max_length` (bytes; with symfony/validator a `Length` constraint is
  * added, by default the renderer's `max_input_length`, so oversized Markdown is rejected when it is written).
  *
  * @extends AbstractType<string>
@@ -70,6 +74,7 @@ final class MilkdownEditorType extends AbstractType
         'icon.browse', 'picker.label', 'picker.search', 'picker.list', 'picker.tab_icons', 'picker.tab_emoji', 'picker.none',
         'picker.empty', 'picker.count', 'picker.more', 'directive.callout_icon', 'directive.callout_icon_none',
         'upload.button', 'upload.uploading', 'upload.done', 'upload.failed', 'upload.too_large', 'upload.type',
+        'upload.off', 'upload.waiting', 'upload.dismiss', 'slash.file',
         'directive.callout', 'directive.callout_type', 'directive.callout.info', 'directive.callout.success',
         'directive.callout.warning', 'directive.callout.danger', 'directive.details', 'directive.summary', 'directive.block',
         'directive.align', 'directive.align.left', 'directive.align.center', 'directive.align.right',
@@ -178,12 +183,7 @@ final class MilkdownEditorType extends AbstractType
             'linkTitleUrl'  => $options['link_title_url'],
             'iconSpriteUrl' => $options['icon_sprite_url'],
             'icons'         => $options['icons'],
-            'upload'        => $options['upload_url'] === null ? null : [
-                'url'       => $options['upload_url'],
-                'csrfToken' => $options['upload_csrf_token'],
-                'maxSize'   => $options['upload_max_size'],
-                'accept'    => $options['upload_accept'],
-            ],
+            'upload'        => $options['upload_url'] === null ? null : $this->upload($options),
             'collaboration' => $options['collaboration'],
             'messages'      => (object) $this->messages($features),
         ];
@@ -229,6 +229,10 @@ final class MilkdownEditorType extends AbstractType
         if ($options['menu_icons'] === false) {
             $view->vars['milkdown_options']['menuIcons'] = false;
         }
+        // 1.8 (ME-2): only when not the default, so fields with the defaults keep the same widget JSON.
+        if ($options['action_bar_insert'] !== Configuration::ACTION_BAR_INSERT) {
+            $view->vars['milkdown_options']['actionBarInsert'] = $options['action_bar_insert'];
+        }
         if (is_string($options['user_title_url'])) {
             $view->vars['milkdown_options']['userTitleUrl'] = $options['user_title_url'];
         }
@@ -244,32 +248,35 @@ final class MilkdownEditorType extends AbstractType
         $profile = fn (Options $o): array => $this->profiles->get(is_string($o['profile']) ? $o['profile'] : null);
 
         $resolver->setDefaults([
-            'profile'           => null,
-            'required'          => false,
-            'empty_data'        => '',
-            'placeholder'       => null,
-            'suggestions'       => [],
-            'link_title_url'    => null,
-            'upload_url'        => null,
-            'upload_csrf_token' => null,
-            'collaboration'     => null,
-            'csp_nonce'         => null,
-            'max_length'        => $this->maxInputLength,
-            'features'          => static fn (Options $o): array => $profile($o)['features'],
-            'theme'             => static fn (Options $o): string => $profile($o)['theme'],
-            'min_height'        => static fn (Options $o): string => $profile($o)['min_height'],
-            'icon_sprite_url'   => static fn (Options $o): ?string => $profile($o)['icon_sprite_url'],
-            'icons'             => static fn (Options $o): array => $profile($o)['icons'],
-            'upload_max_size'   => static fn (Options $o): int => $profile($o)['upload_max_size'],
-            'upload_accept'     => static fn (Options $o): array => $profile($o)['upload_accept'],
-            'mention_display'   => static fn (Options $o): string => $profile($o)['mention_display'] ?? 'handle',
-            'icon_catalog'      => static fn (Options $o): bool => $profile($o)['icon_catalog'] ?? false,
-            'toolbar_icons'     => static fn (Options $o): bool => $profile($o)['toolbar_icons'] ?? true,
-            'menu_icons'        => static fn (Options $o): bool => $profile($o)['menu_icons'] ?? true,
-            'user_title_url'    => null,
-            'comments'          => null,
-            'version'           => null,
-            'attr'              => ['rows' => 12],
+            'profile'              => null,
+            'required'             => false,
+            'empty_data'           => '',
+            'placeholder'          => null,
+            'suggestions'          => [],
+            'link_title_url'       => null,
+            'upload_url'           => null,
+            'upload_csrf_token'    => null,
+            'collaboration'        => null,
+            'csp_nonce'            => null,
+            'max_length'           => $this->maxInputLength,
+            'features'             => static fn (Options $o): array => $profile($o)['features'],
+            'theme'                => static fn (Options $o): string => $profile($o)['theme'],
+            'min_height'           => static fn (Options $o): string => $profile($o)['min_height'],
+            'icon_sprite_url'      => static fn (Options $o): ?string => $profile($o)['icon_sprite_url'],
+            'icons'                => static fn (Options $o): array => $profile($o)['icons'],
+            'upload_max_size'      => static fn (Options $o): int => $profile($o)['upload_max_size'],
+            'upload_accept'        => static fn (Options $o): array => $profile($o)['upload_accept'],
+            'mention_display'      => static fn (Options $o): string => $profile($o)['mention_display'] ?? 'handle',
+            'icon_catalog'         => static fn (Options $o): bool => $profile($o)['icon_catalog'] ?? false,
+            'toolbar_icons'        => static fn (Options $o): bool => $profile($o)['toolbar_icons'] ?? true,
+            'menu_icons'           => static fn (Options $o): bool => $profile($o)['menu_icons'] ?? true,
+            'action_bar_insert'    => static fn (Options $o): array => $profile($o)['action_bar_insert'] ?? Configuration::ACTION_BAR_INSERT,
+            'upload_accept_images' => static fn (Options $o): array => $profile($o)['upload_accept_images'] ?? [],
+            'upload_accept_files'  => static fn (Options $o): array => $profile($o)['upload_accept_files'] ?? [],
+            'user_title_url'       => null,
+            'comments'             => null,
+            'version'              => null,
+            'attr'                 => ['rows' => 12],
         ]);
 
         $resolver->setAllowedTypes('profile', ['null', 'string']);
@@ -294,6 +301,18 @@ final class MilkdownEditorType extends AbstractType
         $resolver->setAllowedTypes('icon_catalog', 'bool');
         $resolver->setAllowedTypes('toolbar_icons', 'bool');
         $resolver->setAllowedTypes('menu_icons', 'bool');
+        $resolver->setAllowedTypes('action_bar_insert', 'string[]');
+        $resolver->setAllowedTypes('upload_accept_images', 'string[]');
+        $resolver->setAllowedTypes('upload_accept_files', 'string[]');
+        $resolver->setNormalizer('action_bar_insert', static function (Options $o, array $value): array {
+            foreach ($value as $button) {
+                if (!in_array($button, Configuration::ACTION_BAR_INSERT, true)) {
+                    throw new InvalidOptionsException(sprintf('Unknown "action_bar_insert" button "%s". Allowed: %s.', is_string($button) ? $button : get_debug_type($button), implode(', ', Configuration::ACTION_BAR_INSERT)));
+                }
+            }
+
+            return array_values(array_filter(Configuration::ACTION_BAR_INSERT, static fn (string $b): bool => in_array($b, $value, true)));
+        });
         $resolver->setAllowedTypes('comments', ['null', 'array']);
         $resolver->setAllowedTypes('version', ['null', 'array']);
         $resolver->setNormalizer('version', static fn (Options $o, ?array $value): ?array => $value === null ? null : self::normaliseVersion($value));
@@ -408,6 +427,40 @@ final class MilkdownEditorType extends AbstractType
         }
 
         return ['label' => mb_substr($label, 0, 200), 'restore' => $restore, 'copy' => $copy];
+    }
+
+    /**
+     * The `upload` part of the widget JSON. 1.8 (ME-3): with `upload_accept_images` / `upload_accept_files`, `accept` is
+     * their union (images default to `upload_accept`) and both lists are sent; without them the JSON is unchanged.
+     *
+     * @param array<string, mixed> $options The resolved options
+     *
+     * @return array<string, mixed>
+     */
+    private function upload(array $options): array
+    {
+        /** @var list<string> $accept */
+        $accept = $options['upload_accept'];
+        /** @var list<string> $images */
+        $images = $options['upload_accept_images'];
+        /** @var list<string> $files */
+        $files  = $options['upload_accept_files'];
+        $upload = [
+            'url'       => $options['upload_url'],
+            'csrfToken' => $options['upload_csrf_token'],
+            'maxSize'   => $options['upload_max_size'],
+            'accept'    => $accept,
+        ];
+        if ($images === [] && $files === []) {
+            return $upload;
+        }
+        $images = $images !== [] ? $images : $accept;
+        // An empty image list means "any type": the union stays "any".
+        $upload['accept']       = $images === [] ? [] : array_values(array_unique([...$images, ...$files]));
+        $upload['acceptImages'] = $images;
+        $upload['acceptFiles']  = $files;
+
+        return $upload;
     }
 
     /**

@@ -306,4 +306,40 @@ function i(n, r = "") {
 	}
 	return a;
 }
-export { r as n, i as t };
+// src/Resources/assets/src/ui/layer.ts
+var a = "nowo-milkdown-layer--detached", o = "--nowo-milkdown-", s = (/* @__PURE__ */ "font.font-code.font-size.text.muted.background.surface.border.accent.accent-text.accent-soft.focus.selection.info.success.warning.danger.radius.radius-control.shadow.icon-size.icon-color.mark-text.mark-yellow.mark-green.mark-blue.mark-red.mark-purple.mark-gray.mark-brown.mark-orange.mark-pink.color-gray.color-brown.color-orange.color-yellow.color-green.color-blue.color-purple.color-pink.color-red".split(".")).map((e) => o + e), c = /* @__PURE__ */ new WeakSet();
+function l() {
+	return typeof HTMLElement < "u" && typeof HTMLElement.prototype.showPopover == "function";
+}
+function u(e, t) {
+	let n = getComputedStyle(e), r = new Set(s);
+	for (let e = 0; e < n.length; e++) {
+		let t = n.item(e);
+		t.startsWith(o) && r.add(t);
+	}
+	for (let e of r) {
+		let r = n.getPropertyValue(e).trim();
+		r !== "" && t.style.setProperty(e, r);
+	}
+	let i = n.getPropertyValue("font-family");
+	i && t.style.setProperty("font-family", i);
+}
+function d(e, t) {
+	if (e.hidden = !1, l()) {
+		e.parentElement !== t && (c.delete(e), t.append(e)), e.getAttribute("popover") !== "manual" && e.setAttribute("popover", "manual"), c.has(e) || e.showPopover(), c.add(e);
+		return;
+	}
+	let n = t.closest("dialog[open]") ?? document.body;
+	e.parentElement !== n && n.append(e), e.classList.add(a), u(t.closest(".nowo-milkdown") ?? t, e), c.add(e);
+}
+function f(e) {
+	c.has(e) && (c.delete(e), l() && e.getAttribute("popover") === "manual" && e.isConnected && e.hidePopover()), e.hidden = !0;
+}
+function p(e, t, n, r) {
+	e.style.left = "0px", e.style.top = "0px";
+	let i = e.getBoundingClientRect(), a = i.width || 0, o = i.height || 0, s = Math.max(0, window.innerWidth - a - 4);
+	r !== void 0 && t > s && r - a >= 4 && (t = r - a);
+	let c = Math.max(0, window.innerHeight - o - 4);
+	e.style.left = `${Math.round(Math.min(Math.max(4, t), s))}px`, e.style.top = `${Math.round(Math.min(Math.max(4, n), c))}px`;
+}
+export { r as a, i, p as n, d as r, f as t };

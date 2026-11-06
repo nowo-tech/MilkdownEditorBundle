@@ -35,6 +35,8 @@ enum Feature: string
     case VersionView = 'version_view';
     /** 1.6: prefixed heading ids (`nowo-h-<slug>`), the same slugs as `markdown.heading_ids`. */
     case HeadingIds = 'heading_ids';
+    /** 1.8: uploads that are not images become file cards (`::file[name]{href size type}`) instead of links. */
+    case FileCards = 'file_cards';
 
     /**
      * Features enabled when a profile does not list its own.

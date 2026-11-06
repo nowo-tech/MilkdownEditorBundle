@@ -21,6 +21,7 @@ symfony-beacon `specs/178-wiki/tasks.md`.
   - [Notion features that fight Markdown](#notion-features-that-fight-markdown)
 - [Milestones](#milestones)
   - [Progress](#progress)
+  - [Shipped versus planned (2026-11-06)](#shipped-versus-planned-2026-11-06)
 - [Feature assessments](#feature-assessments)
   - [Context menu (right click)](#context-menu-right-click)
   - [Block actions, block handle and drag and drop](#block-actions-block-handle-and-drag-and-drop)
@@ -217,6 +218,30 @@ are marked *default pending user confirmation*.
 - [x] Icons (owner request): decorative icons in menus, `/` and the action bar (`menu_icons`, `toolbar_icons`, on), the
   Tabler outline catalog (`icon_catalog`, opt-in) with a searchable icon picker, and the **callout icon picker**
   (`:::callout{icon=…}`, Tabler or emoji) — 1.7, PR #17
+- [x] Beacon request 2026-11-06: menus in the top layer (`popover="manual"`, fallback without the Popover API),
+  `action_bar_insert`, drop / paste of several files with per-file placeholders, `file_cards`
+  (`::file[name]{href size type}`, TS + PHP), upload answer `{url, name, size, type, kind}`,
+  `upload_accept_images` / `upload_accept_files`, `/file` — 1.8 (unreleased), PR #19
+
+### Shipped versus planned (2026-11-06)
+
+The version numbers of the milestone table above are the plan of 2026-11-03; releases followed the owner's and
+Beacon's requests instead, so the numbers no longer match:
+
+| Release | Shipped | Roadmap row it came from |
+|---------|---------|--------------------------|
+| 1.3.0 | `context_menu` | 1.3 |
+| 1.4.0 | `block_actions`, `block_drag`, `colors` | 1.3 |
+| 1.5.0 / 1.5.1 | `markdown_clipboard`, `insert_menu`, read-view *Copy as Markdown* | owner requests (not in the table) |
+| 1.6.0 | `comments`, `version_view`, diff, `heading_ids` | 1.4 |
+| 1.7.0 | `menu_icons`, `toolbar_icons`, `icon_catalog`, icon picker, callout icons | owner request (callout icon picker was a 1.5 proposal) |
+| 1.8 (unreleased) | top-layer menus, `action_bar_insert`, file drop and `file_cards` | Beacon request 2026-11-06 |
+
+Still open from the table, in Beacon's order: **`image_block`** (caption, alt, width, alignment, lightbox, image
+source resolver — row 1.5), **`toc` / outline panel** and **`find_replace`** (row 1.7) and **`insert_button`** ("+" on
+empty lines — row 1.3, never built). Proposed next milestones (*pending owner confirmation*): **1.9** `image_block`
+(D9 syntax, resolver for host schemes, spec 183) and `insert_button`; **1.10** `toc` block + `outline_panel` and
+`find_replace` (+ `counts`).
 
 ## Feature assessments
 

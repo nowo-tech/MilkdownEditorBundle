@@ -6,6 +6,8 @@
  * aria-autocomplete="list"; the popup is role="listbox" with role="option" children and a polite live region
  * announces the number of results. Keys: Up / Down, Enter / Tab insert, Escape closes.
  *
+ * 1.8 (ME-1): the listbox renders in the top layer (`popover="manual"`, see `ui/layer.ts`), placed under the trigger.
+ *
  * Keys are read by a capture-phase listener on the editable: Crepe's keymaps (Enter splits a block, Tab
  * indents) run before a ProseMirror plugin added later would see the key.
  */
@@ -15,6 +17,7 @@ import type { EditorView } from '@milkdown/kit/prose/view';
 import type { Ctx } from '@milkdown/kit/ctx';
 import { iconSvg, runtimeCtx, t, type Runtime } from '../runtime';
 import { glyph } from '../ui/icons';
+import { hideLayer, placeLayer, showLayer } from '../ui/layer';
 
 export type SuggestItem = {
   id: string;
@@ -79,6 +82,7 @@ export class SuggestView {
   private timer: number | undefined;
   private dismissedAt: number | null = null;
   private readonly id = `nowo-milkdown-suggest-${++sequence}`;
+  private readonly host: HTMLElement;
   private readonly onKeyCapture = (event: KeyboardEvent): void => {
     if (this.onKey(event)) {
       event.preventDefault();
@@ -108,8 +112,8 @@ export class SuggestView {
     this.live = document.createElement('div');
     this.live.className = 'nowo-milkdown-sr-only';
     this.live.setAttribute('aria-live', 'polite');
-    const host = (view.dom.closest('.nowo-milkdown') as HTMLElement | null) ?? document.body;
-    host.append(this.listbox, this.live);
+    this.host = (view.dom.closest('.nowo-milkdown') as HTMLElement | null) ?? document.body;
+    this.host.append(this.listbox, this.live);
   }
 
   get isOpen(): boolean {
@@ -131,6 +135,7 @@ export class SuggestView {
   destroy(): void {
     this.close();
     this.view.dom.removeEventListener('keydown', this.onKeyCapture, true);
+    hideLayer(this.listbox);
     this.listbox.remove();
     this.live.remove();
     views.delete(this.view);
@@ -223,7 +228,7 @@ export class SuggestView {
       li.textContent = t(this.runtime, failed ? 'suggest.failed' : 'suggest.empty');
       this.listbox.append(li);
     }
-    this.listbox.hidden = false;
+    showLayer(this.listbox, this.host);
     const dom = this.view.dom;
     dom.setAttribute('aria-controls', this.id);
     dom.setAttribute('aria-autocomplete', 'list');
@@ -247,12 +252,9 @@ export class SuggestView {
 
   private position(): void {
     if (!this.active || this.listbox.hidden) return;
-    const host = this.listbox.offsetParent as HTMLElement | null;
-    const base = host?.getBoundingClientRect() ?? { left: -window.scrollX, top: -window.scrollY };
     const c = this.view.coordsAtPos(this.active.from);
-    // CSSOM (element.style.x = …) is not an inline style attribute: allowed by a strict style-src-attr.
-    this.listbox.style.left = `${Math.round(c.left - base.left)}px`;
-    this.listbox.style.top = `${Math.round(c.bottom - base.top + 4)}px`;
+    // Viewport coordinates (the top layer); CSSOM is not an inline style attribute: allowed by a strict style-src-attr.
+    placeLayer(this.listbox, c.left, c.bottom + 4);
   }
 
   private pick(): void {
@@ -270,7 +272,7 @@ export class SuggestView {
     this.abort?.abort();
     this.active = null;
     this.items = [];
-    this.listbox.hidden = true;
+    hideLayer(this.listbox);
     const dom = this.view.dom;
     dom.removeAttribute('aria-controls');
     dom.removeAttribute('aria-activedescendant');

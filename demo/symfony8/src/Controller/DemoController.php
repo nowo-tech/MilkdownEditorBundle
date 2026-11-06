@@ -57,6 +57,20 @@ final class DemoController extends AbstractController
 
         MD;
 
+    /** Sniffed image types => stored extension (no SVG: it can carry scripts). */
+    private const IMAGES = ['image/png' => 'png', 'image/jpeg' => 'jpg', 'image/gif' => 'gif', 'image/webp' => 'webp'];
+
+    /** Sniffed document types => stored extension. */
+    private const DOCUMENTS = [
+        'application/pdf' => 'pdf',
+        'text/plain'      => 'txt',
+        'text/csv'        => 'csv',
+        'application/csv' => 'csv',
+        'application/zip' => 'zip',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'       => 'xlsx',
+    ];
+
     public function __construct(
         private readonly DemoDirectory $directory,
         private readonly CsrfTokenManagerInterface $csrf,
@@ -123,6 +137,11 @@ final class DemoController extends AbstractController
         return $this->json($this->directory->searchUsers($request->query->getString('q')));
     }
 
+    /**
+     * Upload endpoint (1.8 contract `{url, name, size, type, kind}`): the server decides the kind from the sniffed MIME
+     * type (never the client's), images and an allow-list of documents only, 2 MiB, stored under a random name with an
+     * extension from the allow-list.
+     */
     #[Route('/api/upload', name: 'demo_api_upload', methods: ['POST'])]
     public function upload(Request $request): JsonResponse
     {
@@ -133,11 +152,42 @@ final class DemoController extends AbstractController
         if (!$file instanceof UploadedFile || !$file->isValid() || $file->getSize() > 2097152) {
             return $this->json(['error' => 'Invalid file'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
-        $mime  = (string) $file->getMimeType();
-        $image = \in_array($mime, ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], true);
-        $name  = bin2hex(random_bytes(8)) . '.' . ($image ? (string) $file->guessExtension() : 'bin');
+        // The sniffed type of the bytes (fileinfo), never the client's Content-Type nor the file name.
+        $mime      = (string) (new \finfo(\FILEINFO_MIME_TYPE))->file($file->getPathname());
+        $extension = self::IMAGES[$mime] ?? self::DOCUMENTS[$mime] ?? null;
+        if ($extension === null) {
+            return $this->json(['error' => 'Type not allowed'], Response::HTTP_UNSUPPORTED_MEDIA_TYPE);
+        }
+        $size = (int) $file->getSize();
+        $name = bin2hex(random_bytes(8)) . '.' . $extension;
         $file->move($this->getParameter('kernel.project_dir') . '/public/uploads', $name);
 
-        return $this->json(['url' => '/uploads/' . $name, 'name' => $file->getClientOriginalName(), 'image' => $image]);
+        return $this->json([
+            'url'  => '/uploads/' . $name,
+            'name' => mb_substr($file->getClientOriginalName(), 0, 200),
+            'size' => $size,
+            'type' => $mime,
+            'kind' => isset(self::IMAGES[$mime]) ? 'image' : 'file',
+        ]);
+    }
+
+    /**
+     * ME-1: editors inside a transformed ancestor, under a sticky header (z-index 100) and in a modal dialog; their
+     * menus must render on top, at the pointer (top layer). `action_bar_insert: []` (ME-2) on these fields.
+     */
+    #[Route('/layers', name: 'demo_layers', methods: ['GET'])]
+    public function layers(Request $request): Response
+    {
+        if ($request->query->get('devtools') === '0') {
+            $this->profiler?->disable();
+        }
+        $field = static fn (string $label): array => ['label' => $label, 'profile' => 'wiki', 'action_bar_insert' => []];
+        $form  = $this->createFormBuilder(['transformed' => "# Transformed\n\nRight-click this paragraph.", 'sticky' => "# Sticky\n\nRight-click this paragraph.", 'dialog' => "# Dialog\n\nRight-click this paragraph."])
+            ->add('transformed', MilkdownEditorType::class, $field('demo.layers.transformed'))
+            ->add('sticky', MilkdownEditorType::class, $field('demo.layers.sticky'))
+            ->add('dialog', MilkdownEditorType::class, $field('demo.layers.dialog'))
+            ->getForm();
+
+        return $this->render('demo/layers.html.twig', ['form' => $form->createView()]);
     }
 }

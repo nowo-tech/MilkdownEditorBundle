@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
+- [Unreleased (1.8.0)](#unreleased-180)
 - [To 1.7.0](#to-170)
 - [To 1.6.0](#to-160)
 - [To 1.5.1](#to-151)
@@ -27,6 +28,32 @@
 Public API covered by Semantic Versioning: the configuration tree, profile keys, form options, Twig filter / function
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
+
+## Unreleased (1.8.0)
+
+- No BC break; run `assets:install` (the editor module and its chunks change). Fields with the defaults keep the same
+  widget JSON except `messages` (new strings: `upload.off`, `upload.waiting`, `upload.dismiss`, `slash.file`).
+- **Menus render in the top layer** (`popover="manual"`). They are still children of the widget, so host CSS that
+  targets `.nowo-milkdown .nowo-milkdown-menu` keeps working; a host rule that set `z-index` on `.nowo-milkdown-menu`,
+  `.nowo-milkdown-suggest` or `.nowo-milkdown-picker` to lift them above a header or dialog is no longer needed (the
+  top layer ignores `z-index`). The suggestion list is now `position: fixed` in viewport coordinates (it was
+  `absolute` inside the widget). Tests that read the popup's `hidden` attribute still can; `:popover-open` is the
+  browser's own state.
+- **Action bar:** to drop *Insert file* and *Insert icon* (Beacon's choice), set `action_bar_insert: []` on the profile
+  or the field. Default unchanged.
+- **Drop / paste:** several files at once now upload one after the other, each with its own placeholder, instead of one
+  request batch inserted at the end; files dropped on a read-only editor or a field without `upload_url` are no longer
+  inserted (nothing was uploaded for them anyway; images could appear as `blob:` URLs).
+- **Upload endpoint:** answer `{url, name, size, type, kind: 'image'|'file'}` and decide `kind` on the server from the
+  bytes (e.g. `finfo`), never from the client's `Content-Type`. Old answers keep working (`{url}` uses the browser's
+  guess as before). Answer HTTP 415 for refused types (shown as *not an allowed file type*).
+- **File cards** are opt-in: add `file_cards` to `features` and allow document types (e.g.
+  `upload_accept_files: [application/pdf, text/csv, .csv, .docx, .xlsx, application/zip]`; keep images in
+  `upload_accept` or `upload_accept_images`). Serve stored documents with `Content-Disposition: attachment` and
+  `X-Content-Type-Options: nosniff`. The PHP renderer renders `::file` for every host (it was an empty
+  `div.nowo-md-directive--leaf` before) unless a host `DirectiveRendererInterface` supports `file`.
+- Search indexes that read the Markdown should treat `::file[…]{…}` lines like other directives (the label is the file
+  name).
 
 ## To 1.7.0
 

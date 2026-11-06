@@ -102,15 +102,43 @@ show *Content not visible* and no link. URLs other than relative or http(s) are 
 ## Uploads
 
 ```php
-'upload_url'        => $this->generateUrl('app_upload'),
-'upload_csrf_token' => $csrfTokenManager->getToken('upload')->getValue(),
-'upload_max_size'   => 5 * 1024 * 1024,
-'upload_accept'     => ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'application/pdf'],
+'upload_url'           => $this->generateUrl('app_upload'),
+'upload_csrf_token'    => $csrfTokenManager->getToken('upload')->getValue(),
+'upload_max_size'      => 5 * 1024 * 1024,
+'upload_accept'        => ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+// 1.8: other files as attachments (file cards with the `file_cards` feature, links otherwise)
+'upload_accept_files'  => ['application/pdf', 'text/csv', '.csv', '.docx', '.xlsx', 'application/zip'],
+// 1.8: hide the action bar's Insert file / Insert icon (drop, paste, /file, /icon and *Insert* stay)
+'action_bar_insert'    => [],
 ```
 
-Dropped, pasted or picked (*Insert file*) files are POSTed as multipart field `file` with the token in the
-`X-CSRF-Token` header. Answer with `{"url": "/files/…", "name": "a.png", "image": true, "alt": "…"}`; images become
-`![alt](url)`, other files `[name](url)`. HTTP 413 shows *too large*; other errors *could not be uploaded*.
+Dropped, pasted or picked files (*Insert file*, `/file`, *Insert → Image or file…*) are POSTed one by one as multipart
+field `file` with the token in the `X-CSRF-Token` header. Since 1.8 several files can be dropped or pasted at once:
+each gets a placeholder with its progress at the drop point and they land in drop order; a failed file leaves a
+dismissible notice in its place. A clipboard with files and no HTML (a screenshot) uploads like a drop; HTML with
+files (Word, Excel) keeps the normal paste. On a read-only editor or a field without `upload_url` a drop inserts
+nothing and the status region says uploads are off.
+
+Answer (1.8) with:
+
+```json
+{"url": "/files/9b1c…", "name": "Q3 report.pdf", "size": 1258291, "type": "application/pdf", "kind": "file"}
+```
+
+- `kind` (`image` or `file`) is **decided by the server** from the bytes it sniffed; the editor never overrides it.
+  Older answers keep working: `{"url": …, "name": …, "image": true, "alt": …}` (`image` flag) and `{"url": …}` (the
+  browser's guess from the file type and the per-kind lists).
+- `image` → `![alt](url)` (`alt` from the answer, else the name without extension).
+- `file` → with the `file_cards` feature a **file card** `::file[Q3 report.pdf]{href="/files/9b1c…" size="1258291"
+  type="application/pdf"}` (badge by type, name, size; the PHP renderer draws the same card, `.nowo-md-file`), without
+  it a link `[name](url)`.
+- `size` (bytes, integer) and `type` (MIME) are optional: invalid values fall back to the file's own; `name` is cleaned
+  (control and bidi characters, brackets) and cut at 200 characters.
+- HTTP 413 shows *too large*, 415 *not an allowed file type*; other errors *could not be uploaded*.
+
+`upload_accept` filters files before any request (the file picker's `accept` too). With `upload_accept_images` /
+`upload_accept_files` the accepted types are their union (images default to `upload_accept`); the lists also guide the
+browser's guess for hosts whose answer has no `kind`.
 
 The browser checks are a convenience only: a direct POST skips them. The endpoint must validate the token and the
 size again, detect the type from the content (do not trust the client's type or name) and **never accept
@@ -514,6 +542,11 @@ Ids are unique per document: two editors on one page, or both sides of a diff, c
 - The context menu (`context_menu`) follows the WAI-ARIA menu pattern: Up / Down (wrap), Home / End, type-ahead,
   Right / Enter opens a submenu, Left / Escape closes it, Escape or Tab closes the menu and focus returns to the
   caret.
+- Menus, the `/` and suggestion lists and the icon picker render in the **top layer** (1.8, `popover="manual"`):
+  sticky headers, drawers, modal dialogs and transformed ancestors of the editor cannot cover or move them. They stay
+  inside the widget in the DOM (theme tokens, dark mode); without the Popover API they move to `<body>` (or the open
+  modal dialog) with the tokens copied.
+- Dragging files has a keyboard alternative (WCAG 2.5.7): `/file`, *Insert → Image or file…* and the action bar.
 - Comments (1.6): **Ctrl / ⌘ + Alt + M** comments on the selection, **Ctrl / ⌘ + Alt + PageDown / PageUp** move
   between comments (selected and announced), **Enter** opens one, **Escape** returns; the thread list is a named
   `complementary` region.

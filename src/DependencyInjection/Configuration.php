@@ -25,7 +25,7 @@ use function sprintf;
  *     nowo_milkdown_editor:
  *         default_profile: default
  *         profiles:
- *             default: { features: [...], theme: auto, min_height: 12rem, icon_sprite_url: ~, icons: [], icon_catalog: false, toolbar_icons: true, menu_icons: true, upload_max_size: 10485760, upload_accept: [] }
+ *             default: { features: [...], theme: auto, min_height: 12rem, icon_sprite_url: ~, icons: [], icon_catalog: false, toolbar_icons: true, menu_icons: true, action_bar_insert: [file, icon], upload_max_size: 10485760, upload_accept: [], upload_accept_images: [], upload_accept_files: [] }
  *         markdown: { html_input: escape, allow_unsafe_links: false, allow_remote_images: false, math: true, ... }
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
@@ -37,6 +37,9 @@ final class Configuration implements ConfigurationInterface
 
     /** Icon names: lower-case words joined by single hyphens (the Tabler naming). */
     public const ICON_PATTERN = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/';
+
+    /** Buttons of the action bar that `action_bar_insert` may keep (1.8, ME-2). */
+    public const ACTION_BAR_INSERT = ['file', 'icon'];
 
     /** CSS length accepted for `min_height`. */
     public const LENGTH_PATTERN = '/^\d+(?:\.\d+)?(?:px|rem|em|vh)$/';
@@ -120,9 +123,28 @@ final class Configuration implements ConfigurationInterface
                     ->integerNode('upload_max_size')->info('Largest upload in bytes (0: no client-side limit).')->min(0)->defaultValue(10485760)->end()
                     ->enumNode('mention_display')->info('Mention chips show the @handle (default) or the person\'s name (1.2.1; names from the `@` suggestions and `user_title_url`).')->values(['handle', 'name'])->defaultValue('handle')->end()
                     ->arrayNode('upload_accept')
-                        ->info('Accepted upload types: MIME types, `type/*` or `.ext` (empty: any).')
+                        ->info('Accepted upload types: MIME types, `type/*` or `.ext` (empty: any). 1.8: with upload_accept_images / upload_accept_files set, the types accepted as images when upload_accept_images is empty.')
                         ->scalarPrototype()->cannotBeEmpty()->end()
                         ->defaultValue([])
+                    ->end()
+                    ->arrayNode('upload_accept_images')
+                        ->info('1.8: types uploaded and inserted as images (empty: upload_accept). The upload answer\'s `kind` decides the node; this list filters files before any request.')
+                        ->scalarPrototype()->cannotBeEmpty()->end()
+                        ->defaultValue([])
+                    ->end()
+                    ->arrayNode('upload_accept_files')
+                        ->info('1.8: other types accepted as attachments (file cards with the file_cards feature, links otherwise); empty: none besides upload_accept.')
+                        ->scalarPrototype()->cannotBeEmpty()->end()
+                        ->defaultValue([])
+                    ->end()
+                    ->arrayNode('action_bar_insert')
+                        ->info('1.8: buttons of the action bar above the editor: file (Insert file), icon (Insert icon); [] hides both (the `/` menu, the context menu Insert group and drop / paste stay).')
+                        ->scalarPrototype()->end()
+                        ->defaultValue(self::ACTION_BAR_INSERT)
+                        ->validate()
+                            ->ifTrue(static fn (array $v): bool => array_filter($v, static fn (mixed $b): bool => !in_array($b, self::ACTION_BAR_INSERT, true)) !== [])
+                            ->thenInvalid('action_bar_insert accepts file and icon only (%s).')
+                        ->end()
                     ->end()
                 ->end()
             ->end();

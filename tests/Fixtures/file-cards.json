@@ -1,0 +1,26 @@
+{
+  "_comment": "Shared by the PHP (FileCardTest) and TypeScript (file-card.test.ts) tests: category, badge and size text of ::file cards (1.8).",
+  "cards": [
+    { "name": "report.pdf", "type": "application/pdf", "size": "1258291", "category": "pdf", "badge": "PDF", "sizeText": "1.2 MB" },
+    { "name": "data.CSV", "type": "", "size": "512", "category": "sheet", "badge": "CSV", "sizeText": "512 B" },
+    { "name": "photo.jpeg", "type": "image/jpeg", "size": "2048", "category": "image", "badge": "JPEG", "sizeText": "2 KB" },
+    { "name": "deck.pptx", "type": "", "size": "15728640", "category": "slides", "badge": "PPTX", "sizeText": "15 MB" },
+    { "name": "notes", "type": "text/plain", "size": "0012", "category": "text", "badge": "FILE", "sizeText": "12 B" },
+    { "name": "archive", "type": "application/x-7z-compressed", "size": "", "category": "archive", "badge": "FILE", "sizeText": "" },
+    { "name": "book", "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "size": "10239", "category": "doc", "badge": "FILE", "sizeText": "10 KB" },
+    { "name": "sheet", "type": "application/vnd.ms-excel", "size": "1536", "category": "sheet", "badge": "FILE", "sizeText": "1.5 KB" },
+    { "name": "talk", "type": "application/vnd.ms-powerpoint", "size": "-1", "category": "slides", "badge": "FILE", "sizeText": "" },
+    { "name": "clip.webm", "type": "", "size": "5368709120", "category": "video", "badge": "WEBM", "sizeText": "5 GB" },
+    { "name": "song", "type": "audio/mpeg", "size": "1x", "category": "audio", "badge": "FILE", "sizeText": "" },
+    { "name": "blob.bin", "type": "application/octet-stream", "size": "1099511627776", "category": "other", "badge": "BIN", "sizeText": "1 TB" },
+    { "name": "scan", "type": "application/pdf", "size": "1048576", "category": "pdf", "badge": "FILE", "sizeText": "1 MB" },
+    { "name": "script.js", "type": "", "size": "1023", "category": "code", "badge": "JS", "sizeText": "1023 B" }
+  ],
+  "names": [
+    ["  invoice‮fdp.exe  ", "invoicefdp.exe"],
+    ["a [b] c", "a (b) c"],
+    ["line\nbreak\ttab", "line break tab"],
+    ["\u0000\u0007", "file"],
+    ["", "file"]
+  ]
+}

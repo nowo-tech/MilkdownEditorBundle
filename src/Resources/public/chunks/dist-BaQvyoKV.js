@@ -1,7 +1,7 @@
 import { n as e, r as t, t as n } from "./dist-ClNmaVZY.js";
 import { C as r, N as i, P as a, U as o, j as s, o as c, r as l, u as ee, y as te } from "./dist-CEUtVt0P.js";
 import { n as u, t as ne } from "./dist-DsLBG0rV.js";
-import { a as re, i as ie, n as ae, o as oe, r as d } from "./dist-DpsG_17m.js";
+import { a as re, i as ie, n as ae, o as oe, r as d } from "./dist-CIh8cdo0.js";
 import { F as se, a as ce } from "./code-block-CG6NJsIj.js";
 // node_modules/.pnpm/@lezer+html@1.3.13/node_modules/@lezer/html/dist/index.js
 var le = 55, ue = 1, de = 56, fe = 2, pe = 57, me = 3, f = 4, he = 5, p = 6, ge = 7, m = 8, h = 9, g = 10, _e = 11, ve = 12, ye = 13, _ = 58, be = 14, xe = 15, v = 59, y = 21, Se = 23, b = 24, Ce = 25, x = 27, S = 28, we = 29, Te = 32, Ee = 35, De = 37, Oe = 38, ke = 0, Ae = 1, je = {
