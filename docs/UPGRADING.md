@@ -3,8 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
-- [Unreleased (1.9.0)](#unreleased-190)
-- [Unreleased (1.8.0)](#unreleased-180)
+- [To 1.9.0](#to-190)
 - [To 1.8.0](#to-180)
 - [To 1.7.0](#to-170)
 - [To 1.6.0](#to-160)
@@ -31,9 +30,9 @@ Public API covered by Semantic Versioning: the configuration tree, profile keys,
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
 
-## Unreleased (1.9.0)
+## To 1.9.0
 
-From **1.8.0**: run `assets:install`. With the defaults (no `host_schemes`, no new feature) the widget JSON does not change
+From **1.8.0**: `composer update nowo-tech/milkdown-editor-bundle`, then run `assets:install`. With the defaults (no `host_schemes`, no new feature) the widget JSON does not change
 and images in the editor are still Milkdown's `<img>`. The renderer's output changes in one case:
 
 - **`::file{… view="…"}`**: 1.8 ignored `view`. In 1.9 `view="link"` and `view="icon"` draw those views and
@@ -53,8 +52,6 @@ and images in the editor are still Milkdown's `<img>`. The renderer's output cha
   feature, `{width=…}` shows as text on read pages.
 - `DocumentProcessor`, `MilkdownMarkdownRenderer`, `DialectRenderer` and `MilkdownEditorType` gain optional constructor
   arguments at the end; `FileCard::render()` gains an optional second argument.
-
-## Unreleased (1.8.0)
 
 ## To 1.8.0
 

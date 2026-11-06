@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format foll
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.9.0] - 2026-11-06](#190---2026-11-06)
 - [[1.8.0] - 2026-11-06](#180---2026-11-06)
 - [[1.7.0] - 2026-11-04](#170---2026-11-04)
 - [[1.6.0] - 2026-11-04](#160---2026-11-04)
@@ -22,10 +23,12 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-11-06
+
 Host references for images and files, images with caption, width and alignment, a "+" button on empty lines, and four
 views of a file (link, link with icon, card, sandboxed preview). All opt-in: hosts that change nothing get the same
 output and the same widget JSON. Requested by Beacon on 2026-11-06 (*milkdown-file-views-and-previews*, ME-5, ME-6);
-see [UPGRADING](UPGRADING.md#unreleased-190) and `specs/008-host-files-image-block/spec.md`.
+see [UPGRADING](UPGRADING.md#to-190) and `specs/008-host-files-image-block/spec.md`.
 
 **Audit.** Appendix GX: **Pass (good) / Info** at `1de17cd` (first pass at `e180751`: Pass (good) / Low). GX-L1, GX-L2, GX-I1 to GX-I6, GX-I8 and GX-I9 are fixed. Open, all Info: GX-I7 (documented), GX-I10 (demo tooling), GX-D1, GX-D2, GX-D3.
 

@@ -221,7 +221,7 @@ are marked *default pending user confirmation*.
 - [x] Beacon request 2026-11-06: menus in the top layer (`popover="manual"`, fallback without the Popover API),
   `action_bar_insert`, drop / paste of several files with per-file placeholders, `file_cards`
   (`::file[name]{href size type}`, TS + PHP), upload answer `{url, name, size, type, kind}`,
-  `upload_accept_images` / `upload_accept_files`, `/file` — 1.8 (unreleased), PR #19
+  `upload_accept_images` / `upload_accept_files`, `/file` — 1.8, PR #19
 
 ### Shipped versus planned (2026-11-06)
 
@@ -236,7 +236,7 @@ Beacon's requests instead, so the numbers no longer match:
 | 1.6.0 | `comments`, `version_view`, diff, `heading_ids` | 1.4 |
 | 1.7.0 | `menu_icons`, `toolbar_icons`, `icon_catalog`, icon picker, callout icons | owner request (callout icon picker was a 1.5 proposal) |
 | 1.8.0 | top-layer menus, `action_bar_insert`, file drop and `file_cards` | Beacon request 2026-11-06 |
-| 1.9 (unreleased) | host references and resolvers (`host_schemes`), `image_block`, `insert_button`, file views and previews | Beacon request 2026-11-06 (ME-5, ME-6) |
+| 1.9 | host references and resolvers (`host_schemes`), `image_block`, `insert_button`, file views and previews | Beacon request 2026-11-06 (ME-5, ME-6) |
 
 Still open from the table, in Beacon's order: the **lightbox** of `image_block` (the rest shipped in 1.9), **`toc` /
 outline panel** and **`find_replace`** (row 1.7). Proposed next milestone (*pending owner confirmation*): **1.10** `toc`
