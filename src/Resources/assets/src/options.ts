@@ -47,6 +47,8 @@ function collaboration(value: unknown): CollaborationOptions | null {
   if (typeof v.updateDelay === 'number') out.updateDelay = v.updateDelay;
   if (typeof v.awarenessDelay === 'number') out.awarenessDelay = v.awarenessDelay;
   if (typeof v.maxUpdateBytes === 'number') out.maxUpdateBytes = v.maxUpdateBytes;
+  // 1.9.1: startCollaboration clamps it.
+  if (typeof v.connectTimeout === 'number') out.connectTimeout = v.connectTimeout;
   return out;
 }
 

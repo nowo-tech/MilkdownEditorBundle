@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
+- [To 1.9.1](#to-191)
 - [To 1.9.0](#to-190)
 - [To 1.8.0](#to-180)
 - [To 1.7.0](#to-170)
@@ -29,6 +30,35 @@
 Public API covered by Semantic Versioning: the configuration tree, profile keys, form options, Twig filter / function
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
+
+## To 1.9.1
+
+**Upgrade if you use `collaboration`:** versions 1.0.0 to 1.9.0 can save an empty document (see the
+[CHANGELOG](CHANGELOG.md)). `composer update nowo-tech/milkdown-editor-bundle`, then run `assets:install`. Fields without
+`collaboration` do not change, and neither does their widget JSON.
+
+Until you upgrade, the only complete mitigation is to turn collaboration off: drop the `collaboration` option (WikiBundle:
+`nowo_wiki.collaboration.enabled: false`). A server check that refuses an empty body on a save without the
+`_nowo_milkdown_collab` field stops the empty saves but not the loss of typed text.
+
+Behaviour changes with collaboration on:
+
+- **The editor is read-only until the document is bound**, at most `connect_timeout_ms` (default 5 s). Keys pressed before
+  that never appear. Tests that type into the editor should wait for
+  `.ProseMirror[contenteditable="true"]`, or for `data-collab` to leave `connecting`.
+- **`data-collab` has one new value, `standalone`.** The existing ones keep their meaning, except that `online` now means
+  bound too. `aria-busy="true"` is on the widget while it waits.
+- **A submit while waiting is held**: the `submit` event is cancelled and `requestSubmit()` runs again when the wait ends,
+  so a `submit` listener registered after the editor mounted sees only the second one. A listener registered before it
+  sees both: `event.defaultPrevented` tells them apart in the bubble phase.
+- **A standalone save carries no `_nowo_milkdown_collab`**, like an offline save: a host with a shared log treats it as a
+  replacement (WikiBundle drops the log and live editors reload). The person is told before they save.
+- **`createEditor()` and `nowo-milkdown:ready` always finish**, at the bind or at the deadline. They used to wait forever
+  when the hub never opened, and to reject when it failed. Read `data-collab` to know which one happened.
+- **A host answering `seed: false` to everybody** with an empty state and a non-empty field no longer gets an empty
+  document: the editor goes standalone at the deadline. One client must be told to seed (see
+  [USAGE](USAGE.md#collaboration)).
+- **`GET state` must answer 2xx with a `state` string or an `updates` list.** Anything else is a refusal.
 
 ## To 1.9.0
 

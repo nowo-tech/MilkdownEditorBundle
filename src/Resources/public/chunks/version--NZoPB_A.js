@@ -1,4 +1,4 @@
-import { a as e } from "./runtime-dA0j40ft.js";
+import { a as e } from "./runtime-DYTwV1CM.js";
 // src/Resources/assets/src/version.ts
 function t(t, n, r) {
 	let i = document.createElement("div");

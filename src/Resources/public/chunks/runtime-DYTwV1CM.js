@@ -113,6 +113,8 @@ var t = {
 	"collab.reset": "This page was restored or replaced: reloading with the new content…",
 	"collab.reset_paused": "This page was replaced several times in a row. Reload it when you are ready.",
 	"collab.reload": "Reload",
+	"collab.standalone": "Editing without live co-editing: the connection is not available. Saving replaces the content for everyone.",
+	"collab.save_waiting": "Saving as soon as the editor is ready…",
 	"menu.label": "Editor actions",
 	"menu.cut": "Cut",
 	"menu.copy": "Copy",

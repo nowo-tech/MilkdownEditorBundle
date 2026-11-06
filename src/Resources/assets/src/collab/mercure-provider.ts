@@ -75,17 +75,40 @@ type Message = { t: 'u' | 'a' | 'r'; c: number; d: string };
 /** `GET <url>/state` answer: `state` (1.0), plus the optional update log of 1.2. */
 export type StateAnswer = { state: string; seed?: boolean; updates?: unknown; seq?: unknown; compact?: unknown };
 
+/** The host answered, and the answer is no: not an outage, retrying the first connection would not help (1.9.1). */
+export class CollabRefused extends Error {}
+
 /** The base64 updates of a state answer, in order: `state`, then each string of `updates`; empty strings skipped. */
 export const stateUpdates = (answer: StateAnswer): string[] =>
   [answer.state, ...(Array.isArray(answer.updates) ? answer.updates : [])].filter(
     (u): u is string => typeof u === 'string' && u !== '',
   );
 
+/**
+ * The answer of `GET <url>/state`. An error, a login page or JSON without a state is refused: read as an answer, it would
+ * be an empty document, and the editor would save that over the field (1.9.1).
+ */
+async function readState(res: Response): Promise<StateAnswer> {
+  if (!res.ok) throw new CollabRefused(`state ${res.status}`);
+  let answer: unknown;
+  try {
+    answer = await res.json();
+  } catch {
+    throw new CollabRefused('state: not JSON');
+  }
+  const { state, updates } = (answer ?? {}) as { state?: unknown; updates?: unknown };
+  if (typeof state !== 'string' && !Array.isArray(updates)) throw new CollabRefused('state: no state');
+  return answer as StateAnswer;
+}
+
 export class MercureProvider {
   readonly awareness: Awareness;
   status: Status = 'connecting';
   /** True when the host asked this client to seed the empty document from the field's Markdown. */
   seed = false;
+  /** 1.9.1: the host refused this client before it was ever online; it does not retry. */
+  failed = false;
+  private wasOnline = false;
   private es: EventSource | null = null;
   private dirty = false;
   private retry = 0;
@@ -147,6 +170,11 @@ export class MercureProvider {
     this.listeners.add(fn);
   }
 
+  /** 1.9.1: the host's log could not be applied (reported once; the host may publish a reset). */
+  get corrupt(): boolean {
+    return this.reported;
+  }
+
   get hasPendingChanges(): boolean {
     return this.dirty || this.pending.length > 0 || this.inFlight || this.unconfirmed !== null;
   }
@@ -194,9 +222,15 @@ export class MercureProvider {
   /** Resolves once the stored state is applied (first connect): the caller then binds the editor. */
   connect(): Promise<void> {
     if (this.closed) return Promise.resolve();
-    this.connecting ??= this.doConnect().finally(() => {
-      this.connecting = null;
-    });
+    this.connecting ??= this.doConnect()
+      .catch((error: unknown) => {
+        this.es?.close();
+        if (!this.closed) this.connectFailed(error);
+        throw error;
+      })
+      .finally(() => {
+        this.connecting = null;
+      });
     return this.connecting;
   }
 
@@ -221,25 +255,34 @@ export class MercureProvider {
     this.listeners.forEach((fn) => fn(s));
   }
 
+  /** A live session retries, whatever went wrong (1.9.1: it stayed on `connecting` after a refused token). */
+  private connectFailed(error: unknown): void {
+    if (this.wasOnline) {
+      this.setStatus('offline');
+      this.scheduleReconnect();
+    } else if (error instanceof CollabRefused) {
+      this.failed = true;
+      this.setStatus('offline');
+    } else {
+      this.scheduleReconnect();
+    }
+  }
+
   private async doConnect(): Promise<void> {
     this.setStatus('connecting');
     this.es?.close();
     const client = { 'X-Nowo-Collab-Client': String(this.doc.clientID) };
     const token = await fetch(`${this.base}/token`, { method: 'POST', credentials: 'same-origin', headers: client });
-    if (!token.ok) throw new Error(`token ${token.status}`);
+    if (!token.ok) throw new CollabRefused(`token ${token.status}`);
     const url = new URL(this.hubUrl, location.href);
     url.searchParams.append('topic', this.topic);
     const es = new EventSource(url, { withCredentials: true });
     this.es = es;
-    try {
-      await new Promise<void>((resolve, reject) => {
-        es.onopen = () => resolve();
-        es.onerror = () => reject(new Error('eventsource'));
-      });
-    } catch (e) {
-      this.scheduleReconnect();
-      throw e;
-    }
+    await new Promise<void>((resolve, reject) => {
+      es.onopen = () => resolve();
+      es.onerror = () => reject(new Error('eventsource'));
+    });
+    if (this.closed) return;
     es.onerror = () => {
       this.setStatus('offline');
       es.close();
@@ -255,7 +298,8 @@ export class MercureProvider {
     };
 
     const res = await fetch(`${this.base}/state`, { credentials: 'same-origin', headers: client });
-    const answer = (await res.json()) as StateAnswer;
+    const answer = await readState(res);
+    if (this.closed) return;
     this.seed = answer.seed === true;
     this.seq = typeof answer.seq === 'number' && Number.isInteger(answer.seq) ? answer.seq : 0;
     const server = new Y.Doc();
@@ -280,7 +324,9 @@ export class MercureProvider {
     }
     this.dirty = false;
     this.retry = 0;
+    this.wasOnline = true;
     this.setStatus('online');
+    if (this.closed) return;
     await this.post('awareness', encodeAwarenessUpdate(this.awareness, [this.doc.clientID]));
   }
 
@@ -320,9 +366,10 @@ export class MercureProvider {
    * the log and publishes a reset — or refuses (capped) and nothing loops.
    */
   private async reportCorrupt(): Promise<void> {
-    this.setStatus('offline');
-    if (this.reported) return;
+    const first = !this.reported;
     this.reported = true;
+    this.setStatus('offline');
+    if (!first) return;
     try {
       await fetch(`${this.base}/corrupt`, {
         method: 'POST',

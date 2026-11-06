@@ -23,6 +23,37 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Fixed
+
+- **Data loss with collaboration on (every version since 1.0.0).** The editor was created empty and editable, and the
+  Yjs document was bound only after the token, the hub and the state answered. In that window, or for good when the
+  hub never opened, typed text was replaced at the bind and a save wrote the empty editor over the field: **saving
+  right after opening an edit form saved an empty page**. Now:
+  - Until the document is bound the editor shows the field's content read-only, with `aria-busy="true"` on the widget
+    and the *Connecting…* status. The action buttons are disabled and document changes are refused.
+  - A save while waiting does not leave yet: it waits with a message and goes on by itself when the wait ends, with the
+    same submit button. The field is never written while there is no document.
+  - The wait is bounded by `collaboration.connect_timeout_ms` (default 5000). After it, or at once when the token or
+    state is refused or the log is corrupt, `data-collab` becomes `standalone`: the person edits the field's content
+    without collaboration and is told so. An untouched standalone save keeps the field's exact bytes.
+  - A connection that arrives late binds only if the content is untouched. Once the person has typed, the session ends:
+    their text is not replaced and nothing is sent.
+- **An empty state no longer reaches the field.** A `GET state` answering an error with a JSON body (a 429), a non-JSON
+  page or JSON without a state was read as an empty document. It is now a refusal. An empty state without `seed: true`
+  (another client holds the seed) waits for the content; it never binds an empty document over a non-empty field. A log
+  holding only an empty paragraph counts as empty. An order to seed only applies to a blank document (the previous
+  condition looked at the text, so it replaced a document with only an image).
+- `data-collab="online"` is set after the bind, not before it. A refused token or state on a **reconnect** now shows
+  `offline` and retries, instead of staying on `connecting` for good. A host reset does not reload away text typed
+  without collaboration.
+
+### Added
+
+- `collaboration.connect_timeout_ms` (0–60000, default 5000), sent in the widget JSON only when set.
+- `data-collab="standalone"`, and the messages `collab.standalone` and `collab.save_waiting`, sent only to fields with
+  collaboration. Fields without collaboration keep the same widget JSON and the same behaviour.
+- Demo page `/collab` (a hub that answers 404) and its Playwright suite, `COLLAB_REPEAT` runs per scenario.
+
 ## [1.9.0] - 2026-11-06
 
 Host references for images and files, images with caption, width and alignment, a "+" button on empty lines, and four

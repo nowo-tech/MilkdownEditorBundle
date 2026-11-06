@@ -225,6 +225,8 @@ final class MilkdownEditorTypeTest extends TypeTestCase
         yield 'collaboration update delay too long' => [['collaboration' => ['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'update_delay_ms' => 2001]], 'collaboration.update_delay_ms'];
         yield 'collaboration update cap too small' => [['collaboration' => ['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'max_update_bytes' => 100]], 'from 1024 to 67108864'];
         yield 'collaboration awareness delay not an int' => [['collaboration' => ['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'awareness_delay_ms' => '500']], 'collaboration.awareness_delay_ms'];
+        yield 'collaboration connect timeout too long' => [['collaboration' => ['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'connect_timeout_ms' => 60001]], 'from 0 to 60000.'];
+        yield 'collaboration connect timeout not an int' => [['collaboration' => ['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'connect_timeout_ms' => '500']], 'collaboration.connect_timeout_ms'];
         yield 'collaboration negative delay' => [['collaboration' => ['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'update_delay_ms' => -1]], 'from 0 to 2000.'];
         yield 'bad theme' => [['theme' => 'blue'], 'theme'];
         yield 'version view with comments' => [['features' => ['version_view', 'comments']], 'never carries "comments"'];
@@ -318,6 +320,9 @@ final class MilkdownEditorTypeTest extends TypeTestCase
             ['url' => '/c', 'hubUrl' => '/h', 'topic' => 't', 'user' => ['name' => 'Anonymous', 'color' => '#1f6f54'], 'updateDelay' => 150, 'awarenessDelay' => 1000, 'maxUpdateBytes' => 131072],
             MilkdownEditorType::normaliseCollaboration(['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'update_delay_ms' => 150, 'awareness_delay_ms' => 1000, 'max_update_bytes' => 131072]),
         );
+        // 1.9.1: the wait for the shared document, only when set (0 is a value: no wait).
+        self::assertSame(0, MilkdownEditorType::normaliseCollaboration(['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'connect_timeout_ms' => 0])['connectTimeout'] ?? null);
+        self::assertSame(60000, MilkdownEditorType::normaliseCollaboration(['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'connect_timeout_ms' => 60000])['connectTimeout'] ?? null);
     }
 
     #[Test]
@@ -380,5 +385,17 @@ final class MilkdownEditorTypeTest extends TypeTestCase
         // Host schemes without the feature: the placeholder text only.
         $hosted = $build(new MilkdownEditorType(new ProfileRegistry(['default' => self::PROFILE], 'default'), null, $translator, 10, [], new HostSchemes(['app-file' => ['file' => '/f/{id}']])));
         self::assertArrayHasKey('image.hidden', (array) $hosted['messages']);
+        // 1.9.1: the strings of the collaboration states only with collaboration: other fields keep the same JSON.
+        self::assertArrayNotHasKey('collab.standalone', (array) $hosted['messages']);
+        self::assertArrayNotHasKey('collab.save_waiting', (array) $hosted['messages']);
+        $form = Forms::createFormFactoryBuilder()
+            ->addType(new MilkdownEditorType(new ProfileRegistry(['default' => self::PROFILE], 'default'), null, $translator))
+            ->getFormFactory()
+            ->create(MilkdownEditorType::class, null, ['collaboration' => ['url' => '/c', 'hub_url' => '/h', 'topic' => 't', 'connect_timeout_ms' => 1500]]);
+        $collab = $form->createView()->vars['milkdown_options'];
+        self::assertIsArray($collab);
+        self::assertSame('T:collab.standalone', ((array) $collab['messages'])['collab.standalone'] ?? null);
+        self::assertSame('T:collab.save_waiting', ((array) $collab['messages'])['collab.save_waiting'] ?? null);
+        self::assertSame(1500, ((array) $collab['collaboration'])['connectTimeout'] ?? null);
     }
 }

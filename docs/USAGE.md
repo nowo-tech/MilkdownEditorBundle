@@ -274,6 +274,37 @@ them. `GET <url>/state` answers `{"state": "<base64 Yjs update>", "seed": true|f
 an empty document from the field's Markdown. The client that saves still submits Markdown (the server never reads Y
 state). Readers without edit rights must not get the options at all.
 
+**Connecting, and when it fails (1.9.1).** Nothing is lost while the shared document is on its way:
+
+| `data-collab` | Editor | A save |
+| --- | --- | --- |
+| `connecting` (first time) | Shows the field's content, read-only; `aria-busy="true"`; the action buttons are disabled | Waits, says so, and goes on by itself when the wait ends (at most `connect_timeout_ms`) |
+| `online` | Bound to the shared document, editable | Writes the document; carries `_nowo_milkdown_collab` |
+| `offline`, `connecting` (after being online) | Still bound, editable; edits are kept and sent when the connection returns | Writes the document; no session field |
+| `standalone` | Not bound: edits the field's content, and an alert says so | Writes the edited text, or the field's exact bytes if untouched; no session field |
+| `reset` | Reloading with the new content | As `online` |
+
+The wait ends at the bind or after `connect_timeout_ms` (0–60000, default **5000**). A refused token or state (any
+non-2xx, a body that is not JSON, JSON without `state` or `updates`) or a corrupt log goes `standalone` at once. A hub that
+errors is retried during the wait. Without a usable answer the editor never binds an empty document over a non-empty field.
+
+**Why a save waits instead of leaving at once.** It would keep the field either way, but a save outside the session makes
+a host with a shared log drop it (see below), taking the unsaved work of anyone editing live. Waiting a bounded time
+lets the save join the session in the normal case. It can never hang: the deadline ends the wait, and then the save
+goes on with the field's value.
+
+**A standalone editor that connects late** binds only while the content is untouched (it then shows the shared document).
+Once the person has typed, the session ends for that page view: nothing replaces their text, nothing is sent, and the form
+saves it like any save outside a session. They rejoin by reloading after saving.
+
+**An empty state.** `state` empty and `seed` not true, with a non-empty field, means another client holds the seed (or it
+has gone): the editor waits for the content instead of showing nothing, within the same deadline. Tell exactly one client
+to seed: two clients told to seed at once duplicate the content, because Yjs merges both.
+
+```php
+'collaboration' => [/* … */, 'connect_timeout_ms' => 5000],
+```
+
 **Request rate (1.5.1).** Local edits are merged (`Y.mergeUpdates`) and posted at most once per **200 ms**
 (`update_delay_ms`, 0–2000), one request at a time so their order is kept; presence is posted at most once per
 **750 ms** (`awareness_delay_ms`, 0–5000, trailing edge). Pending edits are sent at once when the editor loses focus,

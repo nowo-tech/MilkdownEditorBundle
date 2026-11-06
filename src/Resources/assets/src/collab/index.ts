@@ -6,14 +6,21 @@ import type { Editor } from '@milkdown/kit/core';
 import { collab, collabServiceCtx } from '@milkdown/plugin-collab';
 import * as Y from 'yjs';
 import { absolutePositionToRelativePosition, relativePositionToAbsolutePosition, ySyncPluginKey } from 'y-prosemirror';
-import type { EditorState } from '@milkdown/kit/prose/state';
+import { Plugin, type EditorState } from '@milkdown/kit/prose/state';
 import type { YjsAnchors } from '../comments/plugin';
 import { MercureProvider, fromBase64, toBase64, type Status } from './mercure-provider';
 import type { CollaborationOptions } from '../types';
 
 export { collab };
 
-export type Collaboration = { provider: MercureProvider; stop: () => void };
+export type Collaboration = {
+  provider: MercureProvider;
+  /** Resolves when the editor stopped waiting (bound, or standalone); never rejects. */
+  ready: Promise<void>;
+  /** Whether the shared document is bound to the editor (false while waiting and while standalone). */
+  bound: () => boolean;
+  stop: () => void;
+};
 
 type Peer = { name?: unknown; color?: unknown };
 
@@ -121,36 +128,170 @@ export function allowReload(topic: string, storage: Storage | null = sessionStor
   return true;
 }
 
-export async function startCollaboration(
-  editor: Editor,
-  options: CollaborationOptions,
-  template: string,
-  onStatus: (s: Status) => void,
-  onReloadPaused: () => void = () => undefined,
-): Promise<Collaboration> {
+/** How long the editor waits for the shared document before it offers editing without collaboration (ms, 1.9.1). */
+export const DEFAULT_CONNECT_TIMEOUT = 5000;
+export const MAX_CONNECT_TIMEOUT = 60_000;
+
+/** `standalone` (1.9.1): no shared document; the editor holds the field's content and edits it like any other field. */
+export type SessionStatus = Status | 'standalone';
+
+export type CollaborationHooks = {
+  /** What the person should see: never `online` before the document is bound. */
+  onStatus: (status: SessionStatus) => void;
+  /** Automatic reloads are capped: the person reloads by hand. */
+  onReloadPaused: () => void;
+  /** The wait is over (bound, or standalone): the editor can be edited. May run again on a late bind. */
+  onReady: () => void;
+  /** False once the person changed the content while standalone: a late bind would replace it. */
+  isUntouched: () => boolean;
+};
+
+/**
+ * Whether the shared document shows nothing: no blocks, or only empty paragraphs. A log that holds an empty paragraph
+ * counts: an editor bound to an empty document writes one.
+ *
+ * @param fragment - The document's root fragment
+ * @returns True when there is nothing to show
+ */
+export function isBlank(fragment: Y.XmlFragment): boolean {
+  return fragment.toArray().every((node) => node instanceof Y.XmlElement && node.nodeName === 'paragraph' && node.length === 0);
+}
+
+/**
+ * Refuses document changes while the editor waits for the shared document: a backstop for what `editable: false` does
+ * not stop (buttons, menus, plugins that dispatch). Binding (y-sync) and bookkeeping that is not an edit (heading ids,
+ * `addToHistory: false`) pass.
+ *
+ * @param locked - Whether the editor is waiting
+ * @returns The ProseMirror plugin
+ */
+export const waitPlugin = (locked: () => boolean): Plugin =>
+  new Plugin({
+    filterTransaction: (tr) => !tr.docChanged || !locked() || tr.getMeta(ySyncPluginKey) !== undefined || tr.getMeta('addToHistory') === false,
+  });
+
+/**
+ * Connects and binds the shared document (1.9.1: time-bound, and only when binding cannot lose anything).
+ *
+ * The editor stays locked until one of these happens, at most `connectTimeout` ms later:
+ * - **bound**: the state is applied and shows content, or this client seeds it, or the field is empty too.
+ * - **standalone**: the deadline passed, the host refused (token, state), the state is unusable or the log is corrupt. The
+ *   person edits the field's content without collaboration.
+ *
+ * A standalone editor binds later only if the connection arrives and the content is untouched. Once the person changed
+ * it the session ends: nothing is sent, nothing replaces their text, and the form saves it as any save outside a session.
+ *
+ * @param editor - The Milkdown editor (already created)
+ * @param options - The collaboration options
+ * @param template - The field's Markdown (the seed)
+ * @param hooks - What the editor does on each change
+ * @returns The session; `ready` resolves when the wait is over and never rejects
+ */
+export function startCollaboration(editor: Editor, options: CollaborationOptions, template: string, hooks: CollaborationHooks): Collaboration {
   const doc = new Y.Doc();
+  const fragment = doc.getXmlFragment('prosemirror');
   const provider = new MercureProvider(doc, options.url, options.hubUrl, options.topic, { updateDelay: options.updateDelay, awarenessDelay: options.awarenessDelay, maxUpdateBytes: options.maxUpdateBytes });
   provider.awareness.setLocalStateField('user', options.user);
+  let phase: 'waiting' | 'bound' | 'standalone' = 'waiting';
+  let ended = false;
+  let settle = (): void => undefined;
+  const ready = new Promise<void>((resolve) => {
+    settle = resolve;
+  });
+  const end = (): void => {
+    if (ended) return;
+    ended = true;
+    doc.off('update', onDocument);
+    provider.disconnect();
+  };
+  const fallback = (): void => {
+    if (phase !== 'waiting') return;
+    phase = 'standalone';
+    window.clearTimeout(deadline);
+    hooks.onReady();
+    hooks.onStatus('standalone');
+    settle();
+  };
+  const tryBind = (): void => {
+    if (phase === 'bound' || ended || provider.status !== 'online') return;
+    // An empty state with no order to seed: another client holds the seed, or the host lost its log. Binding would show
+    // nothing and save nothing over the field's content, so wait for the content to arrive.
+    if (!provider.seed && isBlank(fragment) && template.trim() !== '') return;
+    if (phase === 'standalone' && !hooks.isUntouched()) {
+      end();
+      return;
+    }
+    try {
+      editor.action((ctx) => {
+        const service = ctx.get(collabServiceCtx);
+        service.setOptions({ yCursorOpts: { cursorBuilder, selectionBuilder } });
+        service.bindDoc(doc).setAwareness(provider.awareness);
+        // Only a blank document is seeded (the default condition looks at the text, so it replaces an image-only one).
+        if (provider.seed) service.applyTemplate(template, () => isBlank(fragment));
+        service.connect();
+      });
+    } catch (error) {
+      console.error('nowo-milkdown', error);
+      fallback();
+      end();
+      return;
+    }
+    phase = 'bound';
+    window.clearTimeout(deadline);
+    doc.off('update', onDocument);
+    hooks.onReady();
+    hooks.onStatus(provider.status);
+    settle();
+  };
+  // Runs inside Yjs's update event: bind after it.
+  const onDocument = (): void => queueMicrotask(tryBind);
+  doc.on('update', onDocument);
   provider.onStatus((s) => {
-    onStatus(s);
     // 1.2: the host replaced the document (restore, import, conversion): show the notice, then load the new content.
-    if (s !== 'reset') return;
-    if (allowReload(options.topic)) window.setTimeout(() => page.reload(), RESET_RELOAD_DELAY);
-    else onReloadPaused();
+    if (s === 'reset') {
+      // Text typed without collaboration is not given up for a reload: the person saves it.
+      if (phase === 'standalone' && !hooks.isUntouched()) {
+        end();
+        return;
+      }
+      hooks.onStatus(s);
+      if (allowReload(options.topic)) {
+        window.setTimeout(() => page.reload(), RESET_RELOAD_DELAY);
+      } else {
+        fallback();
+        hooks.onReloadPaused();
+      }
+      return;
+    }
+    if (phase === 'bound') {
+      hooks.onStatus(s);
+      return;
+    }
+    if (provider.failed) {
+      fallback();
+      end();
+      return;
+    }
+    // A corrupt log: no document to bind. The hub stays open for the host's reset, which reloads an untouched editor.
+    if (provider.corrupt) {
+      fallback();
+      return;
+    }
+    if (s === 'online') tryBind();
+    else if (phase === 'waiting') hooks.onStatus('connecting');
   });
-  await provider.connect();
-  editor.action((ctx) => {
-    const service = ctx.get(collabServiceCtx);
-    service.setOptions({ yCursorOpts: { cursorBuilder, selectionBuilder } });
-    service.bindDoc(doc).setAwareness(provider.awareness);
-    if (provider.seed) service.applyTemplate(template);
-    service.connect();
-  });
+  const timeout = typeof options.connectTimeout === 'number' && Number.isFinite(options.connectTimeout) ? Math.min(MAX_CONNECT_TIMEOUT, Math.max(0, Math.round(options.connectTimeout))) : DEFAULT_CONNECT_TIMEOUT;
+  const deadline = window.setTimeout(fallback, timeout);
+  void provider.connect().catch(() => undefined);
   return {
     provider,
+    ready,
+    bound: () => phase === 'bound',
     stop: () => {
-      editor.action((ctx) => ctx.get(collabServiceCtx).disconnect());
-      provider.disconnect();
+      window.clearTimeout(deadline);
+      if (phase === 'bound') editor.action((ctx) => ctx.get(collabServiceCtx).disconnect());
+      end();
+      settle();
     },
   };
 }

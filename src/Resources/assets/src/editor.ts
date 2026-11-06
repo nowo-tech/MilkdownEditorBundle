@@ -195,7 +195,8 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   };
   if (upload) runtime.pickFiles = pickFiles;
 
-  const builder = new CrepeBuilder({ root: surface, defaultValue: options.collaboration ? '' : initial });
+  // 1.9.1: with collaboration too the editor starts on the field's content, read-only until the wait is over.
+  const builder = new CrepeBuilder({ root: surface, defaultValue: initial });
   const editor = builder.editor;
   const collabModule = options.collaboration ? await import('./collab/index') : null;
   // 1.3: the context menu is a lazy chunk, loaded only when the field enables it.
@@ -255,7 +256,8 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   // Without the feature `{width=…}` stays text, as the renderer without `markdown.image_block` shows it (audit GX-I5).
   if (options.features.includes('image_block')) editor.use(imageLiftRemark);
   if (options.features.includes('insert_button') && !options.readonly) editor.use(insertButtonPlugin);
-  if (collabModule) editor.use(collabModule.collab);
+  let waiting = collabModule !== null;
+  if (collabModule) editor.use(collabModule.collab).use($prose(() => collabModule.waitPlugin(() => waiting)));
   if (contextMenuModule) editor.use(contextMenuModule.contextMenuPlugin);
   if (blockActionsModule) editor.use(blockActionsModule.blockActionsPlugin(options.features.includes('block_drag')));
   if (colorsModule) editor.use(colorsModule.colorMenuPlugin);
@@ -264,20 +266,24 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   if (commentsModule && commentsHost) commentsModule.useComments(editor, commentsHost, () => threadUi);
   await addFeatures(builder, options, runtime);
 
+  // 1.9.1: what collaboration writes to the field. Null: nothing, while there is no document to write from.
+  let fieldValue: (markdown: string) => string | null = (markdown) => markdown;
   builder.on((api) =>
     api.markdownUpdated((_ctx, markdown) => {
-      if (textarea.value === markdown) return;
-      textarea.value = markdown;
+      const value = fieldValue(markdown);
+      if (value === null || textarea.value === value) return;
+      textarea.value = value;
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
       textarea.dispatchEvent(new Event('change', { bubbles: true }));
     }),
   );
-  if (options.readonly) builder.setReadonly(true);
+  if (options.readonly || collabModule) builder.setReadonly(true);
   await builder.create();
 
   const getMarkdown = (): string => builder.getMarkdown();
   const sync = (): void => {
-    textarea.value = getMarkdown();
+    const value = fieldValue(getMarkdown());
+    if (value !== null) textarea.value = value;
   };
   const form = textarea.form;
   form?.addEventListener('submit', sync, true);
@@ -320,19 +326,63 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
 
   let provider: MercureProvider | null = null;
   let stopCollaboration = (): void => undefined;
+  let collabReady: Promise<void> | null = null;
   if (collabModule && options.collaboration) {
     root.dataset.collab = 'connecting';
+    root.setAttribute('aria-busy', 'true');
     const topic = options.collaboration.topic;
     const reloadModule = collabModule;
-    const collaboration = await collabModule.startCollaboration(
-      editor,
-      options.collaboration,
-      initial,
-      (s) => {
+    const actions = [...bar.querySelectorAll('button')];
+    actions.forEach((button) => (button.disabled = true));
+    // What the editor reads from the field's content, before anyone edits it: the Markdown that means "untouched".
+    const untouched = getMarkdown();
+    let standalone = false;
+    fieldValue = (markdown) => {
+      if (waiting) return null;
+      // Untouched while standalone: the field keeps the host's own bytes, not a re-serialisation of them.
+      return standalone && markdown === untouched ? initial : markdown;
+    };
+
+    // 1.9.1: a save while waiting waits too, at most until the deadline, and then goes on by itself (see USAGE).
+    let held: { submitter: HTMLElement | null } | null = null;
+    const holdSubmit = (event: Event): void => {
+      if (!waiting) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      held = { submitter: (event as SubmitEvent).submitter ?? null };
+      announce('collab.save_waiting', {});
+    };
+    const releaseSubmit = (): void => {
+      const pending = held;
+      held = null;
+      if (!pending || !form?.isConnected) return;
+      try {
+        form.requestSubmit(pending.submitter);
+      } catch {
+        form.requestSubmit();
+      }
+    };
+    form?.addEventListener('submit', holdSubmit, true);
+    // A click while read-only gives no focus: remember it, so that the keys after the wait reach the editor.
+    let clicked = false;
+    const noteClick = (): void => {
+      clicked = true;
+    };
+    surface.addEventListener('pointerdown', noteClick);
+
+    const collaboration = collabModule.startCollaboration(editor, options.collaboration, initial, {
+      onStatus: (s) => {
         root.dataset.collab = s;
-        announce(`collab.${s}`, {});
+        if (s === 'online') standalone = false;
+        if (s === 'standalone') {
+          standalone = true;
+          status.textContent = '';
+          announce('collab.standalone', {}, true);
+        } else {
+          announce(`collab.${s}`, {});
+        }
       },
-      () => {
+      onReloadPaused: () => {
         // CX-L1: too many resets in a row — stay on the page, offer a manual reload.
         announce('collab.reset_paused', {});
         const reload = document.createElement('button');
@@ -342,15 +392,29 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
         reload.addEventListener('click', () => reloadModule.page.reload());
         status.after(reload);
       },
-    );
+      onReady: () => {
+        waiting = false;
+        builder.setReadonly(options.readonly);
+        root.removeAttribute('aria-busy');
+        actions.forEach((button) => (button.disabled = false));
+        surface.removeEventListener('pointerdown', noteClick);
+        // Not when the person has moved on to another control.
+        if (clicked && (!document.activeElement || document.activeElement === document.body)) focus();
+        clicked = false;
+        // After the current call: the status comes next, and a save must leave from the settled state.
+        window.setTimeout(releaseSubmit, 0);
+      },
+      isUntouched: () => getMarkdown() === untouched,
+    });
     provider = collaboration.provider;
+    collabReady = collaboration.ready;
     if (commentsModule) yjs = collabModule.yjsAnchors(() => editor.action((ctx) => ctx.get(editorViewCtx).state));
     // 1.2: a save from the live session tells the host so (it keeps the shared log instead of resetting it).
     const live = provider;
     const markSession = (): void => {
       live.flush(true);
       let input = form?.querySelector<HTMLInputElement>(`input[name="${SESSION_FIELD}"]`) ?? null;
-      if (live.status !== 'online') {
+      if (live.status !== 'online' || !collaboration.bound()) {
         input?.remove();
         return;
       }
@@ -367,11 +431,14 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     const flush = (): void => live.flush();
     surface.addEventListener('focusout', flush);
     stopCollaboration = () => {
+      form?.removeEventListener('submit', holdSubmit, true);
+      surface.removeEventListener('pointerdown', noteClick);
       form?.removeEventListener('submit', markSession, true);
       surface.removeEventListener('focusout', flush);
       collaboration.stop();
     };
   }
+  if (collabReady) await collabReady;
 
   let destroyed = false;
   const comments = commentsModule && commentsHost ? commentsModule.commentsApi(editor, commentsHost, () => threadUi, () => !destroyed) : undefined;

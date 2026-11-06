@@ -1,5 +1,5 @@
 import { C as e, S as t, _ as n, a as r, b as i, c as a, d as o, f as s, g as c, h as l, i as u, m as d, n as f, o as p, p as m, r as h, s as g, t as _, u as v, v as y, x as b, y as x } from "./chunks/link-tooltip-CrklcZfC.js";
-import { $t as S, A as C, Bt as w, C as T, Ct as E, Gt as D, I as ee, It as te, Jt as O, Kt as ne, M as re, Nt as ie, O as ae, Ot as k, P as oe, Qt as se, St as A, T as ce, U as le, W as ue, Wt as j, a as de, at as fe, bt as pe, c as me, ct as he, d as ge, et as _e, f as ve, h as ye, i as be, j as xe, k as Se, l as M, m as N, mt as Ce, n as we, nn as Te, nt as Ee, on as De, ot as P, qt as Oe, r as ke, rt as Ae, st as F, tn as je, ut as I, xt as Me, z as Ne } from "./chunks/lib-9QpRoHAM.js";
+import { $t as S, A as C, Bt as w, C as T, Ct as E, Gt as D, I as ee, It as te, Jt as ne, Kt as re, M as O, Nt as ie, O as ae, Ot as k, P as oe, Qt as se, St as A, T as ce, U as le, W as ue, Wt as j, a as de, at as fe, bt as pe, c as me, ct as he, d as ge, et as _e, f as ve, h as ye, i as be, j as xe, k as Se, l as M, m as N, mt as Ce, n as we, nn as Te, nt as Ee, on as De, ot as P, qt as Oe, r as ke, rt as Ae, st as F, tn as je, ut as I, xt as Me, z as Ne } from "./chunks/lib-9QpRoHAM.js";
 import { a as Pe, c as Fe, d as Ie, f as Le, g as Re, h as ze, m as Be, n as L, p as Ve, t as R, u as z } from "./chunks/lib-DaU_YkmU.js";
 import { n as He, r as Ue, t as We } from "./chunks/dist-DiZPwpkv.js";
 import { a as Ge, i as Ke, n as qe, r as Je, t as Ye } from "./chunks/lib-B0HMIP_r.js";
@@ -8,13 +8,13 @@ import { d as dt, t as ft } from "./chunks/dist-DPp-l4A4.js";
 import { _ as B, c as pt, d as V, f as mt, h as ht, i as gt, l as _t, m as vt, n as yt, o as bt, p as xt, s as St, u as Ct, v as wt } from "./chunks/floating-ui.dom-DE0KslHM.js";
 import { t as Tt } from "./chunks/purify.es-CZ6K1J3y.js";
 import { t as Et } from "./chunks/mermaid-DJO1IgvH.js";
-import { a as H, c as Dt, d as Ot, f as kt, i as At, l as jt, n as Mt, r as Nt, s as Pt, t as Ft, u as It } from "./chunks/runtime-dA0j40ft.js";
+import { a as H, c as Dt, d as Ot, f as kt, i as At, l as jt, n as Mt, r as Nt, s as Pt, t as Ft, u as It } from "./chunks/runtime-DYTwV1CM.js";
 import { n as Lt, t as Rt } from "./chunks/link-titles-Cs1oogn7.js";
 import { a as zt, n as Bt } from "./chunks/host-CkpXbnaN.js";
-import { a as Vt, c as Ht, d as Ut, f as Wt, i as Gt, m as Kt, n as qt, o as Jt, p as Yt, s as Xt, t as Zt, u as U } from "./chunks/directives-BKF8GEs1.js";
+import { a as Vt, c as Ht, d as Ut, f as Wt, i as Gt, m as Kt, n as qt, o as Jt, p as Yt, s as Xt, t as Zt, u as U } from "./chunks/directives-CFqDiL7P.js";
 import { a as Qt, i as $t } from "./chunks/layer-N-kUiX52.js";
 import { i as en, n as tn, r as nn } from "./chunks/context-menu-registry-Dw2l9wcD.js";
-import { a as rn, c as an, f as on, i as sn, l as cn, n as ln, o as un, p as dn } from "./chunks/keyboard-C-vCAuwq.js";
+import { a as rn, c as an, f as on, i as sn, l as cn, n as ln, o as un, p as dn } from "./chunks/keyboard-B2RAuQ9Q.js";
 import { i as fn } from "./chunks/dist-BmAqUYId.js";
 import { n as pn, r as mn, t as hn } from "./chunks/search-BYXNAND9.js";
 import { n as gn, t as _n } from "./chunks/heading-slug-DVQeGYqO.js";
@@ -322,7 +322,7 @@ var Hn = z((e) => {
 		key: t,
 		state: {
 			init() {
-				return re.empty;
+				return O.empty;
 			},
 			apply(t, n) {
 				let r = n.map(t.mapping, t.doc), i = t.getMeta(this);
@@ -700,7 +700,7 @@ function br(e, t) {
 function xr(e) {
 	if (!(e.selection instanceof K)) return null;
 	let t = document.createElement("div");
-	return t.className = "ProseMirror-gapcursor", re.create(e.doc, [xe.widget(e.selection.head, t, { key: "gapcursor" })]);
+	return t.className = "ProseMirror-gapcursor", O.create(e.doc, [xe.widget(e.selection.head, t, { key: "gapcursor" })]);
 }
 // node_modules/.pnpm/@milkdown+plugin-cursor@7.23.0/node_modules/@milkdown/plugin-cursor/lib/index.js
 function Sr(e, t) {
@@ -803,7 +803,7 @@ function jr(e) {
 				return t.key === "ArrowLeft" && r.textOffset === 1 ? (e.dispatch(e.state.tr.setSelection(I.create(e.state.doc, r.pos - 1)).setStoredMarks(r.marks())), !0) : t.key === "ArrowRight" && r.textOffset + 1 === r.parent.maybeChild(r.index())?.nodeSize && (e.dispatch(e.state.tr.setSelection(I.create(e.state.doc, r.pos + 1)).setStoredMarks(r.marks())), !0);
 			},
 			decorations: (e) => {
-				if (n && Fr(e.selection) && e.selection.empty) return re.create(e.doc, [xe.widget(0, n, { key: "prosemirror-virtual-cursor" })]);
+				if (n && Fr(e.selection) && e.selection.empty) return O.create(e.doc, [xe.widget(0, n, { key: "prosemirror-virtual-cursor" })]);
 			},
 			attributes: { class: "virtual-cursor-enabled" }
 		}
@@ -926,7 +926,7 @@ var ai = L({
 		let n = e.get(ai.key);
 		if (n.mode === "doc" && !ri(t.doc) || ei(t.selection) || ti(t.selection)) return null;
 		let r = ii(t, n.text ?? "Please enter...");
-		return r ? re.create(t.doc, [r]) : null;
+		return r ? O.create(t.doc, [r]) : null;
 	} }
 })), si = (e, t) => {
 	e.config($r(ni.Placeholder)).config((e) => {
@@ -3282,11 +3282,11 @@ async function Cs(e, t = {}) {
 }
 // src/Resources/assets/src/features.ts
 var ws = {
-	code: () => import("./chunks/code-mVFAWZOC.js").then((e) => e.t),
+	code: () => import("./chunks/code-YykI66lP.js").then((e) => e.t),
 	math: () => import("./chunks/latex-cTjeFhLI.js"),
 	katex: () => import("./chunks/katex-DNCsLolD.js"),
 	topBar: () => import("./chunks/top-bar-Giu4y46u.js"),
-	colors: () => import("./chunks/colors-DLVtnFPi.js")
+	colors: () => import("./chunks/colors-DijjJWNk.js")
 }, Ts = "<svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 16l5-12 5 12\"/><path d=\"M9 11h6\"/><path d=\"M4 20h16\"/></svg>", Es = "<svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 5h16v11H9l-5 4z\"/></svg>";
 async function Ds(e, t, n) {
 	let r = new Set(t.features), [i, a, o] = await Promise.all([
@@ -3413,7 +3413,7 @@ function Is(e) {
 			color: /^#[0-9a-f]{6}$/i.test(Ms(a.color)) ? Ms(a.color) : "#1f6f54"
 		}
 	};
-	return typeof t.updateDelay == "number" && (o.updateDelay = t.updateDelay), typeof t.awarenessDelay == "number" && (o.awarenessDelay = t.awarenessDelay), typeof t.maxUpdateBytes == "number" && (o.maxUpdateBytes = t.maxUpdateBytes), o;
+	return typeof t.updateDelay == "number" && (o.updateDelay = t.updateDelay), typeof t.awarenessDelay == "number" && (o.awarenessDelay = t.awarenessDelay), typeof t.maxUpdateBytes == "number" && (o.maxUpdateBytes = t.maxUpdateBytes), typeof t.connectTimeout == "number" && (o.connectTimeout = t.connectTimeout), o;
 }
 function Ls(e) {
 	let t = [
@@ -3531,7 +3531,7 @@ function Ws(e = document) {
 }
 // src/Resources/assets/src/icons/open.ts
 var Gs = {
-	picker: () => import("./chunks/icon-picker-Ce6h9Z0Z.js"),
+	picker: () => import("./chunks/icon-picker-ox2IetI1.js"),
 	catalog: () => import("./chunks/catalog-BfEKgkVo.js")
 };
 async function Ks(e) {
@@ -3847,7 +3847,7 @@ function oc(e, t, n, r, i, a, o, s, c, l, u, d, f, p, m) {
 		return e.enter(r), e.enter(i), e.consume(t), e.exit(i), v;
 	}
 	function v(t) {
-		return t === 35 ? (h = o, y(t)) : t === 46 ? (h = s, y(t)) : m && ne(t) ? w(e, v, "whitespace")(t) : !m && D(t) ? te(e, v)(t) : t === null || j(t) || O(t) || Oe(t) && t !== 45 && t !== 95 ? k(t) : (e.enter(a), e.enter(c), e.consume(t), S);
+		return t === 35 ? (h = o, y(t)) : t === 46 ? (h = s, y(t)) : m && re(t) ? w(e, v, "whitespace")(t) : !m && D(t) ? te(e, v)(t) : t === null || j(t) || ne(t) || Oe(t) && t !== 45 && t !== 95 ? k(t) : (e.enter(a), e.enter(c), e.consume(t), S);
 	}
 	function y(t) {
 		let n = h + "Marker";
@@ -3867,25 +3867,25 @@ function oc(e, t, n, r, i, a, o, s, c, l, u, d, f, p, m) {
 		return e.consume(t), x;
 	}
 	function S(t) {
-		return t === null || j(t) || O(t) || Oe(t) && t !== 45 && t !== 46 && t !== 58 && t !== 95 ? (e.exit(c), m && ne(t) ? w(e, C, "whitespace")(t) : !m && D(t) ? te(e, C)(t) : C(t)) : (e.consume(t), S);
+		return t === null || j(t) || ne(t) || Oe(t) && t !== 45 && t !== 46 && t !== 58 && t !== 95 ? (e.exit(c), m && re(t) ? w(e, C, "whitespace")(t) : !m && D(t) ? te(e, C)(t) : C(t)) : (e.consume(t), S);
 	}
 	function C(t) {
 		return t === 61 ? (e.enter(l), e.consume(t), e.exit(l), T) : (e.exit(a), v(t));
 	}
 	function T(t) {
-		return t === null || t === 60 || t === 61 || t === 62 || t === 96 || t === 125 || m && j(t) ? n(t) : t === 34 || t === 39 ? (e.enter(u), e.enter(f), e.consume(t), e.exit(f), g = t, ee) : m && ne(t) ? w(e, T, "whitespace")(t) : !m && D(t) ? te(e, T)(t) : (e.enter(d), e.enter(p), e.consume(t), g = void 0, E);
+		return t === null || t === 60 || t === 61 || t === 62 || t === 96 || t === 125 || m && j(t) ? n(t) : t === 34 || t === 39 ? (e.enter(u), e.enter(f), e.consume(t), e.exit(f), g = t, ee) : m && re(t) ? w(e, T, "whitespace")(t) : !m && D(t) ? te(e, T)(t) : (e.enter(d), e.enter(p), e.consume(t), g = void 0, E);
 	}
 	function E(t) {
 		return t === null || t === 34 || t === 39 || t === 60 || t === 61 || t === 62 || t === 96 ? n(t) : t === 125 || D(t) ? (e.exit(p), e.exit(d), e.exit(a), v(t)) : (e.consume(t), E);
 	}
 	function ee(t) {
-		return t === g ? (e.enter(f), e.consume(t), e.exit(f), e.exit(u), e.exit(a), ae) : (e.enter(d), re(t));
+		return t === g ? (e.enter(f), e.consume(t), e.exit(f), e.exit(u), e.exit(a), ae) : (e.enter(d), O(t));
 	}
-	function re(t) {
-		return t === g ? (e.exit(d), ee(t)) : t === null ? n(t) : j(t) ? m ? n(t) : te(e, re)(t) : (e.enter(p), e.consume(t), ie);
+	function O(t) {
+		return t === g ? (e.exit(d), ee(t)) : t === null ? n(t) : j(t) ? m ? n(t) : te(e, O)(t) : (e.enter(p), e.consume(t), ie);
 	}
 	function ie(t) {
-		return t === g || t === null || j(t) ? (e.exit(p), re(t)) : (e.consume(t), ie);
+		return t === g || t === null || j(t) ? (e.exit(p), O(t)) : (e.consume(t), ie);
 	}
 	function ae(e) {
 		return e === 125 || D(e) ? v(e) : k(e);
@@ -3928,10 +3928,10 @@ function cc(e, t, n, r) {
 	let i = this;
 	return a;
 	function a(t) {
-		return t === null || j(t) || Oe(t) || O(t) ? n(t) : (e.enter(r), e.consume(t), o);
+		return t === null || j(t) || Oe(t) || ne(t) ? n(t) : (e.enter(r), e.consume(t), o);
 	}
 	function o(a) {
-		return a === null || j(a) || O(a) || Oe(a) && a !== 45 && a !== 95 ? (e.exit(r), i.previous === 45 || i.previous === 95 ? n(a) : t(a)) : (e.consume(a), o);
+		return a === null || j(a) || ne(a) || Oe(a) && a !== 45 && a !== 95 ? (e.exit(r), i.previous === 45 || i.previous === 95 ? n(a) : t(a)) : (e.consume(a), o);
 	}
 }
 // node_modules/.pnpm/micromark-extension-directive@4.0.0/node_modules/micromark-extension-directive/lib/directive-container.js
@@ -4387,7 +4387,7 @@ function nl(e) {
 				before: c,
 				after: "]"
 			})), c += a.move("]"), i(), t();
-		} else l || u !== 45 && u !== 95 && (Oe(u) || O(u)) || (c += a.move("[]"));
+		} else l || u !== 45 && u !== 95 && (Oe(u) || ne(u)) || (c += a.move("[]"));
 		if (c += a.move(l || (u === 123 ? "{}" : "")), e.type === "containerDirective") {
 			let t = (e.children || [])[0], r = e;
 			vl(t) && (r = Object.assign({}, e, { children: e.children.slice(1) })), r && r.children && r.children.length > 0 && (c += a.move("\n"), c += a.move(n.containerFlow(r, a.current()))), c += a.move("\n" + o);
@@ -5090,7 +5090,7 @@ function fu(e) {
 	let { runtime: t, announce: n } = e, r = /* @__PURE__ */ new Map(), i = new P({
 		key: cu,
 		state: {
-			init: () => re.empty,
+			init: () => O.empty,
 			apply(e, n) {
 				let i = n.map(e.mapping, e.doc), a = e.getMeta(cu);
 				if (!a) return i;
@@ -5307,7 +5307,7 @@ async function Tu(e, t = {}) {
 	};
 	e.classList.add("nowo-milkdown"), e.dataset.theme = r.theme, e.style.setProperty("--nowo-milkdown-min-height", r.minHeight), n.hidden = !0, n.value = bu(n.value);
 	let { bar: s, surface: c, status: l, announce: u } = Cu(e, o);
-	r.version && e.insertBefore((await import("./chunks/version-CX6ffiGz.js")).versionBanner(e, r.version, o), s);
+	r.version && e.insertBefore((await import("./chunks/version--NZoPB_A.js")).versionBanner(e, r.version, o), s);
 	let d = Su(n), f = n.value;
 	r.upload && (r.upload.hostSchemes = r.hostSchemes);
 	let p = fu({
@@ -5328,8 +5328,8 @@ async function Tu(e, t = {}) {
 	m && (o.pickFiles = h);
 	let g = new er({
 		root: c,
-		defaultValue: r.collaboration ? "" : f
-	}), _ = g.editor, v = r.collaboration ? await import("./chunks/collab-PP7UE4Z1.js") : null, y = r.features.includes("context_menu") ? await import("./chunks/context-menu-BwatxEY0.js") : null, b = r.features.includes("block_actions") ? await import("./chunks/block-actions-BfbteSXs.js") : null, x = r.features.includes("colors") ? await import("./chunks/colors-DLVtnFPi.js") : null, S = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-t-rjOoT7.js") : null, C = r.comments ? await import("./chunks/comments-Dmn8Mh65.js") : null, w = null, T = null, E = r.comments ? {
+		defaultValue: f
+	}), _ = g.editor, v = r.collaboration ? await import("./chunks/collab-YqMUDvlc.js") : null, y = r.features.includes("context_menu") ? await import("./chunks/context-menu-oadJiNWk.js") : null, b = r.features.includes("block_actions") ? await import("./chunks/block-actions-DDAkuQs9.js") : null, x = r.features.includes("colors") ? await import("./chunks/colors-DijjJWNk.js") : null, S = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-RS-VpiFB.js") : null, C = r.comments ? await import("./chunks/comments-Dmn8Mh65.js") : null, w = null, T = null, E = r.comments ? {
 		root: e,
 		announce: (e, t) => u(e, t),
 		yjs: () => w,
@@ -5367,72 +5367,105 @@ async function Tu(e, t = {}) {
 		rememberUser: a.remember
 	}))).use(ln).use(z(() => p.plugin)), r.mentionDisplay === "name" && _.use(Fl);
 	let D = Object.keys(r.hostSchemes).length > 0;
-	(D || r.features.includes("image_block")) && _.use(cn), D && _.use(rn), r.features.includes("image_block") && _.use(an), r.features.includes("insert_button") && !r.readonly && _.use(gu), v && _.use(v.collab), y && _.use(y.contextMenuPlugin), b && _.use(b.blockActionsPlugin(r.features.includes("block_drag"))), x && _.use(x.colorMenuPlugin), S && _.use(S.markdownClipboardPlugin((e, t) => u(e, {}, t, !0))), r.features.includes("heading_ids") && _.use((await import("./chunks/heading-ids-V7JaREcg.js")).headingIdsPlugin), C && E && C.useComments(_, E, () => T), await Ds(g, r, o), g.on((e) => e.markdownUpdated((e, t) => {
-		n.value !== t && (n.value = t, n.dispatchEvent(new Event("input", { bubbles: !0 })), n.dispatchEvent(new Event("change", { bubbles: !0 })));
-	})), r.readonly && g.setReadonly(!0), await g.create();
-	let ee = () => g.getMarkdown(), te = () => {
-		n.value = ee();
+	(D || r.features.includes("image_block")) && _.use(cn), D && _.use(rn), r.features.includes("image_block") && _.use(an), r.features.includes("insert_button") && !r.readonly && _.use(gu);
+	let ee = v !== null;
+	v && _.use(v.collab).use(z(() => v.waitPlugin(() => ee))), y && _.use(y.contextMenuPlugin), b && _.use(b.blockActionsPlugin(r.features.includes("block_drag"))), x && _.use(x.colorMenuPlugin), S && _.use(S.markdownClipboardPlugin((e, t) => u(e, {}, t, !0))), r.features.includes("heading_ids") && _.use((await import("./chunks/heading-ids-V7JaREcg.js")).headingIdsPlugin), C && E && C.useComments(_, E, () => T), await Ds(g, r, o);
+	let te = (e) => e;
+	g.on((e) => e.markdownUpdated((e, t) => {
+		let r = te(t);
+		r !== null && n.value !== r && (n.value = r, n.dispatchEvent(new Event("input", { bubbles: !0 })), n.dispatchEvent(new Event("change", { bubbles: !0 })));
+	})), (r.readonly || v) && g.setReadonly(!0), await g.create();
+	let ne = () => g.getMarkdown(), re = () => {
+		let e = te(ne());
+		e !== null && (n.value = e);
 	}, O = n.form;
-	O?.addEventListener("submit", te, !0), O?.addEventListener("formdata", te, !0);
-	let ne = () => _.action((e) => e.get(N).focus());
-	d?.addEventListener("click", ne);
-	let re = Hl(c, o), ie = (e) => {
+	O?.addEventListener("submit", re, !0), O?.addEventListener("formdata", re, !0);
+	let ie = () => _.action((e) => e.get(N).focus());
+	d?.addEventListener("click", ie);
+	let ae = Hl(c, o), k = (e) => {
 		if (Nt(o)) {
 			Js(e, o);
 			return;
 		}
 		let { $from: t } = e.state.selection, n = t.parent.textBetween(0, t.parentOffset, void 0, "￼");
 		e.dispatch(e.state.tr.insertText(n === "" || /\s$/.test(n) ? ":" : " :")), e.focus();
-	}, ae = !!(r.suggestions[":"] || Nt(o));
-	if (m && r.actionBarInsert.includes("file") && wu(s, H(o, "upload.button"), () => _.action((e) => h(e.get(N))), r.toolbarIcons ? "file-upload" : null), ae && !r.readonly && r.actionBarInsert.includes("icon") && wu(s, H(o, "icon.button"), () => _.action((e) => ie(e.get(N))), r.toolbarIcons ? "icons" : null), r.features.includes("insert_menu") && !r.readonly) {
+	}, oe = !!(r.suggestions[":"] || Nt(o));
+	if (m && r.actionBarInsert.includes("file") && wu(s, H(o, "upload.button"), () => _.action((e) => h(e.get(N))), r.toolbarIcons ? "file-upload" : null), oe && !r.readonly && r.actionBarInsert.includes("icon") && wu(s, H(o, "icon.button"), () => _.action((e) => k(e.get(N))), r.toolbarIcons ? "icons" : null), r.features.includes("insert_menu") && !r.readonly) {
 		let e = [];
 		m && e.push({
 			id: "file",
 			label: H(o, "menu.insert_file"),
 			run: (e) => h(e)
-		}), ae && e.push({
+		}), oe && e.push({
 			id: "icon",
 			label: H(o, "slash.icon"),
-			run: ie,
+			run: k,
 			inline: !0
 		}), _.action((t) => o.insert.push(...nn(Zl(t, r, o), e)));
 	}
 	s.childElementCount || s.remove();
-	let k = null, oe = () => void 0;
+	let se = null, A = () => void 0, ce = null;
 	if (v && r.collaboration) {
-		e.dataset.collab = "connecting";
-		let t = r.collaboration.topic, n = v, i = await v.startCollaboration(_, r.collaboration, f, (t) => {
-			e.dataset.collab = t, u(`collab.${t}`, {});
-		}, () => {
-			u("collab.reset_paused", {});
-			let e = document.createElement("button");
-			e.type = "button", e.className = "nowo-milkdown__reload", e.textContent = H(o, "collab.reload"), e.addEventListener("click", () => n.page.reload()), l.after(e);
-		});
-		k = i.provider, C && (w = v.yjsAnchors(() => _.action((e) => e.get(N).state)));
-		let a = k, s = () => {
-			a.flush(!0);
-			let e = O?.querySelector("input[name=\"_nowo_milkdown_collab\"]") ?? null;
-			a.status === "online" ? (e || (e = document.createElement("input"), e.type = "hidden", e.name = _u, O?.append(e)), e.value = t) : e?.remove();
+		e.dataset.collab = "connecting", e.setAttribute("aria-busy", "true");
+		let t = r.collaboration.topic, n = v, i = [...s.querySelectorAll("button")];
+		i.forEach((e) => e.disabled = !0);
+		let a = ne(), d = !1;
+		te = (e) => ee ? null : d && e === a ? f : e;
+		let p = null, m = (e) => {
+			ee && (e.preventDefault(), e.stopImmediatePropagation(), p = { submitter: e.submitter ?? null }, u("collab.save_waiting", {}));
+		}, h = () => {
+			let e = p;
+			if (p = null, e && O?.isConnected) try {
+				O.requestSubmit(e.submitter);
+			} catch {
+				O.requestSubmit();
+			}
 		};
-		O?.addEventListener("submit", s, !0);
-		let d = () => a.flush();
-		c.addEventListener("focusout", d), oe = () => {
-			O?.removeEventListener("submit", s, !0), c.removeEventListener("focusout", d), i.stop();
+		O?.addEventListener("submit", m, !0);
+		let y = !1, b = () => {
+			y = !0;
+		};
+		c.addEventListener("pointerdown", b);
+		let x = v.startCollaboration(_, r.collaboration, f, {
+			onStatus: (t) => {
+				e.dataset.collab = t, t === "online" && (d = !1), t === "standalone" ? (d = !0, l.textContent = "", u("collab.standalone", {}, !0)) : u(`collab.${t}`, {});
+			},
+			onReloadPaused: () => {
+				u("collab.reset_paused", {});
+				let e = document.createElement("button");
+				e.type = "button", e.className = "nowo-milkdown__reload", e.textContent = H(o, "collab.reload"), e.addEventListener("click", () => n.page.reload()), l.after(e);
+			},
+			onReady: () => {
+				ee = !1, g.setReadonly(r.readonly), e.removeAttribute("aria-busy"), i.forEach((e) => e.disabled = !1), c.removeEventListener("pointerdown", b), y && (!document.activeElement || document.activeElement === document.body) && ie(), y = !1, window.setTimeout(h, 0);
+			},
+			isUntouched: () => ne() === a
+		});
+		se = x.provider, ce = x.ready, C && (w = v.yjsAnchors(() => _.action((e) => e.get(N).state)));
+		let S = se, T = () => {
+			S.flush(!0);
+			let e = O?.querySelector("input[name=\"_nowo_milkdown_collab\"]") ?? null;
+			S.status !== "online" || !x.bound() ? e?.remove() : (e || (e = document.createElement("input"), e.type = "hidden", e.name = _u, O?.append(e)), e.value = t);
+		};
+		O?.addEventListener("submit", T, !0);
+		let E = () => S.flush();
+		c.addEventListener("focusout", E), A = () => {
+			O?.removeEventListener("submit", m, !0), c.removeEventListener("pointerdown", b), O?.removeEventListener("submit", T, !0), c.removeEventListener("focusout", E), x.stop();
 		};
 	}
-	let se = !1, A = C && E ? C.commentsApi(_, E, () => T, () => !se) : void 0;
-	A && E?.canCreate && (o.comment = A.start);
-	let ce = () => void 0, le = r.comments;
-	if (A && C && le?.url && le.panel !== "none") {
-		let t = le.url, { mountThreadPanel: n } = await import("./chunks/thread-ui-DciljNRi.js"), i = n({
+	ce && await ce;
+	let le = !1, ue = C && E ? C.commentsApi(_, E, () => T, () => !le) : void 0;
+	ue && E?.canCreate && (o.comment = ue.start);
+	let j = () => void 0, de = r.comments;
+	if (ue && C && de?.url && de.panel !== "none") {
+		let t = de.url, { mountThreadPanel: n } = await import("./chunks/thread-ui-DleRkcrp.js"), i = n({
 			root: e,
 			surface: c,
 			options: {
-				...le,
+				...de,
 				url: t
 			},
 			runtime: o,
-			api: () => A,
+			api: () => ue,
 			announce: u,
 			tops: () => C.threadTops(_, c),
 			hubUrl: r.collaboration?.hubUrl ?? null
@@ -5442,20 +5475,20 @@ async function Tu(e, t = {}) {
 			open: (e) => i.open(e),
 			refresh: (e) => i.refresh(e),
 			mount: (e) => i.mount(e)
-		}, ce = () => i.destroy();
+		}, j = () => i.destroy();
 	}
 	return {
 		root: e,
 		textarea: n,
 		options: r,
 		builder: g,
-		provider: k,
-		...A ? { comments: A } : {},
-		getMarkdown: ee,
+		provider: se,
+		...ue ? { comments: ue } : {},
+		getMarkdown: ne,
 		setMarkdown: (e) => _.action(Re(bu(e))),
-		focus: ne,
+		focus: ie,
 		destroy: async () => {
-			se = !0, ce(), re(), oe(), O?.removeEventListener("submit", te, !0), O?.removeEventListener("formdata", te, !0), d?.removeEventListener("click", ne), await g.destroy(), e.querySelectorAll(".nowo-milkdown__version, .nowo-milkdown__actions, .nowo-milkdown__surface, .nowo-milkdown__status, .nowo-milkdown__alert, .nowo-milkdown__reload").forEach((e) => e.remove()), n.hidden = !1;
+			le = !0, j(), ae(), A(), O?.removeEventListener("submit", re, !0), O?.removeEventListener("formdata", re, !0), d?.removeEventListener("click", ie), await g.destroy(), e.querySelectorAll(".nowo-milkdown__version, .nowo-milkdown__actions, .nowo-milkdown__surface, .nowo-milkdown__status, .nowo-milkdown__alert, .nowo-milkdown__reload").forEach((e) => e.remove()), n.hidden = !1;
 		}
 	};
 }

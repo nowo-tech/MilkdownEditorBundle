@@ -87,6 +87,14 @@ final class MilkdownEditorType extends AbstractType
     ];
 
     /**
+     * UI strings of the states of 1.9.1, sent only to fields with `collaboration`, so other fields keep the same widget
+     * JSON as before.
+     *
+     * @var list<string>
+     */
+    public const COLLABORATION_MESSAGE_KEYS = ['collab.standalone', 'collab.save_waiting'];
+
+    /**
      * UI strings sent only when their feature is enabled (1.3+), so fields without the feature keep the same widget
      * JSON as before.
      *
@@ -198,7 +206,7 @@ final class MilkdownEditorType extends AbstractType
             'icons'         => $options['icons'],
             'upload'        => $options['upload_url'] === null ? null : $this->upload($options),
             'collaboration' => $options['collaboration'],
-            'messages'      => (object) $this->messages($features),
+            'messages'      => (object) $this->messages($features, $options['collaboration'] !== null),
         ];
         // 1.2.1: only when set, so fields with the defaults keep the same widget JSON.
         // 1.4: the editor offers the colours the renderer accepts (only with the colors feature: same JSON otherwise).
@@ -556,11 +564,12 @@ final class MilkdownEditorType extends AbstractType
      * Collaboration needs `url`, `hub_url`, `topic` and a `user` name; the colour defaults to the accent. 1.5.1:
      * optional `update_delay_ms` (0–2000, coalescing window of document updates) and `awareness_delay_ms` (0–5000,
      * presence throttle) and `max_update_bytes` (1024–64 MiB, largest merged update per POST: the host's limit), sent
-     * only when set so the widget JSON is unchanged otherwise.
+     * only when set so the widget JSON is unchanged otherwise. 1.9.1: optional `connect_timeout_ms` (0–60000, longest wait
+     * for the shared document before the person edits without it), also only when set.
      *
      * @param array<mixed> $value The option
      *
-     * @return array{url: string, hubUrl: string, topic: string, user: array{name: string, color: string}, updateDelay?: int, awarenessDelay?: int, maxUpdateBytes?: int}
+     * @return array{url: string, hubUrl: string, topic: string, user: array{name: string, color: string}, updateDelay?: int, awarenessDelay?: int, maxUpdateBytes?: int, connectTimeout?: int}
      */
     public static function normaliseCollaboration(array $value): array
     {
@@ -581,7 +590,7 @@ final class MilkdownEditorType extends AbstractType
         $topic = $value['topic'];
 
         $out = ['url' => $url, 'hubUrl' => $hub, 'topic' => $topic, 'user' => ['name' => $name, 'color' => $color]];
-        foreach (['update_delay_ms' => ['updateDelay', 0, 2000], 'awareness_delay_ms' => ['awarenessDelay', 0, 5000], 'max_update_bytes' => ['maxUpdateBytes', 1024, 67108864]] as $key => [$json, $min, $max]) {
+        foreach (['update_delay_ms' => ['updateDelay', 0, 2000], 'awareness_delay_ms' => ['awarenessDelay', 0, 5000], 'max_update_bytes' => ['maxUpdateBytes', 1024, 67108864], 'connect_timeout_ms' => ['connectTimeout', 0, 60000]] as $key => [$json, $min, $max]) {
             if (!array_key_exists($key, $value)) {
                 continue;
             }
@@ -598,10 +607,11 @@ final class MilkdownEditorType extends AbstractType
      * Every editor UI string, translated (English defaults live in the TypeScript bundle when no translator).
      *
      * @param list<string> $features Enabled features (their extra strings are added)
+     * @param bool $collaboration Whether the field has collaboration (the strings of its states are added)
      *
      * @return array<string, string>
      */
-    private function messages(array $features): array
+    private function messages(array $features, bool $collaboration): array
     {
         if (!$this->translator instanceof TranslatorInterface) {
             return [];
@@ -609,6 +619,9 @@ final class MilkdownEditorType extends AbstractType
         $keys = self::MESSAGE_KEYS;
         foreach ($features as $feature) {
             $keys = [...$keys, ...(self::FEATURE_MESSAGE_KEYS[$feature] ?? [])];
+        }
+        if ($collaboration) {
+            $keys = [...$keys, ...self::COLLABORATION_MESSAGE_KEYS];
         }
         // 1.9 (ME-5): the placeholder of an image that cannot be shown, only with host references.
         if ($this->hostSchemes instanceof HostSchemes && !$this->hostSchemes->isEmpty()) {

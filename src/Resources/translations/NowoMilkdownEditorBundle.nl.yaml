@@ -111,6 +111,8 @@ collab.offline: "Offline: wijzigingen blijven bewaard en worden verzonden zodra 
 collab.reset: "Deze pagina is hersteld of vervangen: opnieuw laden met de nieuwe inhoud…"
 collab.reset_paused: "Deze pagina is meerdere keren achter elkaar vervangen. Laad hem opnieuw wanneer je klaar bent."
 collab.reload: "Opnieuw laden"
+collab.standalone: "Bewerken zonder live samenwerken: de verbinding is niet beschikbaar. Opslaan vervangt de inhoud voor iedereen."
+collab.save_waiting: "Opslaan zodra de editor klaar is…"
 menu.label: "Editoracties"
 menu.cut: "Knippen"
 menu.copy: "Kopiëren"

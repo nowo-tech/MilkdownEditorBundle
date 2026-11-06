@@ -111,6 +111,8 @@ collab.offline: "Offline: le modifiche vengono conservate e inviate al ritorno d
 collab.reset: "Questa pagina è stata ripristinata o sostituita: ricaricamento con il nuovo contenuto…"
 collab.reset_paused: "Questa pagina è stata sostituita più volte di seguito. Ricaricala quando sei pronto."
 collab.reload: "Ricarica"
+collab.standalone: "Modifica senza coedizione in diretta: la connessione non è disponibile. Il salvataggio sostituisce il contenuto per tutti."
+collab.save_waiting: "Salvataggio appena l’editor è pronto…"
 menu.label: "Azioni dell'editor"
 menu.cut: "Taglia"
 menu.copy: "Copia"

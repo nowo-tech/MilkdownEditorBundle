@@ -267,6 +267,11 @@
 .nowo-milkdown__alert {
   color: var(--nowo-milkdown-danger);
 }
+/* 1.9.1: read-only while the shared document connects; the status below says so. */
+.nowo-milkdown[aria-busy='true'] .nowo-milkdown__surface {
+  cursor: progress;
+  opacity: 0.7;
+}
 .nowo-milkdown__status:empty,
 .nowo-milkdown__alert:empty {
   display: none;

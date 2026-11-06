@@ -24,3 +24,6 @@ demo.layers.dialog: Dentro de un diálogo modal
 demo.layers.open_dialog: Abrir el diálogo
 demo.layers.dialog_title: Editar en un diálogo
 demo.layers.close_dialog: Cerrar
+demo.collab.nav: Colaboración
+demo.collab.heading: Colaboración sin hub
+demo.collab.lead: 'Esta página tiene la colaboración activa y su hub no responde. El editor queda en solo lectura mientras conecta y después permite editar sin colaboración. Guardar en cualquier momento conserva el contenido.'
