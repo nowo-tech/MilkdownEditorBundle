@@ -1,69 +1,26 @@
 import { at as e, ot as t, st as n } from "./lib-9QpRoHAM.js";
-import { m as r, u as i } from "./lib-DaU_YkmU.js";
-import { n as a, t as o } from "./dist-BmAqUYId.js";
-import { d as s } from "./lib-Cs-8MFWq.js";
-import { f as c } from "./dist-DPp-l4A4.js";
-import { a as l, i as u, n as d } from "./runtime-6p6Aqu-n.js";
-import { n as f } from "./link-titles-Cs1oogn7.js";
-import { i as p, n as m, r as ee, t as h } from "./layer-N-kUiX52.js";
-// src/Resources/assets/src/host.ts
-var g = /^\s*([a-z][a-z0-9+.-]{0,30}):/i, _ = /^\s*([a-z][a-z0-9+.-]{0,30}):((?!\.+\s*$)[A-Za-z0-9._~-]{1,200})\s*$/i, te = /* @__PURE__ */ new Set([
-	"http",
-	"https",
-	"javascript",
-	"vbscript",
-	"data",
-	"file",
-	"blob",
-	"about",
-	"mailto",
-	"tel",
-	"ftp",
-	"ws",
-	"wss"
-]), v = (e) => typeof e == "string" && e.length <= 500 && e.includes("{id}") && /^(?:\/(?![/\\])|https?:\/\/)/i.test(e);
-function y(e) {
-	let t = {};
-	if (!e || typeof e != "object" || Array.isArray(e)) return t;
-	for (let [n, r] of Object.entries(e)) {
-		if (!/^[a-z][a-z0-9+.-]{0,30}$/.test(n) || te.has(n) || !r || typeof r != "object") continue;
-		let e = r;
-		t[n] = {
-			image: v(e.image) ? e.image : null,
-			file: v(e.file) ? e.file : null,
-			preview: v(e.preview) ? e.preview : null
-		};
-	}
-	return t;
+import { d as r, m as i, u as a } from "./lib-DaU_YkmU.js";
+import { n as o, t as s } from "./dist-BmAqUYId.js";
+import { d as c, g as l } from "./lib-Cs-8MFWq.js";
+import { f as u } from "./dist-DPp-l4A4.js";
+import { a as d, i as f, n as p } from "./runtime-dA0j40ft.js";
+import { i as m, n as h, o as g, r as _ } from "./host-CkpXbnaN.js";
+import { i as v, n as ee, r as y, t as b } from "./layer-N-kUiX52.js";
+// src/Resources/assets/src/dialect/file-card.ts
+var x = /* @__PURE__ */ new WeakMap(), S = null, C = "400px";
+function w(e, t) {
+	typeof IntersectionObserver < "u" && (S ??= new IntersectionObserver((e) => {
+		for (let t of e) {
+			let e = x.get(t.target);
+			t.isIntersecting && e !== void 0 && (t.target.src = e, x.delete(t.target), S?.unobserve(t.target));
+		}
+	}, { rootMargin: C }), x.set(e, t), S.observe(e));
 }
-function b(e, t) {
-	if (typeof e != "string") return !1;
-	let n = g.exec(e);
-	return !!n && Object.prototype.hasOwnProperty.call(t, n[1].toLowerCase());
-}
-function x(e, t) {
-	if (typeof e != "string") return null;
-	let n = _.exec(e);
-	if (!n) return null;
-	let r = n[1].toLowerCase();
-	return Object.prototype.hasOwnProperty.call(t, r) ? `${r}:${n[2]}` : null;
-}
-function S(e, t, n) {
-	if (!b(e, n)) return;
-	let r = x(e, n);
-	if (!r) return null;
-	let [i, a] = r.split(/:(.*)/s), o = n[i], s = o[t] ?? (t === "image" ? o.file : null);
-	return s && f(s.split("{id}").join(encodeURIComponent(a))) || null;
-}
-function C(e, t, n) {
-	let r = S(e, t, n);
-	return r === void 0 ? f(e) : r ?? "";
-}
-function w(e) {
+function T(e) {
 	let t = e.replace(/\uFEFF/g, "").replace(/\s+/g, " ").replace(/[\p{Cc}\p{Cf}]/gu, "").replace(/\[/g, "(").replace(/\]/g, ")").trim();
 	return Array.from(t).slice(0, 200).join("").trim() || "file";
 }
-var T = {
+var E = {
 	pdf: "pdf",
 	png: "image",
 	jpg: "image",
@@ -120,11 +77,11 @@ var T = {
 	php: "code",
 	sql: "code"
 };
-function E(e) {
+function D(e) {
 	let t = /\.([a-z0-9]{1,8})$/i.exec(e.trim());
 	return t ? t[1].toLowerCase() : "";
 }
-function D(e) {
+function O(e) {
 	let t = e.toLowerCase();
 	if (t === "") return null;
 	if (t === "application/pdf") return "pdf";
@@ -140,22 +97,22 @@ function D(e) {
 	]) if (t.startsWith(`${e}/`)) return e;
 	return null;
 }
-function O(e) {
+function k(e) {
 	let t = e.split(/[?#]/, 1)[0] ?? "";
-	return E(t.slice(t.lastIndexOf("/") + 1));
+	return D(t.slice(t.lastIndexOf("/") + 1));
 }
-function k(e, t = "", n = "") {
-	let r = (e) => e.slice(0, 4).toUpperCase(), i = O(n);
+function te(e, t = "", n = "") {
+	let r = (e) => e.slice(0, 4).toUpperCase(), i = k(n);
 	if (i) return {
-		category: T[i] ?? "other",
+		category: E[i] ?? "other",
 		badge: r(i)
 	};
-	let a = E(e), o = D(t);
+	let a = D(e), o = O(t);
 	return o ? {
 		category: o,
-		badge: a && T[a] === o ? r(a) : "FILE"
+		badge: a && E[a] === o ? r(a) : "FILE"
 	} : {
-		category: T[a] ?? "other",
+		category: E[a] ?? "other",
 		badge: a ? r(a) : "FILE"
 	};
 }
@@ -210,8 +167,8 @@ var ne = {
 	hostSchemes: {},
 	previewSandbox: ""
 };
-function F(e, t, n = ie) {
-	let r = w(e), i = C(t.href ?? "", "file", n.hostSchemes), a = k(r, t.type ?? "", i), o = N(t), s = (e) => {
+function ae(e, t, n = ie) {
+	let r = T(e), i = g(t.href ?? "", "file", n.hostSchemes), a = te(r, t.type ?? "", i), o = N(t), s = (e) => {
 		let t = document.createElement(i ? "a" : "span");
 		return t.className = e, t instanceof HTMLAnchorElement && (t.href = i, t.rel = "noopener noreferrer", t.target = "_blank"), t;
 	}, c = () => {
@@ -223,7 +180,7 @@ function F(e, t, n = ie) {
 		e.className = `nowo-milkdown-file nowo-milkdown-file--${o}-view nowo-milkdown-file--${a.category}`, e.dataset.view = o;
 		let t = s(o === "link" ? "nowo-milkdown-file__text" : "nowo-milkdown-file__inline");
 		if (o === "icon") {
-			let e = p(re(a), "nowo-milkdown-file__icon");
+			let e = v(re(a), "nowo-milkdown-file__icon");
 			e && t.append(e), t.append(c());
 		} else t.textContent = r;
 		return e.append(t), e;
@@ -235,8 +192,8 @@ function F(e, t, n = ie) {
 		let e = document.createElement("span");
 		e.className = "nowo-milkdown-file__size", e.textContent = d, l.append(e);
 	}
-	let f = o === "preview" && i ? S(t.href ?? "", "preview", n.hostSchemes) : null;
-	if (f) {
+	let f = o === "preview" && i ? _(t.href ?? "", "preview", n.hostSchemes) : null, p = f && (n.allowPreview?.(t.href ?? "") ?? !0) ? f : null;
+	if (p) {
 		let e = document.createElement("figure");
 		e.className = `nowo-milkdown-file nowo-milkdown-file--preview-view nowo-milkdown-file--${a.category}`, e.dataset.view = "preview";
 		let o = document.createElement("div");
@@ -248,31 +205,31 @@ function F(e, t, n = ie) {
 		let u = document.createElement("a");
 		u.className = "nowo-milkdown-file__download", u.href = i, u.rel = "noopener noreferrer", u.setAttribute("download", ""), u.textContent = n.label?.("download") ?? "Download", s.append(c, u), o.append(l, s);
 		let d = document.createElement("iframe");
-		return d.className = "nowo-milkdown-file__frame", d.title = r, d.setAttribute("sandbox", n.previewSandbox), d.setAttribute("loading", "lazy"), d.setAttribute("referrerpolicy", "no-referrer"), d.height = String(P(t.height)), d.src = f, e.append(o, d), e;
+		return d.className = "nowo-milkdown-file__frame", d.title = r, d.setAttribute("sandbox", n.previewSandbox), d.setAttribute("loading", "lazy"), d.setAttribute("referrerpolicy", "no-referrer"), d.height = String(P(t.height)), w(d, p), e.append(o, d), e;
 	}
 	let m = document.createElement("div");
 	return m.className = `nowo-milkdown-file nowo-milkdown-file--${a.category}`, o !== "card" && (m.dataset.view = o), m.append(l), m;
 }
 // src/Resources/assets/src/dialect/image.ts
-var I = [
+var F = [
 	"left",
 	"center",
 	"right"
-], L = [
+], I = [
 	"25%",
 	"50%",
 	"75%",
 	"100%"
 ];
-function R(e) {
+function L(e) {
 	let t = typeof e == "string" ? e : "";
-	if (L.includes(t)) return t;
+	if (I.includes(t)) return t;
 	let n = /^([1-9]\d{1,3})px$/.exec(t);
 	return n && Number(n[1]) >= 16 && Number(n[1]) <= 2e3 ? t : "";
 }
-var z = (e) => I.includes(e) ? e : "", B = "(width|align)=(?:\"([^\"{}\\n]{1,20})\"|([^\\s\"{}]{1,20}))", V = RegExp(`^\\{\\s*${B}(?:\\s+${B})?\\s*\\}`);
-function H(e) {
-	let t = V.exec(e);
+var R = (e) => F.includes(e) ? e : "", z = "(width|align)=(?:\"([^\"{}\\n]{1,20})\"|([^ \\t\\n\\v\\f\\r\"{}]{1,20}))", B = RegExp(`^\\{[ \\t]*${z}(?:[ \\t]+${z})?[ \\t]*\\}`);
+function V(e) {
+	let t = B.exec(e);
 	if (!t) return null;
 	let n = {
 		width: "",
@@ -280,21 +237,21 @@ function H(e) {
 		length: t[0].length
 	};
 	for (let [e, r] of [[t[1], t[2] ?? t[3]], [t[4], t[5] ?? t[6]]]) if (e === "width") {
-		if (n.width = R(r), !n.width) return null;
-	} else if (e === "align" && (n.align = z(r), !n.align)) return null;
+		if (n.width = L(r), !n.width) return null;
+	} else if (e === "align" && (n.align = R(r), !n.align)) return null;
 	return n;
 }
-function U(e) {
-	let t = [], n = R(e.width), r = z(e.align);
+function H(e) {
+	let t = [], n = L(e.width), r = R(e.align);
 	return n && t.push(`width=${n}`), r && t.push(`align=${r}`), t.length ? `{${t.join(" ")}}` : "";
 }
-function W(e) {
+function U(e) {
 	let t = e.children;
 	if (t) {
 		for (let e = t.length - 2; e >= 0; e--) {
 			let n = t[e], r = t[e + 1];
 			if (n.type !== "image" || r.type !== "text") continue;
-			let i = H(r.value ?? "");
+			let i = V(r.value ?? "");
 			if (!i) continue;
 			n.data = {
 				...n.data ?? {},
@@ -306,15 +263,15 @@ function W(e) {
 			let a = (r.value ?? "").slice(i.length);
 			a === "" ? t.splice(e + 1, 1) : r.value = a;
 		}
-		for (let e of t) W(e);
+		for (let e of t) U(e);
 	}
 }
 // src/Resources/assets/src/nodes/image.ts
-var G = /^data:image\/(?:png|gif|jpe?g|webp)[;,]/i;
-function K(e, t) {
-	return typeof e == "string" && G.test(e) ? e : C(e, "image", t);
+var W = /^data:image\/(?:png|gif|jpe?g|webp)[;,]/i;
+function G(e, t) {
+	return typeof e == "string" && W.test(e) ? e : g(e, "image", t);
 }
-var q = s.extendSchema((e) => (t) => {
+var K = c.extendSchema((e) => (t) => {
 	let n = e(t);
 	return {
 		...n,
@@ -341,8 +298,8 @@ var q = s.extendSchema((e) => (t) => {
 					src: t.url,
 					alt: t.alt ?? "",
 					title: t.title ?? "",
-					width: R(r.nowoImage?.width),
-					align: z(r.nowoImage?.align)
+					width: L(r.nowoImage?.width),
+					align: R(r.nowoImage?.align)
 				});
 			}
 		},
@@ -354,12 +311,38 @@ var q = s.extendSchema((e) => (t) => {
 					url: t.attrs.src,
 					alt: t.attrs.alt
 				});
-				let n = U({
+				let n = H({
 					width: t.attrs.width,
 					align: t.attrs.align
 				});
 				n && e.addNode("text", void 0, n);
 			}
+		}
+	};
+}), q = r("nowoImageLift", () => (() => (e) => U(e))), oe = l.extendSchema((e) => (t) => {
+	let n = e(t), r = () => t.get(f.key).hostSchemes;
+	return {
+		...n,
+		parseDOM: [{
+			tag: "a[data-nowo-host-ref]",
+			priority: 60,
+			getAttrs: (e) => {
+				let t = h(e.getAttribute("data-nowo-host-ref"), r());
+				return t ? {
+					href: t,
+					title: e.getAttribute("title")
+				} : !1;
+			}
+		}, ...n.parseDOM ?? []],
+		toDOM: (e, t) => {
+			let i = e.attrs.href;
+			if (!m(i, r())) return n.toDOM(e, t);
+			let [a, o] = n.toDOM(e, t), s = g(i, "file", r()), c = h(i, r()), { href: l, ...u } = o;
+			return [a, {
+				...u,
+				...s ? { href: s } : {},
+				...c ? { "data-nowo-host-ref": c } : {}
+			}];
 		}
 	};
 });
@@ -393,7 +376,7 @@ function Y(e, t, n, r, i) {
 		press: (e) => o.forEach(({ button: t, value: n }) => t.setAttribute("aria-pressed", String(n === e)))
 	};
 }
-function ae(t, n, r) {
+function se(t, n, r) {
 	let i = (t) => {
 		let i = r(), a = i === void 0 ? null : n.state.doc.nodeAt(i);
 		if (i === void 0 || !a || a.type.name !== "image") return;
@@ -404,24 +387,24 @@ function ae(t, n, r) {
 		n.dispatch(o.setSelection(e.create(o.doc, i)));
 	}, a = () => n.focus(), o = document.createElement("span");
 	o.className = "nowo-milkdown-image__toolbar", o.contentEditable = "false";
-	let s = J(l(t, "image.alt"), (e) => i({ alt: e }), a), c = J(l(t, "image.caption"), (e) => i({ title: e }), a), u = Y(l(t, "image.width"), ["", ...L], (e) => e === "" ? l(t, "image.width_original") : e, (e) => i({ width: e }), a), d = Y(l(t, "image.align"), I, (e) => l(t, `image.align_${e}`), (e) => i({ align: e }), a);
-	return o.append(s.wrap, c.wrap, u.group, d.group), {
+	let s = J(d(t, "image.alt"), (e) => i({ alt: e }), a), c = J(d(t, "image.caption"), (e) => i({ title: e }), a), l = Y(d(t, "image.width"), ["", ...I], (e) => e === "" ? d(t, "image.width_original") : e, (e) => i({ width: e }), a), u = Y(d(t, "image.align"), F, (e) => d(t, `image.align_${e}`), (e) => i({ align: e }), a);
+	return o.append(s.wrap, c.wrap, l.group, u.group), {
 		el: o,
 		focus: () => s.input.focus(),
 		sync: (e) => {
-			document.activeElement !== s.input && (s.input.value = e.attrs.alt), document.activeElement !== c.input && (c.input.value = e.attrs.title), u.press(R(e.attrs.width)), d.press(z(e.attrs.align));
+			document.activeElement !== s.input && (s.input.value = e.attrs.alt), document.activeElement !== c.input && (c.input.value = e.attrs.title), l.press(L(e.attrs.width)), u.press(R(e.attrs.align));
 		}
 	};
 }
-var oe = r(q.node, (e) => (t, n, r) => {
-	let i = e.get(u.key), a = i.features.has("image_block"), o = document.createElement("span"), s = document.createElement("span");
+var ce = i(K.node, (e) => (t, n, r) => {
+	let i = e.get(f.key), a = i.features.has("image_block"), o = document.createElement("span"), s = document.createElement("span");
 	s.className = "nowo-milkdown-image__content", o.append(s);
-	let c = t, d = null, f = () => {
+	let c = t, l = null, u = () => {
 		let e = document.createElement("span");
-		e.className = "nowo-milkdown-image__hidden", e.textContent = l(i, "image.hidden"), s.querySelector("img")?.replaceWith(e), s.contains(e) || s.prepend(e);
+		e.className = "nowo-milkdown-image__hidden", e.textContent = d(i, "image.hidden"), s.querySelector("img")?.replaceWith(e), s.contains(e) || s.prepend(e);
 	}, p = () => {
 		s.replaceChildren();
-		let e = K(c.attrs.src, i.hostSchemes), t = a ? R(c.attrs.width) : "", n = a ? z(c.attrs.align) : "";
+		let e = G(c.attrs.src, i.hostSchemes), t = a ? L(c.attrs.width) : "", n = a ? R(c.attrs.align) : "";
 		if (o.className = [
 			"nowo-milkdown-image",
 			n ? `nowo-milkdown-image--${n}` : "",
@@ -429,13 +412,13 @@ var oe = r(q.node, (e) => (t, n, r) => {
 			o.classList.contains("ProseMirror-selectednode") ? "ProseMirror-selectednode" : ""
 		].filter(Boolean).join(" "), e) {
 			let n = document.createElement("img");
-			n.alt = c.attrs.alt, c.attrs.title && !a && (n.title = c.attrs.title), n.setAttribute("loading", "lazy"), t.endsWith("px") && (n.style.width = t), n.addEventListener("error", f), n.src = e, s.append(n);
-		} else f();
+			n.alt = c.attrs.alt, c.attrs.title && !a && (n.title = c.attrs.title), n.setAttribute("loading", "lazy"), t.endsWith("px") && (n.style.width = t), n.addEventListener("error", u), n.src = e, s.append(n);
+		} else u();
 		if (a && c.attrs.title) {
 			let e = document.createElement("span");
 			e.className = "nowo-milkdown-image__caption", e.textContent = c.attrs.title, s.append(e);
 		}
-		d?.sync(c);
+		l?.sync(c);
 	};
 	return p(), {
 		dom: o,
@@ -445,16 +428,16 @@ var oe = r(q.node, (e) => (t, n, r) => {
 			return c = e, n && p(), !0;
 		},
 		selectNode: () => {
-			o.classList.add("ProseMirror-selectednode"), a && n.editable && !d && (d = ae(i, n, r), d.sync(c), o.append(d.el));
+			o.classList.add("ProseMirror-selectednode"), a && n.editable && !l && (l = se(i, n, r), l.sync(c), o.append(l.el));
 		},
 		deselectNode: () => {
-			o.classList.remove("ProseMirror-selectednode"), d?.el.remove(), d = null;
+			o.classList.remove("ProseMirror-selectednode"), l?.el.remove(), l = null;
 		},
-		stopEvent: (e) => !!d && d.el.contains(e.target),
+		stopEvent: (e) => !!l && l.el.contains(e.target),
 		ignoreMutation: () => !0
 	};
 });
-function se(t) {
+function le(t) {
 	let { selection: n } = t;
 	if (n instanceof e && n.node.type.name === "image") return {
 		pos: n.from,
@@ -466,19 +449,19 @@ function se(t) {
 		node: i
 	} : null;
 }
-function ce(t, n) {
+function ue(t, n) {
 	if (!t.editable || !n.features.has("image_block")) return [];
-	let r = se(t.state);
+	let r = le(t.state);
 	return r ? [{
 		id: "image_edit",
-		label: l(n, "menu.image_edit"),
+		label: d(n, "menu.image_edit"),
 		run: () => {
 			t.dispatch(t.state.tr.setSelection(e.create(t.state.doc, r.pos))), queueMicrotask(() => t.dom.querySelector(".nowo-milkdown-image__toolbar input")?.focus());
 		}
 	}] : [];
 }
-var le = new n("nowo-milkdown-suggest"), X = 0, Z = /* @__PURE__ */ new WeakMap(), ue = (e) => Z.get(e)?.isOpen === !0;
-function de(e, t) {
+var X = new n("nowo-milkdown-suggest"), de = 0, Z = /* @__PURE__ */ new WeakMap(), fe = (e) => Z.get(e)?.isOpen === !0;
+function pe(e, t) {
 	let { selection: n } = e;
 	if (!n.empty) return null;
 	let r = n.$from;
@@ -499,7 +482,7 @@ function de(e, t) {
 	}
 	return null;
 }
-var fe = class {
+var me = class {
 	view;
 	triggers;
 	runtime;
@@ -511,7 +494,7 @@ var fe = class {
 	abort = null;
 	timer;
 	dismissedAt = null;
-	id = `nowo-milkdown-suggest-${++X}`;
+	id = `nowo-milkdown-suggest-${++de}`;
 	host;
 	onKeyCapture = (e) => {
 		this.onKey(e) && (e.preventDefault(), e.stopImmediatePropagation());
@@ -526,7 +509,7 @@ var fe = class {
 		return this.active !== null && !this.listbox.hidden;
 	}
 	update(e) {
-		let t = de(e.state, this.triggers);
+		let t = pe(e.state, this.triggers);
 		if (!t) {
 			this.close();
 			return;
@@ -535,7 +518,7 @@ var fe = class {
 		this.active = t, n && this.schedule(), this.position();
 	}
 	destroy() {
-		this.close(), this.view.dom.removeEventListener("keydown", this.onKeyCapture, !0), h(this.listbox), this.listbox.remove(), this.live.remove(), Z.delete(this.view);
+		this.close(), this.view.dom.removeEventListener("keydown", this.onKeyCapture, !0), b(this.listbox), this.listbox.remove(), this.live.remove(), Z.delete(this.view);
 	}
 	onKey(e) {
 		if (!this.isOpen) return !1;
@@ -568,13 +551,13 @@ var fe = class {
 	}
 	render(e) {
 		let t = this.active;
-		if (this.listbox.replaceChildren(), this.listbox.setAttribute("aria-label", l(this.runtime, `suggest.label.${t.trigger.name}`)), this.items.forEach((e, t) => {
+		if (this.listbox.replaceChildren(), this.listbox.setAttribute("aria-label", d(this.runtime, `suggest.label.${t.trigger.name}`)), this.items.forEach((e, t) => {
 			let n = document.createElement("li");
 			if (n.id = `${this.id}-opt-${t}`, n.setAttribute("role", "option"), n.dataset.index = String(t), n.className = "nowo-milkdown-suggest__option", e.emoji) {
 				let t = document.createElement("span");
 				t.className = "nowo-milkdown-suggest__emoji", t.textContent = e.emoji, t.setAttribute("aria-hidden", "true"), n.append(t);
 			}
-			let r = e.icon ? d(this.runtime, e.icon) : e.glyph ? p(e.glyph, "nowo-milkdown-suggest__glyph") : null;
+			let r = e.icon ? p(this.runtime, e.icon) : e.glyph ? v(e.glyph, "nowo-milkdown-suggest__glyph") : null;
 			r && n.append(r);
 			let i = document.createElement("span");
 			if (i.className = "nowo-milkdown-suggest__label", i.textContent = e.label, n.append(i), e.hint) {
@@ -584,11 +567,11 @@ var fe = class {
 			this.listbox.append(n);
 		}), !this.items.length) {
 			let t = document.createElement("li");
-			t.className = "nowo-milkdown-suggest__empty", t.setAttribute("role", "presentation"), t.textContent = l(this.runtime, e ? "suggest.failed" : "suggest.empty"), this.listbox.append(t);
+			t.className = "nowo-milkdown-suggest__empty", t.setAttribute("role", "presentation"), t.textContent = d(this.runtime, e ? "suggest.failed" : "suggest.empty"), this.listbox.append(t);
 		}
-		ee(this.listbox, this.host);
+		y(this.listbox, this.host);
 		let n = this.view.dom;
-		n.setAttribute("aria-controls", this.id), n.setAttribute("aria-autocomplete", "list"), this.live.textContent = e ? l(this.runtime, "suggest.failed") : l(this.runtime, "suggest.count", { count: this.items.length }), this.highlight(), this.position();
+		n.setAttribute("aria-controls", this.id), n.setAttribute("aria-autocomplete", "list"), this.live.textContent = e ? d(this.runtime, "suggest.failed") : d(this.runtime, "suggest.count", { count: this.items.length }), this.highlight(), this.position();
 	}
 	move(e) {
 		this.items.length && (this.index = (this.index + e + this.items.length) % this.items.length, this.highlight());
@@ -599,7 +582,7 @@ var fe = class {
 	position() {
 		if (!this.active || this.listbox.hidden) return;
 		let e = this.view.coordsAtPos(this.active.from);
-		m(this.listbox, e.left, e.bottom + 4);
+		ee(this.listbox, e.left, e.bottom + 4);
 	}
 	pick() {
 		let e = this.active, t = this.items[this.index];
@@ -609,19 +592,19 @@ var fe = class {
 		}, t), this.view.focus());
 	}
 	close(e = !1) {
-		e && this.active && (this.dismissedAt = this.active.from), window.clearTimeout(this.timer), this.abort?.abort(), this.active = null, this.items = [], h(this.listbox);
+		e && this.active && (this.dismissedAt = this.active.from), window.clearTimeout(this.timer), this.abort?.abort(), this.active = null, this.items = [], b(this.listbox);
 		let t = this.view.dom;
 		t.removeAttribute("aria-controls"), t.removeAttribute("aria-activedescendant"), t.removeAttribute("aria-autocomplete");
 	}
 };
-function pe(e) {
-	return i((n) => new t({
-		key: le,
-		view: (t) => new fe(t, e(n), n.get(u.key))
+function he(e) {
+	return a((n) => new t({
+		key: X,
+		view: (t) => new me(t, e(n), n.get(f.key))
 	}));
 }
 // src/Resources/assets/src/plugins/keyboard.ts
-var me = new n("nowo-milkdown-keyboard");
+var ge = new n("nowo-milkdown-keyboard");
 function Q(e) {
 	let { $from: t } = e.selection;
 	for (let e = t.depth; e > 0; e--) {
@@ -634,23 +617,23 @@ function Q(e) {
 function $(e) {
 	e.domObserver?.flush?.();
 }
-function he(e, t) {
+function _e(e, t) {
 	$(e);
 	let { state: n } = e, r = Q(n), i = null;
-	if (r === "table") i = c(t.shiftKey ? -1 : 1);
+	if (r === "table") i = u(t.shiftKey ? -1 : 1);
 	else if (r === "list") {
 		let e = n.schema.nodes.list_item;
-		i = t.shiftKey ? o(e) : a(e);
+		i = t.shiftKey ? s(e) : o(e);
 	}
 	return i !== null && i(n, e.dispatch);
 }
-var ge = i(() => new t({
-	key: me,
+var ve = a(() => new t({
+	key: ge,
 	view: (e) => {
 		let t = (t) => {
-			!t.isComposing && t.keyCode !== 229 && $(e), t.key !== "Tab" || t.ctrlKey || t.metaKey || t.altKey || t.defaultPrevented || ue(e) || t.target?.closest?.(".cm-editor") || (he(e, t) && t.preventDefault(), t.stopImmediatePropagation());
+			!t.isComposing && t.keyCode !== 229 && $(e), t.key !== "Tab" || t.ctrlKey || t.metaKey || t.altKey || t.defaultPrevented || fe(e) || t.target?.closest?.(".cm-editor") || (_e(e, t) && t.preventDefault(), t.stopImmediatePropagation());
 		};
 		return e.dom.addEventListener("keydown", t, !0), { destroy: () => e.dom.removeEventListener("keydown", t, !0) };
 	}
 }));
-export { C as _, q as a, W as c, F as d, w as f, y as g, x as h, pe as i, j as l, P as m, ge as n, ce as o, N as p, Q as r, oe as s, $ as t, M as u };
+export { oe as a, q as c, M as d, ae as f, P as h, he as i, ce as l, N as m, ve as n, K as o, T as p, Q as r, ue as s, $ as t, j as u };

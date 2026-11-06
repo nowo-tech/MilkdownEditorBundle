@@ -1,15 +1,16 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DOMParser as PmDOMParser, Slice } from '@milkdown/kit/prose/model';
 import { NodeSelection, TextSelection } from '@milkdown/kit/prose/state';
 import { editorViewCtx } from '@milkdown/kit/core';
 import type { EditorView } from '@milkdown/kit/prose/view';
-import { hostReference, hostUrl, isHostUrl, parseHostSchemes, targetUrl } from '../src/host';
-import { allowPastedHostSchemes, isSafePastedUrl } from '../src/commands/markdown-clipboard';
+import { RESERVED, hostReference, hostUrl, isHostUrl, parseHostSchemes, targetUrl } from '../src/host';
+import { cleanPasted, insertMarkdown, isSafePastedUrl, markdownIo, pasteCheckFor } from '../src/commands/markdown-clipboard';
 import { imageAttributesPrefix, imageAlign, imageWidth, liftImageAttributes, serialiseImageAttributes } from '../src/dialect/image';
-import { FILE_VIEWS, fileCard, fileIcon, fileKind, fileView, previewHeight } from '../src/dialect/file-card';
+import { FILE_VIEWS, fileCard, fileIcon, fileKind, fileView, previewHeight, resetPreviewWatcher } from '../src/dialect/file-card';
 import { fileAt, fileViewItems, setFileAttributes, setFileView } from '../src/commands/file-view';
 import { imageAt, imageItems, imageSource } from '../src/nodes/image';
 import { emptyLine, InsertButtonView } from '../src/plugins/insert-button';
-import { parseOptions, previewSandbox } from '../src/options';
+import { DEFAULT_MAX_PREVIEWS, pageHostConfig, pageNonce, parseOptions, previewSandbox } from '../src/options';
 import { fileHref, parseResult, resultNode } from '../src/upload';
 import { GLYPHS } from '../src/ui/glyphs';
 import { defaultRuntime } from '../src/runtime';
@@ -40,8 +41,15 @@ describe('host references (ME-5)', () => {
         nothing: null,
         noid: { file: '/files' },
         proto: { file: '//evil/{id}' },
+        authority: { image: 'https://{id}/x', file: 'https://x.example{id}/y', preview: 'https://u:{id}@x.example/y' },
+        'view-source': { file: '/{id}' },
       }),
-    ).toEqual({ ok: { image: '/i/{id}', file: 'https://x.example/{id}', preview: null }, noid: { image: null, file: null, preview: null }, proto: { image: null, file: null, preview: null } });
+    ).toEqual({
+      ok: { image: '/i/{id}', file: 'https://x.example/{id}', preview: null },
+      noid: { image: null, file: null, preview: null },
+      proto: { image: null, file: null, preview: null },
+      authority: { image: null, file: null, preview: null },
+    });
   });
 
   it('recognises references like the PHP side', () => {
@@ -53,7 +61,7 @@ describe('host references (ME-5)', () => {
     expect(hostReference('HOST-FILE:a.b-c_d~', schemes)).toBe('host-file:a.b-c_d~');
     expect(hostReference(5, schemes)).toBeNull();
     expect(hostReference('other:x', schemes)).toBeNull();
-    for (const bad of ['host-file:..', 'host-file:.', 'host-file:...', 'host-file:a/b', 'host-file:a%2Fb', 'host-file:', `host-file:${'a'.repeat(201)}`]) {
+    for (const bad of ['host-file:..', 'host-file:.', 'host-file:...', 'host-file:.env', 'host-file:\u00a0x', 'host-file:a/b', 'host-file:a%2Fb', 'host-file:', `host-file:${'a'.repeat(201)}`]) {
       expect(hostReference(bad, schemes), bad).toBeNull();
       expect(hostUrl(bad, 'file', schemes), bad).toBeNull();
     }
@@ -79,11 +87,18 @@ describe('host references (ME-5)', () => {
     expect(imageSource(null, schemes)).toBe('');
   });
 
-  it('paste keeps allow-listed schemes only', () => {
-    expect(isSafePastedUrl('paste-only:x')).toBe(false);
-    allowPastedHostSchemes(['Paste-Only']);
-    expect(isSafePastedUrl('paste-only:x')).toBe(true);
-    expect(isSafePastedUrl('javascript:x')).toBe(false);
+  it('paste keeps the schemes of that editor only, never a browser scheme', () => {
+    expect(isSafePastedUrl('host-file:x')).toBe(false);
+    const own = pasteCheckFor(schemes);
+    expect(own('host-file:x')).toBe(true);
+    expect(own('/plain')).toBe(true);
+    expect(own('javascript:x')).toBe(false);
+    expect(own('other:x')).toBe(false);
+    expect(own(5)).toBe(true);
+    expect(pasteCheckFor({})('host-file:x')).toBe(false);
+    // Even if a host's own createEditor() options name one.
+    expect(pasteCheckFor({ javascript: { image: null, file: '/{id}', preview: null } })('javascript:x')).toBe(false);
+    expect(RESERVED.has('view-source')).toBe(true);
   });
 
   it('uploads keep host references', () => {
@@ -101,8 +116,61 @@ describe('host references (ME-5)', () => {
     expect(previewSandbox(undefined)).toBe('');
     expect(previewSandbox('ALLOW-downloads evil allow-downloads')).toBe('allow-downloads');
     expect(previewSandbox('allow-scripts allow-same-origin')).toBe('allow-scripts');
-    expect(parseOptions('{"features":[]}').hostSchemes).toEqual({});
-    expect(parseOptions('{"features":[],"hostSchemes":{"a":{"file":"/{id}"}},"previewSandbox":"allow-popups"}')).toMatchObject({ hostSchemes: { a: { file: '/{id}' } }, previewSandbox: 'allow-popups' });
+    expect(previewSandbox('allow-scripts allow-popups allow-popups-to-escape-sandbox')).toBe('allow-scripts allow-popups');
+    expect(previewSandbox('allow-popups allow-popups-to-escape-sandbox')).toBe('allow-popups allow-popups-to-escape-sandbox');
+    expect(previewSandbox('allow-downloads\tallow-popups')).toBe('');
+  });
+
+  describe('page configuration (audit GX-L2)', () => {
+    const config = (json: string, nonce?: string, type = 'application/json'): HTMLScriptElement => {
+      const element = document.createElement('script');
+      element.type = type;
+      element.dataset.nowoMilkdownConfig = '';
+      if (nonce) element.setAttribute('nonce', nonce);
+      element.textContent = json;
+      document.head.append(element);
+      return element;
+    };
+    const module = (nonce: string): void => {
+      const element = document.createElement('script');
+      element.type = 'text/plain';
+      element.src = '/bundles/milkdown-editor.js';
+      element.setAttribute('nonce', nonce);
+      document.head.append(element);
+    };
+    afterEach(() => document.head.replaceChildren());
+    const good = JSON.stringify({ hostSchemes: { a: { file: '/{id}' } }, previewSandbox: 'allow-downloads', maxPreviews: 3 });
+
+    it('never reads host options from the JSON of a widget', async () => {
+      const planted = parseOptions(JSON.stringify({ features: [], hostSchemes: { x: { file: 'https://attacker.test/{id}', preview: 'https://attacker.test/{id}/p' } }, previewSandbox: 'allow-scripts' }));
+      expect(planted).toMatchObject({ hostSchemes: {}, previewSandbox: '', maxPreviews: DEFAULT_MAX_PREVIEWS });
+      const handle = await editor('::file[a]{href="x:abc" view="preview"}', { features: ['file_cards'], hostSchemes: { x: { file: 'https://attacker.test/{id}', preview: 'https://attacker.test/{id}/p' } }, previewSandbox: 'allow-scripts' });
+      expect(handle.options.hostSchemes).toEqual({});
+      expect(handle.root.querySelector('iframe')).toBeNull();
+      await handle.destroy();
+    });
+
+    it('takes them from the data block with the nonce of the page', () => {
+      module('n0nce');
+      config(good, 'other');
+      expect(pageHostConfig().hostSchemes).toEqual({});
+      config(good, 'n0nce');
+      expect(pageNonce()).toBe('n0nce');
+      expect(pageHostConfig()).toEqual({ hostSchemes: { a: { image: null, file: '/{id}', preview: null } }, previewSandbox: 'allow-downloads', maxPreviews: 3 });
+    });
+
+    it('a page without nonces accepts the block; a data attribute alone never counts', () => {
+      expect(pageHostConfig().hostSchemes).toEqual({});
+      config('not json');
+      expect(pageHostConfig().hostSchemes).toEqual({});
+      config(JSON.stringify({ hostSchemes: { a: { file: '/{id}' } }, maxPreviews: -1 }));
+      expect(pageHostConfig()).toMatchObject({ hostSchemes: { a: { file: '/{id}' } }, previewSandbox: '', maxPreviews: DEFAULT_MAX_PREVIEWS });
+    });
+
+    it('the block validates what it reads', () => {
+      config(JSON.stringify({ hostSchemes: { javascript: { file: '/{id}' } }, previewSandbox: 'allow-scripts allow-same-origin' }));
+      expect(pageHostConfig()).toMatchObject({ hostSchemes: {}, previewSandbox: 'allow-scripts' });
+    });
   });
 });
 
@@ -112,6 +180,8 @@ describe('image attributes (image_block)', () => {
       ['{width=50%}', { width: '50%', align: '' }],
       ['{width=120px align=center}', { width: '120px', align: 'center' }],
       ['{ align="right"  width="100%" }', { width: '100%', align: 'right' }],
+      ['{width=50%\u00a0align=left}', null],
+      ['{width=50%\nalign=left}', null],
       ['{width=33%}', null],
       ['{width=15px}', null],
       ['{width=2001px}', null],
@@ -161,6 +231,12 @@ describe('editor: images', () => {
     vi.restoreAllMocks();
   });
 
+  it('without image_block the block is text, as in 1.8', async () => {
+    handle = await editor('![a](/a.png){width=50%}');
+    expect(handle.root.querySelector('.ProseMirror')?.textContent).toContain('{width=50%}');
+    expect(handle.getMarkdown().trim()).toBe('![a](/a.png){width=50%}');
+  });
+
   it('round trips the attribute block, whatever the feature', async () => {
     for (const features of [[], ['image_block']]) {
       for (const md of ['![a](/a.png "cap"){width=50% align=center}', 'x ![a](/a.png){width=120px} y', '![a](/a.png){nope=1}', '![a](/a.png)']) {
@@ -182,7 +258,7 @@ describe('editor: images', () => {
   });
 
   it('resolves host images; what cannot be resolved or fails shows the placeholder', async () => {
-    handle = await editor('![a](host-file:x) ![b](host-file:..) ![c](javascript:alert)', { hostSchemes: schemes, messages: { 'image.hidden': 'Gone' } });
+    handle = await editor('![a](host-file:x) ![b](host-file:..) ![c](javascript:alert)', { messages: { 'image.hidden': 'Gone' } }, { hostSchemes: schemes });
     const imgs = handle.root.querySelectorAll<HTMLImageElement>('.nowo-milkdown-image img');
     expect(imgs).toHaveLength(1);
     expect(imgs[0]!.getAttribute('src')).toBe('/f/x/view');
@@ -208,7 +284,7 @@ describe('editor: images', () => {
   });
 
   it('without the feature the attributes are kept but not shown; the title stays a tooltip', async () => {
-    handle = await editor('![a](host-file:x "T"){width=50%}', { hostSchemes: schemes });
+    handle = await editor('![a](host-file:x "T"){width=50%}', {}, { hostSchemes: schemes });
     const box = handle.root.querySelector<HTMLElement>('.nowo-milkdown-image')!;
     expect(box.className).toBe('nowo-milkdown-image');
     expect(box.querySelector('img')!.title).toBe('T');
@@ -281,7 +357,39 @@ describe('editor: images', () => {
   });
 });
 
+/** A fake `IntersectionObserver`: `nearby()` says the given frames came near the viewport. */
+class FakeObserver {
+  static instances: FakeObserver[] = [];
+  observed = new Set<Element>();
+  constructor(private readonly callback: IntersectionObserverCallback) {
+    FakeObserver.instances.push(this);
+  }
+  observe(target: Element): void {
+    this.observed.add(target);
+  }
+  unobserve(target: Element): void {
+    this.observed.delete(target);
+  }
+  disconnect(): void {
+    this.observed.clear();
+  }
+  static nearby(targets: Element[], isIntersecting = true): void {
+    for (const observer of FakeObserver.instances) {
+      observer.callback(targets.map((target) => ({ target, isIntersecting }) as IntersectionObserverEntry), observer as unknown as IntersectionObserver);
+    }
+  }
+}
+
 describe('file views (ME-6)', () => {
+  beforeEach(() => {
+    FakeObserver.instances = [];
+    resetPreviewWatcher();
+    vi.stubGlobal('IntersectionObserver', FakeObserver);
+  });
+  afterEach(() => {
+    resetPreviewWatcher();
+    vi.unstubAllGlobals();
+  });
   const context = { hostSchemes: schemes, previewSandbox: 'allow-downloads', label: (key: 'open' | 'download') => key.toUpperCase() };
   let handle: MilkdownEditorHandle;
   afterEach(async () => {
@@ -322,7 +430,12 @@ describe('file views (ME-6)', () => {
   it('a preview is a sandboxed frame with a title, Open and Download', () => {
     const figure = fileCard('a"<.pdf', { href: 'host-file:x', view: 'preview', height: '320' }, context);
     const frame = figure.querySelector('iframe')!;
+    expect(frame.hasAttribute('src')).toBe(false);
+    FakeObserver.nearby([frame], false);
+    expect(frame.hasAttribute('src')).toBe(false);
+    FakeObserver.nearby([frame]);
     expect(frame.getAttribute('src')).toBe('/f/x/preview');
+    FakeObserver.nearby([frame]);
     expect(frame.title).toBe('a"<.pdf');
     expect(frame.getAttribute('sandbox')).toBe('allow-downloads');
     expect(frame.getAttribute('loading')).toBe('lazy');
@@ -344,7 +457,7 @@ describe('file views (ME-6)', () => {
   });
 
   it('stores the view in the dialect; the menus are radio items', async () => {
-    handle = await editor('::file[a.pdf]{href="host-file:x"}\n\ntext', { features: ['file_cards'], hostSchemes: schemes, messages: { 'file.view.preview': 'Vista' } });
+    handle = await editor('::file[a.pdf]{href="host-file:x"}\n\ntext', { features: ['file_cards'], messages: { 'file.view.preview': 'Vista' } }, { hostSchemes: schemes });
     const v = view(handle);
     const runtime = { ...defaultRuntime() };
     v.dispatch(v.state.tr.setSelection(NodeSelection.create(v.state.doc, 0)));
@@ -362,7 +475,9 @@ describe('file views (ME-6)', () => {
     ]);
     items[0]!.items![3]!.run!();
     expect(handle.getMarkdown()).toContain('view="preview"');
-    expect(handle.root.querySelector('iframe')?.getAttribute('src')).toBe('/f/x/preview');
+    const shown = handle.root.querySelector('iframe')!;
+    FakeObserver.nearby([shown]);
+    expect(shown.getAttribute('src')).toBe('/f/x/preview');
 
     v.dispatch(v.state.tr.setSelection(NodeSelection.create(v.state.doc, 0)));
     const withHeight = fileViewItems(v.state, runtime, run);
@@ -387,7 +502,7 @@ describe('file views (ME-6)', () => {
   });
 
   it('an upload keeps the host reference and the chosen view', async () => {
-    handle = await editor('x', { features: ['file_cards'], hostSchemes: schemes });
+    handle = await editor('x', { features: ['file_cards'] }, { hostSchemes: schemes });
     const v = view(handle);
     const result = { url: 'host-file:abc', name: 'a.pdf', size: 4, type: 'application/pdf', kind: 'file' as const, alt: 'a' };
     const node = resultNode(v.state.schema, result, true, 'preview', schemes)!;
@@ -397,6 +512,51 @@ describe('file views (ME-6)', () => {
     expect(resultNode(v.state.schema, { ...result, kind: 'image' }, true, 'card', schemes)!.attrs.src).toBe('host-file:abc');
   });
 
+  it('many previews: no request until near the viewport, and a cap per editor (audit GX-L1)', async () => {
+    const cards = Array.from({ length: 600 }, (_, i) => `::file[f${i}.csv]{href="host-file:f${i}" view="preview"}`).join('\n\n');
+    handle = await editor(cards, { features: ['file_cards'], readonly: true }, { hostSchemes: schemes, maxPreviews: 50 });
+    const frames = [...handle.root.querySelectorAll('iframe')];
+    expect(frames).toHaveLength(50);
+    expect(frames.filter((f) => f.hasAttribute('src'))).toHaveLength(0);
+    expect(handle.root.querySelectorAll('.nowo-milkdown-file')).toHaveLength(600);
+    FakeObserver.nearby(frames.slice(0, 3));
+    expect(frames.filter((f) => f.hasAttribute('src'))).toHaveLength(3);
+    // The same file again takes no new place, and redrawing keeps its place.
+    await handle.destroy();
+    handle = await editor('::file[a]{href="host-file:a" view="preview"}\n\n::file[a]{href="host-file:a" view="preview"}\n\n::file[b]{href="host-file:b" view="preview"}', { features: ['file_cards'] }, { hostSchemes: schemes, maxPreviews: 1 });
+    expect(handle.root.querySelectorAll('iframe')).toHaveLength(2);
+  });
+
+  it('without IntersectionObserver a preview stays empty, under Open', () => {
+    resetPreviewWatcher();
+    vi.unstubAllGlobals();
+    const figure = fileCard('a.pdf', { href: 'host-file:x', view: 'preview' }, context);
+    expect(figure.querySelector('iframe')!.hasAttribute('src')).toBe(false);
+    expect(figure.querySelector('.nowo-milkdown-file__open')).not.toBeNull();
+  });
+
+  it('host links open through the template and keep the reference (audit GX-I4)', async () => {
+    handle = await editor('[doc](host-file:y) [bad](host-file:..) [plain](/p)', { features: ['markdown_clipboard'] }, { hostSchemes: schemes });
+    const links = [...handle.root.querySelectorAll<HTMLAnchorElement>('.ProseMirror a')];
+    expect(links[0]!.getAttribute('href')).toBe('/f/y');
+    expect(links[0]!.dataset.nowoHostRef).toBe('host-file:y');
+    expect(links[1]!.hasAttribute('href')).toBe(false);
+    expect(links[2]!.getAttribute('href')).toBe('/p');
+    expect(handle.getMarkdown()).toContain('[doc](host-file:y)');
+    // Paste as Markdown goes through the DOM round trip.
+    const v = view(handle);
+    v.dispatch(v.state.tr.setSelection(TextSelection.atEnd(v.state.doc)));
+    handle.builder.editor.action((ctx) => insertMarkdown(v, markdownIo(ctx), ' [new](host-file:z) [evil](javascript:alert)'));
+    expect(handle.getMarkdown()).toContain('[new](host-file:z)');
+    expect(handle.getMarkdown()).not.toContain('javascript:');
+    // A forged reference of another scheme is not one.
+    const anchor = document.createElement('div');
+    anchor.innerHTML = '<a data-nowo-host-ref="other:x" href="/safe">x</a>';
+    const parsed = PmDOMParser.fromSchema(v.state.schema).parse(anchor);
+    expect(parsed.firstChild!.firstChild!.marks[0]!.attrs.href).toBe('/safe');
+    expect(cleanPasted(Slice.empty, schemes)).toEqual(Slice.empty);
+  });
+
   it('without labels the actions are in English', () => {
     const figure = fileCard('a.pdf', { href: 'host-file:x', view: 'preview' }, { hostSchemes: schemes, previewSandbox: '' });
     expect(figure.querySelector('.nowo-milkdown-file__open')?.textContent).toBe('Open');
@@ -404,7 +564,7 @@ describe('file views (ME-6)', () => {
   });
 
   it('the block and context menus offer the view of the file; a host link opens through its template', async () => {
-    handle = await editor('::file[a.pdf]{href="host-file:x"}\n\n![i](/a.png)\n\n[doc](host-file:y)', { features: ['file_cards', 'image_block', 'context_menu', 'block_actions'], hostSchemes: schemes });
+    handle = await editor('::file[a.pdf]{href="host-file:x"}\n\n![i](/a.png)\n\n[doc](host-file:y)', { features: ['file_cards', 'image_block', 'context_menu', 'block_actions'] }, { hostSchemes: schemes });
     const v = view(handle);
     const menuIds = (): string[] => [...handle.root.querySelectorAll<HTMLElement>('.nowo-milkdown-menu:not([hidden]) [data-id]')].map((b) => b.dataset.id!);
     const rightClick = (): void => {
@@ -459,7 +619,7 @@ describe('file views (ME-6)', () => {
     const click = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(function (this: HTMLInputElement) {
       inputs.push(this);
     });
-    handle = await editor('', { features: ['slash_menu', 'file_cards'], upload: { url: '/u', csrfToken: '', maxSize: 0, accept: [] }, hostSchemes: schemes });
+    handle = await editor('', { features: ['slash_menu', 'file_cards'], upload: { url: '/u', csrfToken: '', maxSize: 0, accept: [] } }, { hostSchemes: schemes });
     expect(handle.options.upload?.hostSchemes).toEqual(handle.options.hostSchemes);
     const v = view(handle);
     v.focus();

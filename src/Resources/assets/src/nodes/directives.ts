@@ -332,6 +332,12 @@ export const leafDirectiveView = $view(leafDirectiveSchema.node, (ctx) => (node)
       hostSchemes: runtime.hostSchemes,
       previewSandbox: runtime.previewSandbox,
       label: (key) => t(runtime, `file.${key}`),
+      // At most `max_references` distinct files per editor, like the renderer (audit GX-L1).
+      allowPreview: (href) => {
+        if (!runtime.previewFiles.has(href) && runtime.previewFiles.size >= runtime.maxPreviews) return false;
+        runtime.previewFiles.add(href);
+        return true;
+      },
     });
     card.contentEditable = 'false';
     card.dataset.leafDirective = 'file';

@@ -2,8 +2,8 @@
  * Images (1.9): host references (ME-5) and the `image_block` feature.
  *
  * - The commonmark `image` node gains `width` and `align` attributes, read from and written to the attribute block
- *   `![alt](src "caption"){width=50% align=center}` (`dialect/image.ts`); the title is the caption. Markdown round trips
- *   whatever the feature: without `image_block` the attributes are kept but not shown.
+ *   `![alt](src "caption"){width=50% align=center}` (`dialect/image.ts`); the title is the caption. Without `image_block`
+ *   the block is plain text, as in 1.8.
  * - The node view (only with host schemes or `image_block`; other fields keep Milkdown's `<img>`) resolves host
  *   references (`host-file:<id>`) through the scheme's `image` template. A value of an allow-listed scheme that cannot be
  *   resolved, an unsafe URL or an image that fails to load shows *Image not available*.
@@ -11,13 +11,14 @@
  *   is selected — a toolbar with the alt text, the caption, width and alignment buttons. *Edit image…* in the block and
  *   context menus selects the image and moves the focus to the toolbar (the keyboard path); Escape returns to the text.
  */
-import { imageSchema } from '@milkdown/kit/preset/commonmark';
-import { $view } from '@milkdown/kit/utils';
+import { imageSchema, linkSchema } from '@milkdown/kit/preset/commonmark';
+import { $remark, $view } from '@milkdown/kit/utils';
 import { NodeSelection, type EditorState } from '@milkdown/kit/prose/state';
 import type { Node as PmNode } from '@milkdown/kit/prose/model';
 import type { EditorView } from '@milkdown/kit/prose/view';
-import { IMAGE_ALIGNMENTS, IMAGE_PERCENTS, imageAlign, imageWidth, serialiseImageAttributes } from '../dialect/image';
-import { targetUrl, type HostSchemes } from '../host';
+import { IMAGE_ALIGNMENTS, IMAGE_PERCENTS, imageAlign, imageWidth, liftImageAttributes, serialiseImageAttributes } from '../dialect/image';
+import type { MdNode } from '../dialect/remark-dialect';
+import { hostReference, isHostUrl, targetUrl, type HostSchemes } from '../host';
 import { runtimeCtx, t, type Runtime } from '../runtime';
 import type { MenuItem } from '../ui/menu';
 
@@ -61,6 +62,43 @@ export const imageAttributesSchema = imageSchema.extendSchema((prev) => (ctx) =>
         const block = serialiseImageAttributes({ width: node.attrs.width as string, align: node.attrs.align as string });
         if (block) state.addNode('text', undefined, block);
       },
+    },
+  };
+});
+
+/** `![…](…){width=… align=…}` keeps its attributes on the image (only with `image_block`). */
+export const imageLiftRemark = $remark('nowoImageLift', () => (() => (tree: MdNode) => liftImageAttributes(tree)) as never);
+
+/**
+ * Links with host schemes (audit GX-I4): the anchor opens the reference's URL, and the reference survives the DOM round
+ * trip of paste (`data-nowo-host-ref`, validated when read). Only on fields with host schemes; the Markdown keeps the
+ * reference.
+ */
+export const hostLinkSchema = linkSchema.extendSchema((prev) => (ctx) => {
+  const base = prev(ctx);
+  const schemes = (): HostSchemes => ctx.get(runtimeCtx.key).hostSchemes;
+  return {
+    ...base,
+    parseDOM: [
+      {
+        tag: 'a[data-nowo-host-ref]',
+        priority: 60,
+        getAttrs: (dom) => {
+          const reference = hostReference((dom as HTMLElement).getAttribute('data-nowo-host-ref'), schemes());
+          return reference ? { href: reference, title: (dom as HTMLElement).getAttribute('title') } : false;
+        },
+      },
+      ...(base.parseDOM ?? []),
+    ],
+    toDOM: (mark, inline) => {
+      const href = mark.attrs.href as unknown;
+      if (!isHostUrl(href, schemes())) return base.toDOM!(mark, inline);
+      const [tag, attrs] = base.toDOM!(mark, inline) as [string, Record<string, unknown>];
+      const url = targetUrl(href, 'file', schemes());
+      const reference = hostReference(href, schemes());
+      const { href: _href, ...rest } = attrs;
+      // Without a URL there is no `href` at all: an empty one would reload the page on click.
+      return [tag, { ...rest, ...(url ? { href: url } : {}), ...(reference ? { 'data-nowo-host-ref': reference } : {}) }];
     },
   };
 });

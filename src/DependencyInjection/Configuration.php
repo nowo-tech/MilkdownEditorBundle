@@ -23,7 +23,6 @@ use function is_array;
 use function is_string;
 use function preg_match;
 use function sprintf;
-use function str_contains;
 use function strlen;
 
 /**
@@ -221,12 +220,12 @@ final class Configuration implements ConfigurationInterface
                 ->end()
                 ->booleanNode('image_block')->info('1.9: a paragraph holding only an image renders as a figure: caption from the title, {width=… align=…} block (classes and the width attribute, no style). Enable with the editor feature image_block.')->defaultFalse()->end()
                 ->arrayNode('file_preview_sandbox')
-                    ->info('1.9 (ME-6): tokens added to the sandbox attribute of file preview frames (empty: the strictest sandbox). allow-scripts and allow-same-origin are never accepted together.')
+                    ->info('1.9 (ME-6): tokens added to the sandbox attribute of file preview frames (empty: the strictest sandbox). allow-scripts is never accepted with allow-same-origin or allow-popups-to-escape-sandbox.')
                     ->scalarPrototype()->end()
                     ->defaultValue([])
                     ->validate()
-                        ->ifTrue(static fn (array $v): bool => array_filter($v, static fn (mixed $t): bool => !in_array($t, FileCard::SANDBOX_TOKENS, true)) !== [] || (in_array('allow-scripts', $v, true) && in_array('allow-same-origin', $v, true)))
-                        ->thenInvalid('file_preview_sandbox accepts ' . implode(', ', FileCard::SANDBOX_TOKENS) . ', never allow-scripts together with allow-same-origin (%s).')
+                        ->ifTrue(static fn (array $v): bool => array_filter($v, static fn (mixed $t): bool => !in_array($t, FileCard::SANDBOX_TOKENS, true)) !== [] || (in_array('allow-scripts', $v, true) && (in_array('allow-same-origin', $v, true) || in_array('allow-popups-to-escape-sandbox', $v, true))))
+                        ->thenInvalid('file_preview_sandbox accepts ' . implode(', ', FileCard::SANDBOX_TOKENS) . ', never allow-scripts with allow-same-origin or allow-popups-to-escape-sandbox (%s).')
                     ->end()
                 ->end()
                 ->arrayNode('mark_colors')
@@ -245,7 +244,7 @@ final class Configuration implements ConfigurationInterface
 
     /**
      * The error of a `host_schemes` value, or null when it is valid: scheme names (not the browser's own) and templates
-     * (a path starting with one "/" or an http(s) URL, containing {id}, at most 500 characters).
+     * (a path starting with one "/" or an http(s) URL, with {id} after the first "/" of the path, at most 500 characters).
      *
      * @param array<mixed> $schemes
      */
@@ -260,8 +259,8 @@ final class Configuration implements ConfigurationInterface
                 if ($template === null) {
                     continue;
                 }
-                if (!is_string($template) || strlen($template) > 500 || !str_contains($template, '{id}') || preg_match('~^(?:/(?![/\\\\])|https?://)~i', $template) !== 1) {
-                    return sprintf('Invalid %s template of the host scheme "%s": a path starting with "/" or an http(s) URL, with {id}.', (string) $kind, $scheme);
+                if (!is_string($template) || strlen($template) > 500 || preg_match('~^(?:/(?![/\\\\])|https?://[^/?#{}\\\\]+/).*\{id\}~is', $template) !== 1) {
+                    return sprintf('Invalid %s template of the host scheme "%s": a path starting with "/" or an http(s) URL, with {id} after the first "/" of the path.', (string) $kind, $scheme);
                 }
             }
         }

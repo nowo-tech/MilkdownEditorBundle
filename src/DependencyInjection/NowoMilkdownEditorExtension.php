@@ -10,6 +10,7 @@ use Nowo\MilkdownEditorBundle\Markdown\HostSchemes;
 use Nowo\MilkdownEditorBundle\Markdown\MilkdownMarkdownRenderer;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\AllowlistIconResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TablerCatalog;
+use Nowo\MilkdownEditorBundle\Twig\MilkdownEditorTwig;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -58,7 +59,7 @@ final class NowoMilkdownEditorExtension extends Extension implements PrependExte
      */
     public function load(array $configs, ContainerBuilder $container): void
     {
-        /** @var array{default_profile: string, profiles: array<string, array<string, mixed>>, markdown: array<string, mixed>&array{icon_sprite_url: ?string, icons: list<string>, icon_catalog: bool, max_input_length: int, mark_colors: list<string>, host_schemes: array<string, array{image?: ?string, file?: ?string, preview?: ?string}>, host_image_origins: list<string>, file_preview_sandbox: list<string>}} $config */
+        /** @var array{default_profile: string, profiles: array<string, array<string, mixed>>, markdown: array<string, mixed>&array{icon_sprite_url: ?string, icons: list<string>, icon_catalog: bool, max_input_length: int, mark_colors: list<string>, max_references: int, host_schemes: array<string, array{image?: ?string, file?: ?string, preview?: ?string}>, host_image_origins: list<string>, file_preview_sandbox: list<string>}} $config */
         $config = $this->processConfiguration(new Configuration(), $configs);
 
         $container->setParameter(Configuration::ALIAS . '.default_profile', $config['default_profile']);
@@ -80,8 +81,10 @@ final class NowoMilkdownEditorExtension extends Extension implements PrependExte
             ->setArgument('$maxInputLength', $config['markdown']['max_input_length']);
         $container->getDefinition(MilkdownEditorType::class)
             ->setArgument('$maxInputLength', $config['markdown']['max_input_length'])
-            ->setArgument('$markColors', $config['markdown']['mark_colors'])
-            ->setArgument('$previewSandbox', implode(' ', $config['markdown']['file_preview_sandbox']));
+            ->setArgument('$markColors', $config['markdown']['mark_colors']);
+        $container->getDefinition(MilkdownEditorTwig::class)
+            ->setArgument('$previewSandbox', implode(' ', $config['markdown']['file_preview_sandbox']))
+            ->setArgument('$maxPreviews', $config['markdown']['max_references']);
     }
 
     /**

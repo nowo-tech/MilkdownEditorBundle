@@ -334,7 +334,7 @@ final class MilkdownEditorTypeTest extends TypeTestCase
         self::assertFalse(Feature::Table->needsCodeMirror());
     }
 
-    /** 1.9 (ME-5, ME-6): host schemes and the sandbox reach the widget only when configured; the feature strings follow. */
+    /** 1.9 (ME-5, ME-6): the feature strings follow the features and the host schemes. */
     #[Test]
     public function hostSchemesAndSandboxInTheWidget(): void
     {
@@ -360,9 +360,10 @@ final class MilkdownEditorTypeTest extends TypeTestCase
 
             return $view->vars['milkdown_options'];
         };
-        $on = $build(new MilkdownEditorType($profiles, null, $translator, 10, [], new HostSchemes(['app-file' => ['file' => '/f/{id}']]), 'allow-downloads'));
-        self::assertSame(['app-file' => ['image' => null, 'file' => '/f/{id}', 'preview' => null]], $on['hostSchemes']);
-        self::assertSame('allow-downloads', $on['previewSandbox']);
+        $on = $build(new MilkdownEditorType($profiles, null, $translator, 10, [], new HostSchemes(['app-file' => ['file' => '/f/{id}']])));
+        // Never in the widget JSON (audit GX-L2): the page's data block carries them.
+        self::assertArrayNotHasKey('hostSchemes', $on);
+        self::assertArrayNotHasKey('previewSandbox', $on);
         $messages = (array) $on['messages'];
         foreach (['image.alt', 'menu.image_edit', 'insert.button', 'file.view.preview', 'slash.file_preview'] as $key) {
             self::assertArrayHasKey($key, $messages, $key);

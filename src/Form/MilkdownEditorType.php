@@ -144,8 +144,7 @@ final class MilkdownEditorType extends AbstractType
      * @param TranslatorInterface|null $translator Translates the editor UI strings
      * @param int $maxInputLength Default `max_length` (the renderer's `max_input_length`)
      * @param list<string> $markColors The renderer's `mark_colors`: the colours the editor offers (1.4, audit DB-I7)
-     * @param HostSchemes|null $hostSchemes The renderer's `host_schemes`: the editor resolves the same references (1.9)
-     * @param string $previewSandbox The renderer's `file_preview_sandbox` tokens, space separated (1.9)
+     * @param HostSchemes|null $hostSchemes The renderer's `host_schemes`: fields with them get the image placeholder text (1.9)
      */
     public function __construct(
         private readonly ProfileRegistry $profiles,
@@ -154,7 +153,6 @@ final class MilkdownEditorType extends AbstractType
         private readonly int $maxInputLength = MilkdownMarkdownRenderer::DEFAULT_MAX_INPUT_LENGTH,
         private readonly array $markColors = [],
         private readonly ?HostSchemes $hostSchemes = null,
-        private readonly string $previewSandbox = '',
     ) {
     }
 
@@ -243,13 +241,6 @@ final class MilkdownEditorType extends AbstractType
         }
         if ($options['menu_icons'] === false) {
             $view->vars['milkdown_options']['menuIcons'] = false;
-        }
-        // 1.9 (ME-5 / ME-6): host references and the preview sandbox, only when configured (same JSON otherwise).
-        if ($this->hostSchemes instanceof HostSchemes && !$this->hostSchemes->isEmpty()) {
-            $view->vars['milkdown_options']['hostSchemes'] = $this->hostSchemes->toArray();
-        }
-        if ($this->previewSandbox !== '') {
-            $view->vars['milkdown_options']['previewSandbox'] = $this->previewSandbox;
         }
         // 1.8 (ME-2): only when not the default, so fields with the defaults keep the same widget JSON.
         if ($options['action_bar_insert'] !== Configuration::ACTION_BAR_INSERT) {

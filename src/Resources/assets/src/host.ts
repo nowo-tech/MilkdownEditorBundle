@@ -2,7 +2,7 @@
  * Host references (1.9, ME-5): values such as `host-file:<id>` that a host stores instead of URLs, for the schemes
  * of `markdown.host_schemes` (sent as `hostSchemes`). The editor builds URLs from the same templates as the PHP
  * renderer's default resolver (`HostSchemes.php`): `image` for `<img src>`, `file` for links and file cards, `preview`
- * for previews. An id is 1–200 characters of `[A-Za-z0-9._~-]`, not only dots, URL-encoded into the template; a value of an
+ * for previews. An id is 1–200 characters of `[A-Za-z0-9._~-]`, without a leading dot, URL-encoded into the template; a value of an
  * allow-listed scheme that is not a valid reference stays inert (no request, no link).
  */
 import { safeUrl } from './link-titles';
@@ -11,14 +11,15 @@ export type HostTemplates = { image: string | null; file: string | null; preview
 export type HostSchemes = Record<string, HostTemplates>;
 export type HostKind = keyof HostTemplates;
 
-const SCHEME = /^\s*([a-z][a-z0-9+.-]{0,30}):/i;
-/** Never only dots: `..` would walk up the template's path. */
-const REFERENCE = /^\s*([a-z][a-z0-9+.-]{0,30}):((?!\.+\s*$)[A-Za-z0-9._~-]{1,200})\s*$/i;
-const RESERVED = new Set(['http', 'https', 'javascript', 'vbscript', 'data', 'file', 'blob', 'about', 'mailto', 'tel', 'ftp', 'ws', 'wss']);
+/** ASCII whitespace only, like PHP's `\s` without `/u` (audit GX-I6). */
+const SCHEME = /^[ \t\n\v\f\r]*([a-z][a-z0-9+.-]{0,30}):/i;
+/** Never a leading dot (`..` would walk up the template's path, `.env` is a hidden file). */
+const REFERENCE = /^[ \t\n\v\f\r]*([a-z][a-z0-9+.-]{0,30}):([A-Za-z0-9_~-][A-Za-z0-9._~-]{0,199})[ \t\n\v\f\r]*$/i;
+export const RESERVED = new Set(['http', 'https', 'javascript', 'vbscript', 'data', 'file', 'blob', 'about', 'mailto', 'tel', 'ftp', 'ws', 'wss', 'view-source', 'filesystem', 'jar']);
 
-/** A template the browser may request: a path with one leading `/`, or an http(s) URL, with `{id}`. */
+/** A template the browser may request: a path with one leading `/`, or an http(s) URL, with `{id}` after the first `/` of the path (never in the authority). */
 const isTemplate = (value: unknown): value is string =>
-  typeof value === 'string' && value.length <= 500 && value.includes('{id}') && /^(?:\/(?![/\\])|https?:\/\/)/i.test(value);
+  typeof value === 'string' && value.length <= 500 && /^(?:\/(?![/\\])|https?:\/\/[^/?#{}\\]+\/).*\{id\}/is.test(value);
 
 /** Validates the `hostSchemes` option (what the PHP configuration already checked). */
 export function parseHostSchemes(value: unknown): HostSchemes {

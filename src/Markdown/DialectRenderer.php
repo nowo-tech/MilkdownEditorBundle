@@ -136,7 +136,10 @@ final readonly class DialectRenderer implements NodeRendererInterface
             $class .= ' nowo-md-figure--w' . substr($node->width, 0, -1);
         }
 
-        return '<figure class="' . $class . '">' . $content . ($node->caption !== '' ? '<figcaption>' . self::e($node->caption) . '</figcaption>' : '') . '</figure>';
+        // The caption of an image the viewer may not read goes with it (audit GX-I8).
+        $caption = $node->firstChild() instanceof HiddenReference ? '' : $node->caption;
+
+        return '<figure class="' . $class . '">' . $content . ($caption !== '' ? '<figcaption>' . self::e($caption) . '</figcaption>' : '') . '</figure>';
     }
 
     private function wikiLink(WikiLink $node): string

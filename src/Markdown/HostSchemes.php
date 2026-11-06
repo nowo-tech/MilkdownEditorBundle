@@ -20,7 +20,7 @@ use function strtolower;
  *   file    — the target of links and file cards (open / download)
  *   preview — the page embedded by a file card with `view="preview"` (null: no previews)
  *
- * An id is 1–200 characters of `[A-Za-z0-9._~-]`, not only dots (`..` would walk up the template's path), and is
+ * An id is 1–200 characters of `[A-Za-z0-9._~-]`, without a leading dot (`..` would walk up the template's path), and is
  * URL-encoded into the template; anything else with an allow-listed scheme is not a valid reference and stays inert
  * (no link, no image). `host_image_origins` lists the other origins host images may load from while
  * `allow_remote_images` is off.
@@ -33,10 +33,10 @@ final readonly class HostSchemes
     public const SCHEME_PATTERN = '/^[a-z][a-z0-9+.-]{0,30}$/';
 
     /** Schemes that can never be host schemes. */
-    public const RESERVED = ['http', 'https', 'javascript', 'vbscript', 'data', 'file', 'blob', 'about', 'mailto', 'tel', 'ftp', 'ws', 'wss'];
+    public const RESERVED = ['http', 'https', 'javascript', 'vbscript', 'data', 'file', 'blob', 'about', 'mailto', 'tel', 'ftp', 'ws', 'wss', 'view-source', 'filesystem', 'jar'];
 
     /** The id after `scheme:`. */
-    public const ID_PATTERN = '(?!\.+\s*$)[A-Za-z0-9._~-]{1,200}';
+    public const ID_PATTERN = '[A-Za-z0-9_~-][A-Za-z0-9._~-]{0,199}';
 
     /** Kinds of URL a template builds. */
     public const KINDS = ['image', 'file', 'preview'];

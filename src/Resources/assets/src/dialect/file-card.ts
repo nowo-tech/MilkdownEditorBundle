@@ -6,6 +6,39 @@
 import { glyph } from '../ui/icons';
 import { hostUrl, targetUrl, type HostSchemes } from '../host';
 
+/** Frames waiting to come near the viewport, and how near (audit GX-L1: `loading="lazy"` did not hold in the editor). */
+const waiting = new WeakMap<Element, string>();
+let watcher: IntersectionObserver | null = null;
+export const PREVIEW_MARGIN = '400px';
+
+/**
+ * Gives a preview frame its source only when it comes near the viewport, so a long document does not ask the host for
+ * every preview at once. Without `IntersectionObserver` (no supported browser) the frame stays empty, under *Open*.
+ */
+function loadWhenNear(frame: HTMLIFrameElement, source: string): void {
+  if (typeof IntersectionObserver === 'undefined') return;
+  watcher ??= new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        const src = waiting.get(entry.target);
+        if (!entry.isIntersecting || src === undefined) continue;
+        (entry.target as HTMLIFrameElement).src = src;
+        waiting.delete(entry.target);
+        watcher?.unobserve(entry.target);
+      }
+    },
+    { rootMargin: PREVIEW_MARGIN },
+  );
+  waiting.set(frame, source);
+  watcher.observe(frame);
+}
+
+/** Forgets the shared observer (tests replace `IntersectionObserver`). */
+export function resetPreviewWatcher(): void {
+  watcher?.disconnect();
+  watcher = null;
+}
+
 /** Longest file name kept (characters). */
 export const MAX_NAME = 200;
 
@@ -141,6 +174,8 @@ export type FileCardContext = {
   hostSchemes: HostSchemes;
   previewSandbox: string;
   label?: (key: 'open' | 'download') => string;
+  /** Whether this file may still show a preview (the per-editor cap, audit GX-L1); without it, yes. */
+  allowPreview?: (href: string) => boolean;
 };
 
 const DEFAULT_CONTEXT: FileCardContext = { hostSchemes: {}, previewSandbox: '' };
@@ -207,7 +242,8 @@ export function fileCard(label: string, attributes: Record<string, string>, cont
     inner.append(meta);
   }
 
-  const preview = view === 'preview' && href ? hostUrl(attributes.href ?? '', 'preview', context.hostSchemes) : null;
+  const candidate = view === 'preview' && href ? hostUrl(attributes.href ?? '', 'preview', context.hostSchemes) : null;
+  const preview = candidate && (context.allowPreview?.(attributes.href ?? '') ?? true) ? candidate : null;
   if (preview) {
     const figure = document.createElement('figure');
     figure.className = `nowo-milkdown-file nowo-milkdown-file--preview-view nowo-milkdown-file--${kind.category}`;
@@ -239,7 +275,7 @@ export function fileCard(label: string, attributes: Record<string, string>, cont
     frame.setAttribute('loading', 'lazy');
     frame.setAttribute('referrerpolicy', 'no-referrer');
     frame.height = String(previewHeight(attributes.height));
-    frame.src = preview;
+    loadWhenNear(frame, preview);
     figure.append(head, frame);
     return figure;
   }

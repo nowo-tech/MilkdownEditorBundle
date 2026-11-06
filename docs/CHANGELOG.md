@@ -27,6 +27,8 @@ views of a file (link, link with icon, card, sandboxed preview). All opt-in: hos
 output and the same widget JSON. Requested by Beacon on 2026-11-06 (*milkdown-file-views-and-previews*, ME-5, ME-6);
 see [UPGRADING](UPGRADING.md#unreleased-190) and `specs/008-host-files-image-block/spec.md`.
 
+**Audit: re-verification pending.** Appendix GX (Pass / Low at `e180751`) is fixed below; the fixes have not been audited yet.
+
 ### Added
 
 - **Host references (ME-5).** `markdown.host_schemes` declares schemes a host stores instead of URLs
@@ -36,6 +38,8 @@ see [UPGRADING](UPGRADING.md#unreleased-190) and `specs/008-host-files-image-blo
 - **`HostFileResolverInterface`** (`resolveFiles(list<string>): array<string, ResolvedFile>`): one batch per document, for
   the viewer, optionally with per-viewer URLs and the image's size. Default: the templates
   (`TemplateHostFileResolver`).
+- `ResolvedFile` can carry the file's real `name` and `type` for cards. Host links open through the template in the
+  editor and keep their reference on paste.
 - **`markdown.host_image_origins`**: other origins host images may load from while `allow_remote_images` is off.
 - **`image_block`** (feature and `markdown.image_block`): `![alt](src "caption"){width=50% align=center}`. Caption, width
   (`25%`, `50%`, `75%`, `100%`, `<n>px`) and alignment; a toolbar on the selected image, *Edit image…* in the block and
@@ -53,7 +57,13 @@ see [UPGRADING](UPGRADING.md#unreleased-190) and `specs/008-host-files-image-blo
 ### Security
 
 - A resolved URL (template or resolver) passes `safeUrl()`; images also the remote-image policy (a remote URL off
-  `host_image_origins` renders as a link, without a request). Ids are `[A-Za-z0-9._~-]{1,200}` and never only dots.
+  `host_image_origins` renders as a link, without a request). Ids are `[A-Za-z0-9._~-]{1,200}` without a leading dot;
+  `{id}` must come after the first `/` of a template's path.
+- Editor previews load only near the viewport and are capped per editor by `max_references` (GX-L1).
+- Auto-mounted editors take `hostSchemes` and `previewSandbox` only from the page's `script[data-nowo-milkdown-config]`
+  (with the page's nonce), never from a widget's `data-*` JSON (GX-L2).
+- `allow-scripts` is refused with `allow-popups-to-escape-sandbox` too (GX-I1). Paste keeps only the host schemes of that
+  editor and never a browser scheme (GX-I3).
 - No value of an image's attribute block reaches a `style` attribute; invalid blocks stay text. See
   [SECURITY](SECURITY.md#host-references-and-previews).
 

@@ -250,7 +250,9 @@ var _ = {
 	insert: [],
 	pickFiles: null,
 	hostSchemes: {},
-	previewSandbox: ""
+	previewSandbox: "",
+	maxPreviews: 500,
+	previewFiles: /* @__PURE__ */ new Set()
 }), y = e(v(), "nowoMilkdownRuntime"), b = (e, t, r = {}) => n(e.messages, t, r), x = (e) => `tabler-${e.charAt(0)}.svg`;
 function S(e, t) {
 	return e.spriteUrl && e.icons.has(t) ? `${e.spriteUrl}#tabler-${t}` : e.catalogUrl && h(t) ? `${e.catalogUrl}${x(t)}#tabler-${t}` : null;

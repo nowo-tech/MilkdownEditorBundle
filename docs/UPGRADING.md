@@ -33,8 +33,11 @@ interfaces and `window.NowoMilkdownEditor`.
 
 ## Unreleased (1.9.0)
 
-From **1.8.0**: no BC break; run `assets:install`. With the defaults (no `host_schemes`, no new feature) the renderer's
-output and the widget JSON do not change, and images in the editor are still Milkdown's `<img>`.
+From **1.8.0**: run `assets:install`. With the defaults (no `host_schemes`, no new feature) the widget JSON does not change
+and images in the editor are still Milkdown's `<img>`. The renderer's output changes in one case:
+
+- **`::file{… view="…"}`**: 1.8 ignored `view`. In 1.9 `view="link"` and `view="icon"` draw those views and
+  `view="preview"` adds `data-view` to the card, with no opt-in. Other values are cards, as before.
 
 - **Adopting host references.** Set `markdown.host_schemes` and, to check the viewer in PHP, alias
   `HostFileResolverInterface` / `FilePreviewResolverInterface` to your services. Existing Markdown with those references
@@ -42,6 +45,8 @@ output and the widget JSON do not change, and images in the editor are still Mil
 - **A scheme you configure stops being a URL**: an invalid value of that scheme renders *Content not visible* and no link.
 - **Remote host images**: an absolute `image` template or resolver URL renders as a link while `allow_remote_images` is
   off, until its origin is in `markdown.host_image_origins`.
+- **Editors mounted from your own JavaScript** pass `hostSchemes`, `previewSandbox` and `maxPreviews` to `createEditor()`.
+  Auto-mounted ones read the data block `nowo_milkdown_editor_assets()` prints, so a theme override must keep that call.
 - **Previews need the host's CSP**: `frame-src` must allow the preview URLs, and the endpoint must send the headers in
   [USAGE](USAGE.md#previews).
 - **`image_block`** has two switches: the profile feature (editor) and `markdown.image_block` (renderer). With only the

@@ -13,7 +13,8 @@ test.describe('Milkdown editor demo', () => {
   test('axe waits for the code-block buttons to finish fading in', async ({ page }) => {
     await openDemo(page);
     // Crepe fades the buttons in over 200 ms on hover; slowed down here so axe would start mid-fade.
-    await page.addStyleTag({ content: '.nowo-milkdown .milkdown-code-block .tools button { transition-duration: 1s !important }' });
+    // CSSOM: the strict policy (now really in force on every e2e page) refuses a test's <style> tag.
+    await page.locator('.nowo-milkdown .milkdown-code-block .tools button').evaluateAll((buttons) => buttons.forEach((b) => (b as HTMLElement).style.setProperty('transition-duration', '1s', 'important')));
     await page.locator('.nowo-milkdown .milkdown-code-block').first().hover();
     const copy = page.locator('.nowo-milkdown .milkdown-code-block .copy-button').first();
     await expect.poll(() => copy.evaluate((b) => Number(getComputedStyle(b).opacity))).toBeGreaterThan(0);

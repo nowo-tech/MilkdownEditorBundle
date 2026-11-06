@@ -220,6 +220,10 @@ final class FileCardTest extends TestCase
         self::assertSame('', FileCard::sandbox('allow-top-navigation evil'));
         self::assertSame('allow-same-origin', FileCard::sandbox('ALLOW-SAME-ORIGIN'));
         self::assertSame('allow-popups allow-scripts', FileCard::sandbox('allow-popups allow-scripts allow-same-origin allow-popups'));
+        self::assertSame('allow-scripts allow-popups', FileCard::sandbox('allow-scripts allow-popups allow-popups-to-escape-sandbox'));
+        self::assertSame('allow-popups allow-popups-to-escape-sandbox', FileCard::sandbox('allow-popups allow-popups-to-escape-sandbox'));
+        self::assertSame(FileCard::DEFAULT_HEIGHT, FileCard::height("320\n"));
+        self::assertSame('', FileCard::size("12\n"));
     }
 
     #[Test]

@@ -1,7 +1,7 @@
 import { at as e } from "./lib-9QpRoHAM.js";
-import { d as t, u as n } from "./directives-QnQFktGg.js";
-import { l as r, m as i, p as a, u as o } from "./keyboard-BDbqS2Xz.js";
-import { a as s } from "./runtime-6p6Aqu-n.js";
+import { d as t, u as n } from "./directives-BKF8GEs1.js";
+import { d as r, h as i, m as a, u as o } from "./keyboard-C-vCAuwq.js";
+import { a as s } from "./runtime-dA0j40ft.js";
 // src/Resources/assets/src/commands/file-view.ts
 function c(t) {
 	let { selection: n } = t, r = (e) => e?.type.name === "leafDirective" && e.attrs.name === "file";
@@ -40,7 +40,7 @@ function d(e, t, d) {
 	let p = n(f.node.attrs.attributes), m = a(p), h = [{
 		id: "file_view",
 		label: s(t, "menu.file_view"),
-		items: r.map((e) => ({
+		items: o.map((e) => ({
 			id: `file_view_${e}`,
 			label: s(t, `file.view.${e}`),
 			checked: e === m,
@@ -52,7 +52,7 @@ function d(e, t, d) {
 		h.push({
 			id: "file_height",
 			label: s(t, "menu.file_height"),
-			items: Object.entries(o.presets).map(([n, r]) => ({
+			items: Object.entries(r.presets).map(([n, r]) => ({
 				id: `file_height_${n}`,
 				label: s(t, `file.height.${n}`),
 				checked: e === r,

@@ -68,7 +68,7 @@ final class FileCard
     public const MIN_HEIGHT     = 160;
     public const MAX_HEIGHT     = 1200;
 
-    /** `sandbox` tokens a host may add to preview frames; `allow-scripts` and `allow-same-origin` never together. */
+    /** `sandbox` tokens a host may add to preview frames; `allow-scripts` never with `allow-same-origin` or `allow-popups-to-escape-sandbox`. */
     public const SANDBOX_TOKENS = ['allow-scripts', 'allow-same-origin', 'allow-popups', 'allow-popups-to-escape-sandbox', 'allow-downloads'];
 
     /** Outline icons of the `icon` view (Tabler 3.50.0, MIT; the same as the editor's glyphs): static markup, never user data. */
@@ -103,10 +103,13 @@ final class FileCard
         if ($node->data->get('nowo_file_hidden', false) === true) {
             return '<div class="nowo-md-file nowo-md-file--hidden" data-directive="file"><span class="nowo-md-ref nowo-md-ref--hidden">' . DialectRenderer::e($options['hidden'] ?? 'Content not visible') . '</span></div>';
         }
-        $name               = self::name($node->label);
+        // A resolver may say what the file really is (audit GX-I8); otherwise the author's label and type.
+        $realName           = $node->data->get('nowo_file_name', null);
+        $realType           = $node->data->get('nowo_file_type', null);
+        $name               = self::name(is_string($realName) ? $realName : $node->label);
         $resolved           = $node->data->get('nowo_file_url', null);
         $href               = is_string($resolved) ? $resolved : DialectRenderer::safeUrl($node->attributes['href'] ?? '');
-        [$category, $badge] = self::kind($name, $node->attributes['type'] ?? '', $href);
+        [$category, $badge] = self::kind($name, is_string($realType) ? $realType : ($node->attributes['type'] ?? ''), $href);
         $view               = self::view($node->attributes);
         $link               = $href !== '' ? ' href="' . DialectRenderer::e($href) . '" rel="noopener noreferrer"' : '';
         $tag                = $href !== '' ? 'a' : 'span';
@@ -167,7 +170,7 @@ final class FileCard
     /** A preview height in px: digits within the bounds, else the default. */
     public static function height(string $value): int
     {
-        if (preg_match('/^\d{1,4}$/', $value) !== 1) {
+        if (preg_match('/^\d{1,4}$/D', $value) !== 1) {
             return self::DEFAULT_HEIGHT;
         }
         $height = (int) $value;
@@ -176,14 +179,14 @@ final class FileCard
     }
 
     /**
-     * The `sandbox` value of preview frames: allowed tokens only, never `allow-scripts` with `allow-same-origin`
-     * (then `allow-same-origin` is dropped).
+     * The `sandbox` value of preview frames: allowed tokens only; with `allow-scripts`, `allow-same-origin` and
+     * `allow-popups-to-escape-sandbox` are dropped.
      */
     public static function sandbox(string $value): string
     {
         $tokens = array_values(array_unique(array_filter(explode(' ', strtolower($value)), static fn (string $t): bool => in_array($t, self::SANDBOX_TOKENS, true))));
         if (in_array('allow-scripts', $tokens, true)) {
-            $tokens = array_values(array_filter($tokens, static fn (string $t): bool => $t !== 'allow-same-origin'));
+            $tokens = array_values(array_filter($tokens, static fn (string $t): bool => $t !== 'allow-same-origin' && $t !== 'allow-popups-to-escape-sandbox'));
         }
 
         return implode(' ', $tokens);
@@ -281,7 +284,7 @@ final class FileCard
     /** A byte count as `512 B`, `1.5 KB`, `12 MB` (1024 steps; one decimal under 10); '' when not a count. */
     public static function size(string $value): string
     {
-        if (preg_match('/^\d{1,15}$/', $value) !== 1) {
+        if (preg_match('/^\d{1,15}$/D', $value) !== 1) {
             return '';
         }
         $size = (float) $value;

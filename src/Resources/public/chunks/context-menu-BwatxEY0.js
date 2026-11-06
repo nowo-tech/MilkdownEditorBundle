@@ -1,12 +1,13 @@
 import { u as e } from "./lib-DaU_YkmU.js";
 import { at as t, ot as n, st as r, ut as i } from "./lib-9QpRoHAM.js";
 import { a, c as o, i as s, l as c, o as l, r as u, u as d } from "./dist-DPp-l4A4.js";
-import { a as f, i as p } from "./runtime-6p6Aqu-n.js";
-import { a as m, c as h, colorItems as g, i as _, l as v, n as y, o as b, r as x, s as S, t as C } from "./colors-CSeghHa0.js";
-import { _ as w, o as T, r as E, t as D } from "./keyboard-BDbqS2Xz.js";
-import { t as O } from "./file-view-Ck88cu4w.js";
+import { a as f, i as p } from "./runtime-dA0j40ft.js";
+import { a as m, c as h, colorItems as g, i as _, l as v, n as y, o as b, r as x, s as S, t as C } from "./colors-DLVtnFPi.js";
+import { r as w, s as T, t as E } from "./keyboard-C-vCAuwq.js";
+import { t as D } from "./file-view-CUPB4wWN.js";
+import { o as O } from "./host-CkpXbnaN.js";
 import { i as k, n as A, t as j } from "./context-menu-registry-Dw2l9wcD.js";
-import { copyMarkdown as M, markdownIo as N, pasteMarkdown as P } from "./markdown-clipboard-D5MenGR0.js";
+import { copyMarkdown as M, markdownIo as N, pasteMarkdown as P } from "./markdown-clipboard-t-rjOoT7.js";
 // src/Resources/assets/src/plugins/context-menu.ts
 var F = new r("nowo-milkdown-context-menu"), I = () => typeof navigator < "u" && navigator.clipboard ? navigator.clipboard : {};
 function L(e, t, n) {
@@ -28,7 +29,7 @@ var R = class {
 	onContextMenu = (e) => this.handleContextMenu(e);
 	onKeyDown = (e) => {
 		if (e.key !== "ContextMenu" && (e.key !== "F10" || !e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) || e.defaultPrevented || e.target?.closest?.(".cm-editor")) return;
-		e.preventDefault(), D(this.view);
+		e.preventDefault(), E(this.view);
 		let t = this.view.coordsAtPos(this.view.state.selection.head);
 		this.open(t.left, t.bottom);
 	};
@@ -80,40 +81,40 @@ var R = class {
 			label: f(t, `menu.${e}`),
 			run: n,
 			...r
-		}), x = I(), C = n.selection.empty, D = [];
-		r && D.push(b("cut", () => this.exec("cut"), {
+		}), x = I(), C = n.selection.empty, E = [];
+		r && E.push(b("cut", () => this.exec("cut"), {
 			shortcut: "Control+X",
 			disabled: C
-		})), D.push(b("copy", () => this.exec("copy"), {
+		})), E.push(b("copy", () => this.exec("copy"), {
 			shortcut: "Control+C",
 			disabled: C
-		})), r && (D.push(b("paste", () => void this.paste(), {
+		})), r && (E.push(b("paste", () => void this.paste(), {
 			shortcut: "Control+V",
 			disabled: !x.read,
 			hint: f(t, "menu.paste_hint")
-		})), D.push(b("paste_plain", () => void this.pastePlain(), {
+		})), E.push(b("paste_plain", () => void this.pastePlain(), {
 			shortcut: "Control+Shift+V",
 			disabled: !x.readText,
 			hint: f(t, "menu.paste_hint")
 		})));
 		let A = this.io;
-		if (A && (r && D.push(b("paste_markdown", () => void P(e, A, x), {
+		if (A && (r && E.push(b("paste_markdown", () => void P(e, A, x), {
 			shortcut: "Control+Alt+V",
 			disabled: !x.readText,
 			hint: f(t, "menu.paste_hint")
-		})), D.push(b("copy_markdown", () => void M(n, A, x).then((e) => this.announce(e ? "clipboard.copied_markdown" : "clipboard.copy_failed")), {
+		})), E.push(b("copy_markdown", () => void M(n, A, x).then((e) => this.announce(e ? "clipboard.copied_markdown" : "clipboard.copy_failed")), {
 			shortcut: "Control+Alt+Shift+C",
 			disabled: C || !x.writeText
 		}))), t.comment && !C) {
 			let e = t.comment;
-			D.push({
+			E.push({
 				id: "comment",
 				label: f(t, "comments.action"),
 				shortcut: "Control+Alt+M",
 				run: () => e()
 			});
 		}
-		let N = [D];
+		let N = [E];
 		if (r && t.insert.length && N.push([{
 			id: "insert",
 			label: f(t, "menu.insert"),
@@ -125,7 +126,7 @@ var R = class {
 		}]), r) {
 			let r = n.schema.marks.link ? L(n, n.selection.head, n.schema.marks.link) : null;
 			if (r) {
-				let e = w(String(r.mark.attrs.href ?? ""), "file", t.hostSchemes);
+				let e = O(String(r.mark.attrs.href ?? ""), "file", t.hostSchemes);
 				N.push([
 					b("link_open", () => window.open(e, "_blank", "noopener,noreferrer"), { disabled: e === "" }),
 					b("link_copy", () => void x.writeText?.(e), { disabled: e === "" || !x.writeText }),
@@ -135,7 +136,7 @@ var R = class {
 					}))
 				]);
 			}
-			E(n) === "table" && N.push([
+			w(n) === "table" && N.push([
 				b("row_above", p(l)),
 				b("row_below", p(a)),
 				b("column_left", p(s)),
@@ -157,7 +158,7 @@ var R = class {
 				id: "color",
 				label: f(t, "menu.color"),
 				items: g(n, t, !C, (e) => p(e)())
-			}), h.push(...O(n, t, (e) => p(e)())), h.push(...T(e, t)), h.push(b("duplicate", p(m)), b("move_up", p(S(-1)), { disabled: !S(-1)(n) }), b("move_down", p(S(1)), { disabled: !S(1)(n) }), b("delete", p(_))), N.push(h);
+			}), h.push(...D(n, t, (e) => p(e)())), h.push(...T(e, t)), h.push(b("duplicate", p(m)), b("move_up", p(S(-1)), { disabled: !S(-1)(n) }), b("move_down", p(S(1)), { disabled: !S(1)(n) }), b("delete", p(_))), N.push(h);
 		}
 		let F = this.context(), R = [...j.values()].filter((e) => !e.when || e.when(F)).map((e) => ({
 			id: `host:${e.id}`,

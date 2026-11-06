@@ -19,7 +19,16 @@ export async function watch(page: Page): Promise<{ errors: string[] }> {
   return { errors };
 }
 
-export const violations = (page: Page): Promise<Violation[]> => page.evaluate(() => (window as unknown as { __csp: Violation[] }).__csp);
+/**
+ * The CSP violations of the page, after checking the policy is in force. The WebProfiler's `/_wdt/styles` latches its
+ * `disableCsp()` in a kept-alive worker and every later response of that worker has no policy, so "no violations" would
+ * prove nothing: every page of the e2e runs with `?devtools=0`, and this fails if one does not.
+ */
+export async function violations(page: Page): Promise<Violation[]> {
+  const policy = (await page.request.get(page.url())).headers()['content-security-policy'] ?? '';
+  expect(policy, `no CSP on ${page.url()}`).toContain('style-src-elem');
+  return page.evaluate(() => (window as unknown as { __csp: Violation[] }).__csp);
+}
 
 /**
  * Opens the demo and waits until both editors are mounted and the layout is final: the editor's Mermaid preview is
@@ -27,7 +36,8 @@ export const violations = (page: Page): Promise<Violation[]> => page.evaluate(()
  * the block under the pointer, which starts Crepe's 200 ms fade-in of the code-block buttons.
  */
 export async function openDemo(page: Page, query = ''): Promise<void> {
-  await page.goto(`/${query}`);
+  // No WebProfiler toolbar: its inline assets break the policy, and loading it turns the policy off (see violations()).
+  await page.goto(`/${query}${query.includes('devtools=') ? '' : `${query ? '&' : '?'}devtools=0`}`);
   await expect(page.locator('.nowo-milkdown .ProseMirror')).toHaveCount(2);
   await page.waitForFunction(() => document.querySelectorAll('.nowo-milkdown .cm-editor').length > 0);
   await expect(page.locator('.nowo-milkdown .milkdown-code-block .preview svg')).toBeVisible({ timeout: 15000 });
@@ -57,11 +67,22 @@ export async function seriousViolations(page: Page, include = 'main'): Promise<{
 }
 
 /** Puts the caret at the end of the wiki editor's last paragraph ("Euler: …"). */
+/**
+ * ProseMirror's focus handler re-applies its selection to the DOM 20 ms later (`setTimeout`). Chromium runs input ahead of
+ * timers, so synthetic keys can overtake it: measured, a timer set 88 ms earlier fired right after Shift+Home and
+ * collapsed the new selection before ProseMirror read it. A person cannot type that fast; a test must wait. Timers with the
+ * same delay fire in order, so this one runs after ProseMirror's.
+ */
+export async function focusSettled(page: Page): Promise<void> {
+  await page.evaluate(() => new Promise<void>((resolve) => setTimeout(resolve, 20)));
+}
+
 export async function caretAtEnd(page: Page): Promise<void> {
   const euler = page.locator('.nowo-milkdown .ProseMirror p', { hasText: 'Euler:' });
   // The inline math of the paragraph renders from a lazy chunk; a click before it lands would be undone.
   await expect(euler.locator('.katex').first()).toBeVisible({ timeout: 15000 });
   await euler.click({ position: { x: 5, y: 5 } });
+  await focusSettled(page);
   await page.keyboard.press('End');
 }
 

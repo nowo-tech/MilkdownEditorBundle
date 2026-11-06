@@ -150,6 +150,8 @@ export type EditorOptions = {
   hostSchemes: import('./host').HostSchemes;
   /** 1.9 (ME-6): extra `sandbox` tokens of file preview frames (`markdown.file_preview_sandbox`). */
   previewSandbox: string;
+  /** 1.9: previews one editor shows (`markdown.max_references`); other files are cards (audit GX-L1). */
+  maxPreviews: number;
   collaboration: CollaborationOptions | null;
   /** Colours the editor offers (`markdown.mark_colors`, 1.4); empty: the whole palette. */
   colors: string[];

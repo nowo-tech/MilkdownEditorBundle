@@ -34,7 +34,7 @@ final class ImageAttributes
      */
     public static function prefix(string $text): ?array
     {
-        if (preg_match('/^\{\s*' . self::PAIR . '(?:\s+' . self::PAIR . ')?\s*\}/', $text, $m) !== 1) {
+        if (preg_match('/^\{[ \t]*' . self::PAIR . '(?:[ \t]+' . self::PAIR . ')?[ \t]*\}/', $text, $m) !== 1) {
             return null;
         }
         $out = ['width' => '', 'align' => '', 'length' => strlen($m[0])];
@@ -67,7 +67,7 @@ final class ImageAttributes
         if (in_array($value, self::PERCENTS, true)) {
             return $value;
         }
-        if (preg_match('/^([1-9]\d{1,3})px$/', $value, $m) === 1 && (int) $m[1] >= 16 && (int) $m[1] <= 2000) {
+        if (preg_match('/^([1-9]\d{1,3})px$/D', $value, $m) === 1 && (int) $m[1] >= 16 && (int) $m[1] <= 2000) {
             return $value;
         }
 

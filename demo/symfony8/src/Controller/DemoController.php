@@ -76,7 +76,8 @@ final class DemoController extends AbstractController
     public function __construct(
         private readonly DemoDirectory $directory,
         private readonly CsrfTokenManagerInterface $csrf,
-        #[Autowire(service: '?profiler')]
+        // Not `?profiler`: that is taken as a service id, so this was always null and `?devtools=0` never disabled anything.
+        #[Autowire(service: 'profiler')]
         private readonly ?Profiler $profiler = null,
     ) {
     }

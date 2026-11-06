@@ -18,9 +18,11 @@ import { DOMParser as PmDOMParser, DOMSerializer, Fragment, Node as PmNode, Slic
 import type { EditorState } from '@milkdown/kit/prose/state';
 import type { EditorView } from '@milkdown/kit/prose/view';
 import { $prose } from '@milkdown/kit/utils';
+import { RESERVED, isHostUrl, type HostSchemes } from '../host';
+import { runtimeCtx } from '../runtime';
 
 /** Parses and serialises Markdown of the dialect (Milkdown's parser and serializer of the editor). */
-export type MarkdownIo = { parse: (text: string) => PmNode | null; serialize: (doc: PmNode) => string };
+export type MarkdownIo = { parse: (text: string) => PmNode | null; serialize: (doc: PmNode) => string; hostSchemes?: HostSchemes };
 
 export type MarkdownClipboard = Pick<globalThis.Clipboard, 'readText' | 'writeText'>;
 
@@ -69,6 +71,9 @@ export function markdownIo(ctx: Ctx): MarkdownIo {
       }
     },
     serialize: (doc) => ctx.get(serializerCtx)(doc),
+    get hostSchemes() {
+      return ctx.get(runtimeCtx.key).hostSchemes;
+    },
   };
 }
 
@@ -86,12 +91,6 @@ export function throughSchema(doc: PmNode): PmNode {
 /** Schemes a pasted link or image may keep; any other (`javascript:`, `data:`, `vbscript:`…) is emptied. */
 const SAFE_SCHEMES = new Set(['http', 'https', 'mailto', 'tel']);
 
-/** 1.9 (ME-5): host schemes of the page's editors (`hostSchemes`): pasted host references are kept. */
-const hostPasteSchemes = new Set<string>();
-export const allowPastedHostSchemes = (schemes: Iterable<string>): void => {
-  for (const scheme of schemes) hostPasteSchemes.add(scheme.toLowerCase());
-};
-
 /**
  * Whether a pasted link or image target is safe: relative, an anchor, or one of {@link SAFE_SCHEMES} (controls and
  * spaces the URL parser would ignore are ignored here too, so `java\tscript:` is still `javascript:`).
@@ -101,32 +100,41 @@ export function isSafePastedUrl(value: unknown): boolean {
   // eslint-disable-next-line no-control-regex
   const url = value.replace(/[\u0000-\u0020]+/g, '');
   const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(url)?.[1];
-  return scheme === undefined || SAFE_SCHEMES.has(scheme.toLowerCase()) || hostPasteSchemes.has(scheme.toLowerCase());
+  return scheme === undefined || SAFE_SCHEMES.has(scheme.toLowerCase());
 }
 
-const cleanMark = (mark: Mark): Mark => (isSafePastedUrl(mark.attrs.href) ? mark : mark.type.create({ ...mark.attrs, href: '' }));
+/**
+ * The same check for one editor: its own host schemes are kept too (1.9, ME-5; per editor and never a browser scheme,
+ * audit GX-I3).
+ */
+export const pasteCheckFor = (schemes: HostSchemes) => (value: unknown): boolean => {
+  if (isSafePastedUrl(value)) return true;
+  const scheme = typeof value === 'string' ? /^[ \t\n\v\f\r]*([a-z][a-z0-9+.-]*):/i.exec(value)?.[1]?.toLowerCase() : undefined;
+  return scheme !== undefined && !RESERVED.has(scheme) && isHostUrl(value, schemes);
+};
 
 /**
  * Empties every unsafe `href` (link marks) and `src` (images) of pasted content (audit DN-L1): the same for the smart
  * paste, Paste as Markdown and (through `transformPasted`) the plain-text and HTML paste paths, so a paste never
  * stores `javascript:` or `data:` targets whichever path it took.
  */
-export function cleanFragment(fragment: Fragment): Fragment {
+export function cleanFragment(fragment: Fragment, safe: (value: unknown) => boolean = isSafePastedUrl): Fragment {
   const nodes: PmNode[] = [];
+  const cleanMark = (mark: Mark): Mark => (safe(mark.attrs.href) ? mark : mark.type.create({ ...mark.attrs, href: '' }));
   fragment.forEach((node) => {
     const marks = node.marks.map(cleanMark);
     if (node.isText) {
       nodes.push(node.mark(marks));
       return;
     }
-    const attrs = isSafePastedUrl(node.attrs.src) ? node.attrs : { ...node.attrs, src: '' };
-    nodes.push(node.type.create(attrs, cleanFragment(node.content), marks));
+    const attrs = safe(node.attrs.src) ? node.attrs : { ...node.attrs, src: '' };
+    nodes.push(node.type.create(attrs, cleanFragment(node.content, safe), marks));
   });
   return Fragment.from(nodes);
 }
 
 /** `transformPasted` of the view (with `markdown_clipboard`): {@link cleanFragment} on every pasted slice. */
-export const cleanPasted = (slice: Slice): Slice => new Slice(cleanFragment(slice.content), slice.openStart, slice.openEnd);
+export const cleanPasted = (slice: Slice, schemes: HostSchemes = {}): Slice => new Slice(cleanFragment(slice.content, pasteCheckFor(schemes)), slice.openStart, slice.openEnd);
 
 const inCode = (state: EditorState): boolean => state.selection.$from.parent.type.spec.code === true;
 
@@ -144,7 +152,7 @@ export function insertMarkdown(view: EditorView, io: MarkdownIo, text: string): 
   }
   const parsed = io.parse(text);
   if (!parsed || parsed.content.size === 0) return false;
-  const doc = parsed.type.create(parsed.attrs, cleanFragment(throughSchema(parsed).content));
+  const doc = parsed.type.create(parsed.attrs, cleanFragment(throughSchema(parsed).content, pasteCheckFor(io.hostSchemes ?? {})));
   // One paragraph joins the text around the caret; anything else (headings, lists, several blocks) stays blocks.
   const inline = doc.childCount === 1 && doc.firstChild!.type.name === 'paragraph';
   view.dispatch(view.state.tr.replaceSelection(inline ? Slice.maxOpen(doc.content) : new Slice(doc.content, 0, 0)).scrollIntoView());

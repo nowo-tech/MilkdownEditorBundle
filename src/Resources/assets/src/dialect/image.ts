@@ -23,8 +23,9 @@ export function imageWidth(value: unknown): string {
 export const imageAlign = (value: unknown): string => ((IMAGE_ALIGNMENTS as readonly string[]).includes(value as string) ? (value as string) : '');
 
 /** One `key=value` (values are short, so the pattern is bounded). */
-const PAIR = '(width|align)=(?:"([^"{}\\n]{1,20})"|([^\\s"{}]{1,20}))';
-const BLOCK = new RegExp(`^\\{\\s*${PAIR}(?:\\s+${PAIR})?\\s*\\}`);
+const PAIR = '(width|align)=(?:"([^"{}\\n]{1,20})"|([^ \\t\\n\\v\\f\\r"{}]{1,20}))';
+/** Spaces and tabs only, on one line, like `ImageAttributes.php` (audit GX-I6). */
+const BLOCK = new RegExp(`^\\{[ \\t]*${PAIR}(?:[ \\t]+${PAIR})?[ \\t]*\\}`);
 
 /**
  * Reads a block at the start of a text (the text right after an image).

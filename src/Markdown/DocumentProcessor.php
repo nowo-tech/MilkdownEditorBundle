@@ -226,11 +226,17 @@ final readonly class DocumentProcessor
                     $card->data->set('nowo_file_hidden', true);
                     continue;
                 }
+                if ($source instanceof ResolvedFile && $source->name !== null) {
+                    $card->data->set('nowo_file_name', $source->name);
+                }
+                if ($source instanceof ResolvedFile && $source->type !== null) {
+                    $card->data->set('nowo_file_type', $source->type);
+                }
             }
             $card->data->set('nowo_file_url', $url);
             if ($url !== '' && FileCard::view($card->attributes) === 'preview') {
                 $byHref[$href][] = $card;
-                $wanted[$href]   = new FileReference($href, $url, FileCard::name($card->label), $card->attributes['type'] ?? '', $this->hostSchemes->reference($href));
+                $wanted[$href]   = new FileReference($href, $url, FileCard::name($this->text($card->data->get('nowo_file_name', null)) ?? $card->label), $this->text($card->data->get('nowo_file_type', null)) ?? $card->attributes['type'] ?? '', $this->hostSchemes->reference($href));
             }
         }
         if ($wanted === [] || !$this->previews instanceof FilePreviewResolverInterface) {
@@ -253,6 +259,11 @@ final readonly class DocumentProcessor
                 $card->data->set('nowo_file_preview', $preview);
             }
         }
+    }
+
+    private function text(mixed $value): ?string
+    {
+        return is_string($value) ? $value : null;
     }
 
     /** A link the viewer may not open keeps its text, without a target. */

@@ -100,7 +100,7 @@ return static function (ContainerConfigurator $container): void {
         ->tag('form.type');
 
     $services->set(MilkdownEditorTwig::class)
-        ->args([service(MarkdownRendererInterface::class), service('assets.packages'), service(CspNonceProviderInterface::class)->nullOnInvalid(), service('translator')->nullOnInvalid()])
+        ->args([service(MarkdownRendererInterface::class), service('assets.packages'), service(CspNonceProviderInterface::class)->nullOnInvalid(), service('translator')->nullOnInvalid(), service(HostSchemes::class)])
         ->autoconfigure();
 
     // 1.6: `nowo_milkdown_view()` / `nowo_milkdown_diff()` (only when symfony/form's factory is available).

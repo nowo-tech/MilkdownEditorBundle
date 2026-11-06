@@ -15,6 +15,7 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\HostFileResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TablerCatalog;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateFilePreviewResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateHostFileResolver;
+use Nowo\MilkdownEditorBundle\Twig\MilkdownEditorTwig;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -118,7 +119,8 @@ final class ExtensionTest extends TestCase
         $schemes = $container->getDefinition(HostSchemes::class);
         self::assertSame(['app-file' => ['file' => '/f/{id}', 'image' => null, 'preview' => null]], $schemes->getArgument('$schemes'));
         self::assertSame(['https://cdn.example'], $schemes->getArgument('$imageOrigins'));
-        self::assertSame('allow-downloads allow-popups', $container->getDefinition(MilkdownEditorType::class)->getArgument('$previewSandbox'));
+        self::assertSame('allow-downloads allow-popups', $container->getDefinition(MilkdownEditorTwig::class)->getArgument('$previewSandbox'));
+        self::assertSame(500, $container->getDefinition(MilkdownEditorTwig::class)->getArgument('$maxPreviews'));
         self::assertSame(TemplateHostFileResolver::class, (string) $container->getAlias(HostFileResolverInterface::class));
         self::assertSame(TemplateFilePreviewResolver::class, (string) $container->getAlias(FilePreviewResolverInterface::class));
     }

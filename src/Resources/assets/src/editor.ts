@@ -16,9 +16,9 @@ import type { EditorView } from '@milkdown/kit/prose/view';
 import { addFeatures } from './features';
 import { createPageResolver } from './link-titles';
 import { createUserResolver } from './user-names';
-import { parseOptions } from './options';
+import { pageHostConfig, parseOptions } from './options';
 import { directives } from './nodes/directives';
-import { imageAttributesSchema, imageView } from './nodes/image';
+import { hostLinkSchema, imageAttributesSchema, imageLiftRemark, imageView } from './nodes/image';
 import { inlineRefs, mentionNameView } from './nodes/inline-refs';
 import { taskListView } from './nodes/task-list';
 import { editableAttributes, watchControls } from './plugins/a11y';
@@ -142,7 +142,7 @@ function actionButton(bar: HTMLElement, label: string, onClick: () => void, icon
 export async function createEditor(root: HTMLElement, overrides: Partial<EditorOptions> = {}): Promise<MilkdownEditorHandle> {
   const textarea = root.querySelector<HTMLTextAreaElement>('textarea');
   if (!textarea) throw new Error('nowo-milkdown: the widget has no textarea');
-  const options: EditorOptions = { ...parseOptions(root.dataset.nowoMilkdownOptions), ...overrides };
+  const options: EditorOptions = { ...parseOptions(root.dataset.nowoMilkdownOptions), ...pageHostConfig(root.ownerDocument), ...overrides };
   const pages = createPageResolver(options.linkTitleUrl);
   const users = createUserResolver(options.mentionDisplay === 'name' ? options.userTitleUrl : null);
   const runtime: Runtime = {
@@ -160,6 +160,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     dark: () => isDark(root),
     hostSchemes: options.hostSchemes,
     previewSandbox: options.previewSandbox,
+    maxPreviews: options.maxPreviews,
   };
   root.classList.add('nowo-milkdown');
   root.dataset.theme = options.theme;
@@ -203,7 +204,6 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   const colorsModule = options.features.includes('colors') ? await import('./commands/colors') : null;
   // 1.5: smart paste and Paste / Copy as Markdown.
   const clipboardModule = options.features.includes('markdown_clipboard') ? await import('./commands/markdown-clipboard') : null;
-  clipboardModule?.allowPastedHostSchemes(Object.keys(options.hostSchemes));
   // 1.6: comment highlights, anchors and events (a lazy chunk); the thread component is another chunk.
   const commentsModule = options.comments ? await import('./comments/index') : null;
   let yjs: YjsAnchors | null = null;
@@ -235,7 +235,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
           ...prev,
           handlePaste: (view, event, slice) => smart(view, event) || (prev.handlePaste?.(view, event, slice) ?? false),
           // DN-L1: every other paste path drops unsafe link and image targets the same way.
-          transformPasted: (slice, view, plain) => clipboardModule.cleanPasted(prev.transformPasted ? prev.transformPasted(slice, view, plain) : slice),
+          transformPasted: (slice, view, plain) => clipboardModule.cleanPasted(prev.transformPasted ? prev.transformPasted(slice, view, plain) : slice, options.hostSchemes),
         }));
       }
     })
@@ -249,7 +249,11 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     .use($prose(() => fileDrop.plugin));
   if (options.mentionDisplay === 'name') editor.use(mentionNameView);
   // 1.9: other fields keep Milkdown's plain `<img>`.
-  if (Object.keys(options.hostSchemes).length > 0 || options.features.includes('image_block')) editor.use(imageView);
+  const hosted = Object.keys(options.hostSchemes).length > 0;
+  if (hosted || options.features.includes('image_block')) editor.use(imageView);
+  if (hosted) editor.use(hostLinkSchema);
+  // Without the feature `{width=…}` stays text, as the renderer without `markdown.image_block` shows it (audit GX-I5).
+  if (options.features.includes('image_block')) editor.use(imageLiftRemark);
   if (options.features.includes('insert_button') && !options.readonly) editor.use(insertButtonPlugin);
   if (collabModule) editor.use(collabModule.collab);
   if (contextMenuModule) editor.use(contextMenuModule.contextMenuPlugin);

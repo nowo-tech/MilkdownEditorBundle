@@ -171,7 +171,7 @@ A host can store references instead of URLs: `![Plan](app-file:9b1c…)`, `[Plan
 editor and the renderer build the URLs from the same templates, so images preview everywhere. An upload endpoint may
 answer `{"url": "app-file:9b1c…"}`: the reference is what gets stored.
 
-An id is 1–200 characters of `[A-Za-z0-9._~-]` and not only dots. Anything else with that scheme is inert: no request and
+An id is 1–200 characters of `[A-Za-z0-9._~-]` without a leading dot. Anything else with that scheme is inert: no request and
 no link. With the default resolvers every valid reference gets a URL, so **your endpoint must check the viewer**. To
 check in PHP, in one batch per document, and to give per-viewer URLs or sizes:
 
@@ -199,9 +199,14 @@ final class AppFileResolver implements HostFileResolverInterface
 Nowo\MilkdownEditorBundle\Markdown\Resolver\HostFileResolverInterface: '@App\Markdown\AppFileResolver'
 ```
 
+`resolveFiles()` runs once per document, and a rendered diff (`nowo_milkdown_diff()`) renders block by block: expect one
+call per side of each changed block there. `ResolvedFile` may also carry the real `name` and `type`: a reference has no
+extension, so otherwise the author's label and `type` decide what a card shows.
+
 A reference missing from the answer, a resolver that throws (logged, without document content) or a URL that is not
-relative or http(s): images and file cards render *Content not visible*, without their name; links keep their text
-without a target. The resolver must be safe for worker mode like every other (no per-request state in properties
+relative or http(s): images and file cards render *Content not visible*, without their name or caption; links keep their text
+without a target. Hosts mounting editors from JavaScript pass `hostSchemes` to `createEditor()`; auto-mounted editors take
+it only from the page's data block, never from a widget's `data-*` JSON. The resolver must be safe for worker mode like every other (no per-request state in properties
 without `ResetInterface`). In the editor, the browser requests the templates: an image that fails to load shows *Image
 not available*.
 
@@ -209,8 +214,8 @@ not available*.
 
 With the `image_block` feature and `markdown.image_block: true`:
 `![alt](src "caption"){width=50% align=center}`. The title is the caption. Width is `25%`, `50%`, `75%`, `100%` or `<n>px`
-(16–2000); align is `left`, `center` or `right`. Only a block with these keys and valid values counts, directly after the
-image; anything else stays text. A paragraph holding only an image renders as
+(16–2000); align is `left`, `center` or `right`. Only a block with these keys and valid values, on one line, counts,
+directly after the image; anything else stays text. Without the feature the block is text in the editor too. A paragraph holding only an image renders as
 `<figure class="nowo-md-figure nowo-md-figure--center nowo-md-figure--w50">` with a `<figcaption>`; an image inside a
 sentence stays inline, where only a px width applies. Widths and alignment are classes (or the `width` HTML attribute),
 never a `style`.
@@ -237,7 +242,8 @@ block menu or the context menu (Shift+F10) moves the focus to it, Tab moves thro
 The bundle never fetches or parses files: a preview is a page of yours, from the scheme's `preview` template or from a
 `FilePreviewResolverInterface` (which also says per file whether a preview exists and the viewer may see it; a file it
 leaves out shows its card). Plain URLs have no preview by default. In the editor only the template is used, and your
-endpoint answers for the viewer.
+endpoint answers for the viewer. Frames load when they come near the viewport, and one editor shows at most
+`max_references` distinct previews (the other files are cards).
 
 The endpoint must send:
 
@@ -249,7 +255,7 @@ The endpoint must send:
 The page that embeds it needs `frame-src` to allow that origin. The frame's `sandbox` is empty by default (no scripts, an
 opaque origin). A browser's built-in PDF viewer does not run in a sandboxed frame; add tokens with
 `markdown.file_preview_sandbox` only for a preview origin you trust, and prefer rendering PDFs to images or HTML in that
-case. `allow-scripts` together with `allow-same-origin` is refused.
+case. `allow-scripts` is refused together with `allow-same-origin` or `allow-popups-to-escape-sandbox`.
 
 ## Collaboration
 

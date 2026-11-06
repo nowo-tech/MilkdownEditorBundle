@@ -110,7 +110,9 @@ final class DemoControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/files');
         self::assertResponseIsSuccessful();
         $options = json_decode((string) $crawler->filter('[data-nowo-milkdown-options]')->first()->attr('data-nowo-milkdown-options'), true);
-        self::assertSame(['image' => '/uploads/{id}', 'file' => '/uploads/{id}', 'preview' => '/uploads/{id}/preview'], $options['hostSchemes']['demo-file']);
+        self::assertArrayNotHasKey('hostSchemes', $options);
+        $config = json_decode($crawler->filter('script[data-nowo-milkdown-config]')->first()->text(null, false), true);
+        self::assertSame(['image' => '/uploads/{id}', 'file' => '/uploads/{id}', 'preview' => '/uploads/{id}/preview'], $config['hostSchemes']['demo-file']);
         $path = tempnam(sys_get_temp_dir(), 'up');
         file_put_contents($path, "<b>hello</b> plain\n");
         $client->request('POST', '/api/upload?reference=1', [], ['file' => new UploadedFile($path, 'a.txt', 'text/plain', null, true)], ['HTTP_X_CSRF_TOKEN' => $options['upload']['csrfToken']]);

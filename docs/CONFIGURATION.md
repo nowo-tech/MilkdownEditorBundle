@@ -140,8 +140,9 @@ nowo_milkdown_editor:
 ```
 
 A scheme is lower-case letters, digits, `+`, `.` and `-`, and not one of the browser's (`http`, `data`, `javascript`,
-`file`…). A template is a path starting with one `/` or an http(s) URL, contains `{id}` and has at most 500 characters;
-anything else fails at container build. The templates are in the editor's widget JSON, so do not put secrets in them.
+`file`, `view-source`…). A template is a path starting with one `/` or an http(s) URL, has `{id}` after the first `/` of
+the path (never in the host) and at most 500 characters; anything else fails at container build. The templates are in the
+page (`script[data-nowo-milkdown-config]`, printed by `nowo_milkdown_editor_assets()`), so do not put secrets in them.
 See [USAGE](USAGE.md#host-references).
 
 ### Renderer limits

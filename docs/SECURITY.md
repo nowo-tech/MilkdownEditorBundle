@@ -160,12 +160,13 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
 
 ### Host references and previews
 
-(1.9, opt-in.) What an author controls is the id, the view and the height; the templates, schemes, origins and sandbox
-tokens are configuration, and a host resolver's answer is semi-trusted.
+(1.9, opt-in. **Audit re-verification pending** for the fixes of Appendix GX.) What an author controls is the id, the view,
+the height, the label, `type`, `size`, caption, width and alignment; the templates, schemes, origins and sandbox tokens are
+configuration, and a host resolver's answer is semi-trusted.
 
 - **Schemes.** Only those of `markdown.host_schemes`, never a browser scheme. Unknown schemes follow the existing rules.
-- **Ids.** `[A-Za-z0-9._~-]{1,200}`, never only dots (`..` would walk up the template's path), URL-encoded into the
-  template. Any other value of the scheme is inert on both sides.
+- **Ids.** `[A-Za-z0-9._~-]{1,200}`, no leading dot (`..` would walk up the template's path), URL-encoded into the
+  template, which must have `{id}` after the first `/` of its path. Any other value of the scheme is inert on both sides.
 - **Resolved URLs** (templates and resolvers, images, links, cards, previews) pass `safeUrl()` / `DialectRenderer::safeUrl()`
   after resolution. A resolved image also meets the remote-image policy: off `host_image_origins` and with
   `allow_remote_images` off it becomes a link, with no request. The list compares the whole origin, and author images never
@@ -174,10 +175,17 @@ tokens are configuration, and a host resolver's answer is semi-trusted.
   *Content not visible* or the plain card; nothing about the file is shown, and logs carry no document content. References
   are capped by `max_references`.
 - **Attribute block.** Bounded pattern, fixed keys and fixed values; classes and the `width` attribute only.
-- **Previews.** A frame with the strictest `sandbox` by default, `referrerpolicy="no-referrer"`, `loading="lazy"`. Tokens
-  are an allow-list, and `allow-scripts` with `allow-same-origin` is refused by the configuration and dropped by the
-  renderer and the editor. An author can make any reader's browser open a preview URL of the configured template for any
-  id: the **endpoint** must authorise the viewer and send the headers in [USAGE](USAGE.md#previews). Requests use `GET`.
+- **Previews.** A frame with the strictest `sandbox` by default, `referrerpolicy="no-referrer"`, `loading="lazy"`; in the
+  editor the source is set near the viewport and at most `max_references` files per editor get a frame. Tokens are an
+  allow-list, and `allow-scripts` with `allow-same-origin` or `allow-popups-to-escape-sandbox` is refused by the
+  configuration and dropped by the renderer and the editor. Even without `allow-scripts`, `allow-popups-to-escape-sandbox`
+  lets a link in the preview open outside the sandbox: add it only for a preview origin you trust. An author can make any
+  reader's browser open a preview URL of the configured template for any id, also top-level through a plain link, where the
+  frame's `sandbox` does not apply: the **endpoint** must authorise the viewer and send the headers in
+  [USAGE](USAGE.md#previews). Requests use `GET`, so every path a template can reach must be free of side effects.
+- **Planted widgets.** Auto-mount takes `hostSchemes` and `previewSandbox` only from `script[data-nowo-milkdown-config]`
+  (printed by `nowo_milkdown_editor_assets()`, with the page's nonce when it has one), never from a widget's JSON. On a page
+  without nonces the element itself is accepted: a sanitizer that lets `<script>` through has already failed.
 - **Editor view.** Host images and previews are built with DOM APIs; the toolbar writes node attributes, and values are
   validated again when read.
 
@@ -201,6 +209,9 @@ for the demo content.
   `finally` and the placeholder stash is emptied after each render.
 - **`img-src` is the real control for remote images** in the editor (Markdown images are shown as written): use
   `img-src 'self' data: blob:` or the hosts you trust.
+
+With host previews, **`frame-src` is required**: list the preview origin (`'self'` if same-origin), and nothing broader. It
+is also what stops a frame on a page where HTML injection has already happened.
 
 ## Secrets
 

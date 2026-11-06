@@ -32,7 +32,7 @@ has no preview for the viewer.
 ## Requirements
 
 - **FR-HOST-001**: schemes are configured (`markdown.host_schemes`), with no host name in the bundle; only those are resolved.
-- **FR-HOST-002**: an id is `[A-Za-z0-9._~-]{1,200}`, not only dots; other values of the scheme are inert.
+- **FR-HOST-002**: an id is `[A-Za-z0-9._~-]{1,200}`, no leading dot; other values of the scheme are inert.
 - **FR-HOST-003**: references resolve in one batch per document through `HostFileResolverInterface`, capped by
   `max_references`; the default uses the templates.
 - **FR-HOST-004**: every resolved URL passes the renderer's URL check, and images the remote-image policy
@@ -45,7 +45,10 @@ has no preview for the viewer.
 - **FR-FILE-002**: the bundle never fetches a file; a preview is a host URL in a frame with `sandbox`, `loading="lazy"`,
   `referrerpolicy="no-referrer"`, a title, *Open* and *Download*.
 - **FR-FILE-003**: `allow-scripts` with `allow-same-origin` is refused.
-- **FR-BC-001**: with the defaults the renderer's output, the widget JSON and the editor's image element do not change.
+- **FR-HOST-007**: auto-mount reads host options only from the page's data block, with the page's nonce (GX-L2).
+- **FR-FILE-004**: editor previews load near the viewport and are capped per editor by `max_references` (GX-L1).
+- **FR-BC-001**: with the defaults the widget JSON and the editor's image element do not change; the renderer's output
+  changes only for `::file` with `view=link|icon|preview` (UPGRADING).
 
 ## Success criteria
 

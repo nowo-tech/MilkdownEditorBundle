@@ -53,8 +53,9 @@ function collaboration(value: unknown): CollaborationOptions | null {
 /** Preview frame `sandbox` tokens (1.9): known tokens only, never `allow-scripts` with `allow-same-origin`. */
 export function previewSandbox(value: unknown): string {
   const known = ['allow-scripts', 'allow-same-origin', 'allow-popups', 'allow-popups-to-escape-sandbox', 'allow-downloads'];
-  let tokens = [...new Set(String(typeof value === 'string' ? value : '').toLowerCase().split(/\s+/))].filter((t) => known.includes(t));
-  if (tokens.includes('allow-scripts')) tokens = tokens.filter((t) => t !== 'allow-same-origin');
+  let tokens = [...new Set(String(typeof value === 'string' ? value : '').toLowerCase().split(' '))].filter((t) => known.includes(t));
+  // Scripts never get the frame's way out: the same origin, or popups without the sandbox (audit GX-I1).
+  if (tokens.includes('allow-scripts')) tokens = tokens.filter((t) => t !== 'allow-same-origin' && t !== 'allow-popups-to-escape-sandbox');
   return tokens.join(' ');
 }
 
@@ -161,8 +162,10 @@ export function parseOptions(raw: string | undefined | null): EditorOptions {
     menuIcons: data.menuIcons !== false,
     upload: versionOn ? null : uploadOptions(data.upload),
     actionBarInsert: actionBarInsert(data.actionBarInsert),
-    hostSchemes: parseHostSchemes(data.hostSchemes),
-    previewSandbox: previewSandbox(data.previewSandbox),
+    // Never from this JSON (audit GX-L2): see pageHostConfig().
+    hostSchemes: {},
+    previewSandbox: '',
+    maxPreviews: DEFAULT_MAX_PREVIEWS,
     collaboration: versionOn ? null : collaboration(data.collaboration),
     colors: Array.isArray(data.colors) ? data.colors.filter((c): c is string => typeof c === 'string') : [],
     mentionDisplay: data.mentionDisplay === 'name' ? 'name' : 'handle',
@@ -182,7 +185,37 @@ export function parseOptions(raw: string | undefined | null): EditorOptions {
  * @returns The nonce, or '' when no script carries one
  */
 export function pageNonce(doc: Document = document): string {
-  const scripts = [...doc.querySelectorAll<HTMLScriptElement>('script[nonce]')];
+  const scripts = [...doc.querySelectorAll<HTMLScriptElement>('script[nonce]:not([data-nowo-milkdown-config])')];
   const own = scripts.find((s) => s.src.includes('milkdown-editor')) ?? scripts[0];
   return own ? own.nonce || own.getAttribute('nonce') || '' : '';
+}
+
+/** Previews of one editor when the page does not say (the renderer's default `max_references`). */
+export const DEFAULT_MAX_PREVIEWS = 500;
+
+/**
+ * Host references and the preview sandbox of auto-mounted editors (audit GX-L2): only from the page's
+ * `<script type="application/json" data-nowo-milkdown-config>` written by `nowo_milkdown_editor_assets()`, never from the
+ * `data-nowo-milkdown-options` of a widget, which an HTML sanitizer may let through. On a page with a CSP nonce the element
+ * must carry that nonce. Hosts mounting from their own code pass these options to `createEditor()`.
+ *
+ * @param doc - The document
+ */
+export function pageHostConfig(doc: Document = document): Pick<EditorOptions, 'hostSchemes' | 'previewSandbox' | 'maxPreviews'> {
+  const nonce = pageNonce(doc);
+  for (const element of doc.querySelectorAll<HTMLScriptElement>('script[type="application/json"][data-nowo-milkdown-config]')) {
+    if ((element.nonce || element.getAttribute('nonce') || '') !== nonce) continue;
+    try {
+      const data = JSON.parse(element.textContent ?? '') as Record<string, unknown>;
+      const max = data.maxPreviews;
+      return {
+        hostSchemes: parseHostSchemes(data.hostSchemes),
+        previewSandbox: previewSandbox(data.previewSandbox),
+        maxPreviews: typeof max === 'number' && Number.isInteger(max) && max > 0 ? max : DEFAULT_MAX_PREVIEWS,
+      };
+    } catch {
+      // Not JSON: not ours.
+    }
+  }
+  return { hostSchemes: {}, previewSandbox: '', maxPreviews: DEFAULT_MAX_PREVIEWS };
 }

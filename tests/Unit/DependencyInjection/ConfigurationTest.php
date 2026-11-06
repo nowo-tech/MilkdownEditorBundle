@@ -141,6 +141,13 @@ final class ConfigurationTest extends TestCase
         yield 'script' => [['host_schemes' => ['app' => ['preview' => 'javascript:{id}']]]];
         yield 'relative' => [['host_schemes' => ['app' => ['image' => 'files/{id}']]]];
         yield 'too long' => [['host_schemes' => ['app' => ['image' => '/{id}' . str_repeat('a', 500)]]]];
+        yield 'id in the host' => [['host_schemes' => ['app' => ['file' => 'https://{id}/x']]]];
+        yield 'id in the subdomain' => [['host_schemes' => ['app' => ['file' => 'https://{id}.example.com/x']]]];
+        yield 'id after the host' => [['host_schemes' => ['app' => ['file' => 'https://example.com{id}/x']]]];
+        yield 'id in the port' => [['host_schemes' => ['app' => ['file' => 'https://example.com:{id}/x']]]];
+        yield 'id in the user info' => [['host_schemes' => ['app' => ['file' => 'https://user:{id}@example.com/x']]]];
+        yield 'view-source' => [['host_schemes' => ['view-source' => ['file' => '/{id}']]]];
+        yield 'scripts and escaping popups' => [['file_preview_sandbox' => ['allow-scripts', 'allow-popups', 'allow-popups-to-escape-sandbox']]];
         yield 'origin with a path' => [['host_image_origins' => ['https://cdn.example/x']]];
         yield 'origin wildcard' => [['host_image_origins' => ['*']]];
         yield 'unknown token' => [['file_preview_sandbox' => ['allow-top-navigation']]];

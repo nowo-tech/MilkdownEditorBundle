@@ -18,12 +18,16 @@ final readonly class ResolvedFile
      * @param string|null $imageUrl Displayed image (null: `$url`)
      * @param int|null $width Intrinsic width in px of the displayed image
      * @param int|null $height Intrinsic height in px of the displayed image
+     * @param string|null $name The file's real name, for file cards (null: the author's label)
+     * @param string|null $type The file's real MIME type, for file cards (null: the author's `type`)
      */
     public function __construct(
         public string $url,
         public ?string $imageUrl = null,
         public ?int $width = null,
         public ?int $height = null,
+        public ?string $name = null,
+        public ?string $type = null,
     ) {
     }
 }

@@ -1,9 +1,9 @@
 import { u as e } from "./lib-DaU_YkmU.js";
 import { at as t, ot as n, st as r, ut as i } from "./lib-9QpRoHAM.js";
-import { a, i as o } from "./runtime-6p6Aqu-n.js";
-import { a as s, c, colorItems as l, i as u, l as d, n as f, s as p, t as m } from "./colors-CSeghHa0.js";
-import { t as h } from "./file-view-Ck88cu4w.js";
-import { o as g, t as _ } from "./keyboard-BDbqS2Xz.js";
+import { a, i as o } from "./runtime-dA0j40ft.js";
+import { a as s, c, colorItems as l, i as u, l as d, n as f, s as p, t as m } from "./colors-DLVtnFPi.js";
+import { t as h } from "./file-view-CUPB4wWN.js";
+import { s as g, t as _ } from "./keyboard-C-vCAuwq.js";
 // src/Resources/assets/src/plugins/block-actions.ts
 var v = new r("nowo-milkdown-block-actions"), y = /* @__PURE__ */ new WeakMap();
 function b(e, t) {

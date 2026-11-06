@@ -110,6 +110,38 @@ test.describe('host files (1.9, ME-5, ME-6)', () => {
     await expect(figure.locator('img')).toHaveAttribute('alt', 'A pixel');
   });
 
+  test('previews load near the viewport only (audit GX-L1); a planted widget gets no frame (GX-L2)', async ({ page }) => {
+    const requested: string[] = [];
+    page.on('request', (r) => {
+      if (/\/preview$/.test(r.url()) || r.url().includes('attacker.test')) requested.push(r.url());
+    });
+    await open(page);
+    await page.evaluate(async () => {
+      const w = window as unknown as { NowoMilkdownEditor: { instance: (root: Element) => Promise<{ setMarkdown: (m: string) => void }> } };
+      const handle = await w.NowoMilkdownEditor.instance(document.querySelector('.nowo-milkdown')!);
+      handle.setMarkdown(Array.from({ length: 300 }, (_, i) => `::file[f${i}.csv]{href="demo-file:0000000000000000.csv" view="preview" height="1200"}`.replace('0000000000000000', i.toString(16).padStart(16, '0'))).join('\n\n'));
+    });
+    await expect(page.locator('.nowo-milkdown-file__frame')).toHaveCount(300, { timeout: 20000 });
+    await page.waitForTimeout(1500);
+    expect(requested.length).toBeGreaterThan(0);
+    expect(requested.length).toBeLessThan(10);
+
+    // HTML let through by a sanitizer that keeps data-* and textarea.
+    await page.evaluate(() => {
+      const planted = document.createElement('div');
+      planted.dataset.nowoMilkdownOptions = JSON.stringify({ features: ['file_cards'], readonly: true, previewSandbox: 'allow-scripts', hostSchemes: { x: { file: 'https://attacker.test/f/{id}', preview: 'https://attacker.test/{id}/embed' } } });
+      planted.id = 'planted';
+      const area = document.createElement('textarea');
+      area.value = '::file[Open me]{href="x:abc" view="preview"}';
+      planted.append(area);
+      document.body.append(planted);
+    });
+    await expect(page.locator('#planted .nowo-milkdown-file')).toHaveCount(1);
+    await expect(page.locator('#planted iframe')).toHaveCount(0);
+    await expect(page.locator('#planted a')).toHaveCount(0);
+    expect(requested.filter((u) => u.includes('attacker.test'))).toEqual([]);
+  });
+
   test('keyboard path: Edit image from the context menu focuses the toolbar, Escape returns to the text', async ({ page }) => {
     await open(page);
     await dropFiles(page);

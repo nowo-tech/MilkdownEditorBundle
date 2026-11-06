@@ -16,12 +16,16 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\HostFileResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\NullPageResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\NullUserResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\ResolvedFile;
+use Nowo\MilkdownEditorBundle\Twig\MilkdownEditorTwig;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
 use RuntimeException;
 use Stringable;
+use Symfony\Component\Asset\Package;
+use Symfony\Component\Asset\Packages;
+use Symfony\Component\Asset\VersionStrategy\EmptyVersionStrategy;
 
 /**
  * 1.9 (ME-5): host references. The scheme is configured, resolved URLs pass the same checks as any other, and a
@@ -84,6 +88,7 @@ final class HostFilesTest extends TestCase
         yield 'path traversal' => ['host-file:..'];
         yield 'one dot' => ['host-file:.'];
         yield 'dots' => ['host-file:....'];
+        yield 'leading dot' => ['host-file:.env'];
         yield 'a slash' => ['host-file:a/b'];
         yield 'percent' => ['host-file:a%2Fb'];
         yield 'query' => ['host-file:a?x=1'];
@@ -382,6 +387,56 @@ final class HostFilesTest extends TestCase
         // A host image in a figure, and one the viewer may not read keeps the figure's caption out of its alt.
         self::assertStringContainsString('<figure class="nowo-md-figure"><img loading="lazy" src="/files/x/view"', $this->render('![a](host-file:x)', $on));
         self::assertStringContainsString('<figure class="nowo-md-figure"><span class="nowo-md-ref nowo-md-ref--hidden">', $this->render('![a](host-file:..)', $on));
+    }
+
+    /** Audit GX-I8: a resolver says what the file is; the caption goes with a hidden image. */
+    #[Test]
+    public function aResolverGivesTheRealNameAndType(): void
+    {
+        $files = $this->files(['host-file:x' => new ResolvedFile('/x', null, null, null, 'setup.exe', 'application/x-msdownload')]);
+        $html  = $this->render('::file[invoice.pdf]{href="host-file:x" type="application/pdf"}', [], $files);
+        self::assertStringContainsString('setup.exe', $html);
+        self::assertStringNotContainsString('invoice', $html);
+        self::assertStringContainsString('aria-hidden="true">EXE</span>', $html);
+
+        $previews = new class implements FilePreviewResolverInterface {
+            /** @var list<FileReference> */
+            public array $files = [];
+
+            public function resolvePreviews(array $files): array
+            {
+                $this->files = $files;
+
+                return [];
+            }
+        };
+        $this->render('::file[invoice.pdf]{href="host-file:x" type="application/pdf" view="preview"}', [], $files, $previews);
+        self::assertSame('setup.exe', $previews->files[0]->name);
+        self::assertSame('application/x-msdownload', $previews->files[0]->type);
+
+        $html = $this->render('![a](host-file:x "Secret caption")', ['image_block' => true], $this->files([]));
+        self::assertStringNotContainsString('Secret caption', $html);
+        self::assertStringNotContainsString('figcaption', $html);
+    }
+
+    /** Audit GX-L2: the page's editor configuration is a nonce-stamped data block, only when configured. */
+    #[Test]
+    public function theAssetsCarryThePageConfiguration(): void
+    {
+        $renderer = new MilkdownMarkdownRenderer([], new NullPageResolver(), new NullUserResolver(), new AllowlistIconResolver(), secret: 'test-secret');
+        $package  = new Package(new EmptyVersionStrategy());
+        $packages = new Packages($package, ['nowo_milkdown_editor' => $package]);
+        $assets   = (new MilkdownEditorTwig($renderer, $packages))->assets('n');
+        self::assertStringNotContainsString('data-nowo-milkdown-config', $assets);
+        self::assertStringStartsWith('<link rel="stylesheet"', $assets);
+
+        $twig   = new MilkdownEditorTwig($renderer, $packages, null, null, new HostSchemes(['app-file' => ['file' => '/f/</script>{id}']]), 'allow-downloads', 7);
+        $assets = $twig->assets('n0nce');
+        self::assertStringContainsString('<script type="application/json" data-nowo-milkdown-config nonce="n0nce">', $assets);
+        self::assertStringContainsString('"previewSandbox":"allow-downloads"', str_replace('\u0022', '"', $assets));
+        self::assertStringContainsString('"maxPreviews":7', str_replace('\u0022', '"', $assets));
+        self::assertStringNotContainsString('/f/</script>', $assets);
+        self::assertStringNotContainsString(' nonce=', $twig->assets(''));
     }
 
     #[Test]

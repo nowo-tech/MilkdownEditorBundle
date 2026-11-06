@@ -39,6 +39,9 @@ export type Runtime = {
   hostSchemes: import('./host').HostSchemes;
   /** 1.9 (ME-6): extra `sandbox` tokens of preview frames. */
   previewSandbox: string;
+  /** 1.9: how many distinct files may show a preview, and those that do (audit GX-L1). */
+  maxPreviews: number;
+  previewFiles: Set<string>;
 };
 
 export const defaultRuntime = (): Runtime => ({
@@ -58,6 +61,8 @@ export const defaultRuntime = (): Runtime => ({
   pickFiles: null,
   hostSchemes: {},
   previewSandbox: '',
+  maxPreviews: 500,
+  previewFiles: new Set(),
 });
 
 export const runtimeCtx = $ctx<Runtime, 'nowoMilkdownRuntime'>(defaultRuntime(), 'nowoMilkdownRuntime');
