@@ -248,9 +248,123 @@ describe('waiting for the document', () => {
     await handle;
     await until(() => sent.length === 1);
     expect(sent).toEqual(['publish']);
-    form.dispatchEvent(new Event('formdata'));
     await tick(5);
     expect(form.querySelector('input[name="action"]')).toBeNull();
+  });
+
+  it('a resubmit stopped by a host handler leaves no hidden field for a later save (HF-L5)', async () => {
+    host.autoOpen = false;
+    const { form, handle } = await mounted('Body', { connectTimeout: 60_000 });
+    const publish = document.createElement('button');
+    publish.name = 'action';
+    publish.value = 'publish';
+    form.append(publish);
+    let stopped = 0;
+    form.addEventListener('submit', (e) => {
+      stopped++;
+      e.preventDefault();
+    });
+    submit(form, publish);
+    publish.remove();
+    host.hubs[0]!.open();
+    await handle;
+    await until(() => stopped === 1);
+    const save = document.createElement('button');
+    save.name = 'action';
+    save.value = 'save';
+    form.append(save);
+    expect(new FormData(form, save).getAll('action')).toEqual(['save']);
+  });
+
+  describe('Shift+Tab (HF-I8)', () => {
+    const shiftTab = (surface: HTMLElement): KeyboardEvent => {
+      const event = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true });
+      surface.dispatchEvent(event);
+      return event;
+    };
+    const before = (...ids: string[]): HTMLInputElement[] =>
+      ids.map((id) => {
+        const input = document.createElement('input');
+        input.id = id;
+        document.body.prepend(input);
+        return input;
+      });
+
+    it('tries the next stop when one does not take the focus', async () => {
+      host.autoOpen = false;
+      vi.spyOn(Element.prototype, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
+      const { root, handle } = await mounted('Body', { connectTimeout: 60_000 });
+      const [nearest, earlier] = before('nearest', 'earlier');
+      nearest!.focus = () => undefined;
+      const surface = root.querySelector<HTMLElement>('.nowo-milkdown__surface')!;
+      surface.focus();
+      expect(shiftTab(surface).defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(earlier);
+      host.hubs[0]!.open();
+      await handle;
+    });
+
+    it('skips a stop that cannot take the focus by its style', async () => {
+      host.autoOpen = false;
+      vi.spyOn(Element.prototype, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
+      const { root, handle } = await mounted('Body', { connectTimeout: 60_000 });
+      const [nearest, earlier] = before('nearest', 'earlier');
+      nearest!.style.visibility = 'hidden';
+      const surface = root.querySelector<HTMLElement>('.nowo-milkdown__surface')!;
+      surface.focus();
+      shiftTab(surface);
+      expect(document.activeElement).toBe(earlier);
+      host.hubs[0]!.open();
+      await handle;
+    });
+
+    it('with nothing to move to it leaves the surface', async () => {
+      host.autoOpen = false;
+      const { root, handle } = await mounted('Body', { connectTimeout: 60_000 });
+      const surface = root.querySelector<HTMLElement>('.nowo-milkdown__surface')!;
+      surface.focus();
+      expect(document.activeElement).toBe(surface);
+      expect(shiftTab(surface).defaultPrevented).toBe(false);
+      expect(document.activeElement).toBe(document.body);
+      host.hubs[0]!.open();
+      await handle;
+    });
+  });
+
+  it('focus lost inside the surface at the bind (a code block is rebuilt) returns to the editor (HF-I12)', async () => {
+    host.autoOpen = false;
+    const focus = vi.spyOn(HTMLElement.prototype, 'focus');
+    const { root, handle } = await mounted('Body', { connectTimeout: 60_000 });
+    const surface = root.querySelector<HTMLElement>('.nowo-milkdown__surface')!;
+    const code = document.createElement('input');
+    surface.append(code);
+    surface.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    code.focus();
+    expect(document.activeElement).toBe(code);
+    const gone = new MutationObserver(() => code.remove());
+    gone.observe(root, { attributes: true, attributeFilter: ['data-collab'] });
+    focus.mockClear();
+    host.hubs[0]!.open();
+    await handle;
+    await tick(5);
+    gone.disconnect();
+    expect(focus.mock.contexts).toContain(root.querySelector('.ProseMirror'));
+  });
+
+  it('a focused code block that survives keeps the focus', async () => {
+    host.autoOpen = false;
+    const focus = vi.spyOn(HTMLElement.prototype, 'focus');
+    const { root, handle } = await mounted('Body', { connectTimeout: 60_000 });
+    const surface = root.querySelector<HTMLElement>('.nowo-milkdown__surface')!;
+    const code = document.createElement('input');
+    surface.append(code);
+    surface.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    code.focus();
+    focus.mockClear();
+    host.hubs[0]!.open();
+    await handle;
+    await tick(5);
+    expect(focus.mock.contexts).not.toContain(root.querySelector('.ProseMirror'));
   });
 
   it('a click while read-only gives the editor the focus after the wait; otherwise it never takes it', async () => {
@@ -792,6 +906,35 @@ describe('the wait is bounded', () => {
     session.stop();
   });
 
+  it('a hidden tab does not ask again; it does once visible (HF-I9)', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    host.seedClaim = 'someone else';
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+    const session = startCollaboration(fakeEditor, { ...COLLAB, connectTimeout: 100 }, 'x', hooks());
+    await vi.advanceTimersByTimeAsync(150);
+    const before = host.requests.length;
+    await vi.advanceTimersByTimeAsync(SEED_RECHECK * 3);
+    expect(host.requests.length).toBe(before);
+    hidden.mockReturnValue(false);
+    await vi.advanceTimersByTimeAsync(SEED_RECHECK);
+    expect(host.requests.length).toBeGreaterThan(before);
+    session.stop();
+  });
+
+  it('a recheck answered 401 ends the session instead of asking every 5 s (HF-I9)', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    host.seedClaim = 'someone else';
+    const session = startCollaboration(fakeEditor, { ...COLLAB, connectTimeout: 100 }, 'x', hooks());
+    await vi.advanceTimersByTimeAsync(150);
+    host.token = { status: 401 };
+    await vi.advanceTimersByTimeAsync(SEED_RECHECK);
+    const before = host.requests.length;
+    await vi.advanceTimersByTimeAsync(SEED_RECHECK * 2);
+    expect(host.requests.length).toBe(before);
+    expect(session.provider.failed).toBe(true);
+    session.stop();
+  });
+
   it('a touched client asks nothing more (HF-I4)', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     host.seedClaim = 'someone else';
@@ -843,9 +986,8 @@ describe('after the bind, the connection comes and goes', () => {
   });
 
   it.each([
-    ['a refused token', () => (host.token = { status: 401 }), () => (host.token = {})],
-    ['a state error', () => (host.state = { status: 429, json: { error: 'rate_limited' } }), () => (host.state = null)],
-    ['a state without state', () => (host.state = { json: {} }), () => (host.state = null)],
+    ['a 429 on the state', () => (host.state = { status: 429, json: { error: 'rate_limited' } }), () => (host.state = null)],
+    ['a 503 on the token', () => (host.token = { status: 503 }), () => (host.token = {})],
   ])('%s on reconnect: stays bound and offline, keeps the text, saves it, retries', async (_name, breakIt, repair) => {
     host.store('Shared');
     const handle = keep(await editor('Shared', collab({ updateDelay: 0 })));
@@ -865,6 +1007,33 @@ describe('after the bind, the connection comes and goes', () => {
     await until(() => handle.root.dataset.collab === 'online', 8000);
     expect(text(handle.root)).toBe('Typed while out');
     expect(host.log.length).toBeGreaterThan(1);
+  });
+
+  it.each([
+    ['a 401 on the token', () => (host.token = { status: 401 })],
+    ['a 403 on the state', () => (host.state = { status: 403, json: {} })],
+    ['a state without state', () => (host.state = { json: {} })],
+  ])('%s after a first connection ends the session: the text stays and nothing more is asked (HF-I9)', async (_name, breakIt) => {
+    host.store('Shared');
+    const handle = keep(await editor('Shared', collab({ updateDelay: 0 })));
+    breakIt();
+    const requests = host.requests.length;
+    dropped();
+    await until(() => handle.root.dataset.collab === 'standalone');
+    expect(host.requests.length).toBeGreaterThan(requests);
+    expect(alertOf(handle.root)).toContain('without live co-editing');
+    expect(text(handle.root)).toBe('Shared');
+    expect(editable(handle.root)).toBe('true');
+    handle.setMarkdown('Typed after');
+    const form = handle.textarea.form!;
+    submit(form);
+    expect(handle.textarea.value).toBe('Typed after\n');
+    expect(session(form)).toBeNull();
+    const asked = host.requests.length;
+    const posted = host.posts.length;
+    await tick(700);
+    expect(host.requests.length).toBe(asked);
+    expect(host.posts.length).toBe(posted);
   });
 
   it('getMarkdown() is the document in every state, never an empty unbound editor', async () => {

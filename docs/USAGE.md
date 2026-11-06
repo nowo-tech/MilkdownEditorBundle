@@ -281,13 +281,14 @@ state). Readers without edit rights must not get the options at all.
 | `connecting` (first time) | Shows the field's content, read-only; `aria-busy="true"`; the action buttons are disabled | Waits, says so, and goes on by itself when the wait ends (at most `connect_timeout_ms`) |
 | `online` | Bound to the shared document, editable | Writes the document; carries `_nowo_milkdown_collab` |
 | `offline`, `connecting` (after being online) | Still bound, editable; edits are kept and sent when the connection returns | Writes the document; no session field |
-| `standalone` | Not bound: edits the field's content, and an alert (`.nowo-milkdown__notice`) says so | Writes the edited text, or the field's exact bytes if untouched; no session field |
+| `standalone` | No session (not bound, or refused after a first connection): edits the field's content or keeps the text it had, and an alert (`.nowo-milkdown__notice`) says so | Writes the edited text, or the field's exact bytes if untouched; no session field |
 | `reset` | Reloading with the new content | As `online` |
 
 The wait ends at the bind or after `connect_timeout_ms` (0–60000, default **5000**). A token or state answering 401, 403 or
 404, a 2xx state that is not JSON or has no `state` or `updates`, or a corrupt log goes `standalone` at once. A 429 (honouring
 `Retry-After`), a 5xx or a hub error is retried during the wait, and afterwards while the content is untouched. Keys pressed
-in the editor while it waits stay there; Tab and Escape pass. Without a usable answer the editor never binds an empty document over a non-empty field.
+in the editor while it waits stay there; Tab and Escape pass. After a first connection the same refusals end the session,
+and the text stays. Without a usable answer the editor never binds an empty document over a non-empty field.
 
 **Why a save waits instead of leaving at once.** It would keep the field either way, but a save outside the session makes
 a host with a shared log drop it (see below), taking the unsaved work of anyone editing live. Waiting a bounded time
@@ -300,7 +301,7 @@ any save outside a session. Until a client joins, it posts no presence and no co
 
 **An empty state.** `state` empty and `seed` not true, with a non-empty field, means another client holds the seed (or it
 has gone): the editor waits for the content instead of showing nothing, within the same deadline, and asks again every 31 s
-(`POST token`, `GET state`) so that a stale claim can be taken over. The same goes for a log whose text was deleted. Tell exactly one client
+(`POST token`, the hub connection, `GET state`; not while the tab is hidden) so that a stale claim can be taken over. The same goes for a log whose text was deleted. Tell exactly one client
 to seed: two clients told to seed at once duplicate the content, because Yjs merges both.
 
 ```php

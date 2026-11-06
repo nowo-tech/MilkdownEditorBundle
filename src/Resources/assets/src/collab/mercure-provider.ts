@@ -77,7 +77,7 @@ export type StateAnswer = { state: string; seed?: boolean; updates?: unknown; se
 
 /**
  * The host answered, and the answer is no (401, 403, 404, or a 2xx without a usable state): not an outage, retrying the
- * first connection would not help (1.10). A 429, a 5xx or anything else is retried.
+ * connection would not help (1.10). A 429, a 5xx or anything else is retried.
  */
 export class CollabRefused extends Error {}
 
@@ -108,7 +108,7 @@ export class MercureProvider {
   status: Status = 'connecting';
   /** True when the host asked this client to seed the empty document from the field's Markdown. */
   seed = false;
-  /** 1.10: the host refused this client before it was ever online; it does not retry. */
+  /** 1.10: the host refused this client; it does not retry. */
   failed = false;
   /** 1.10: connected, not in the session yet: no presence and no compaction until {@link join}. */
   quiet = false;
@@ -261,17 +261,15 @@ export class MercureProvider {
     this.listeners.forEach((fn) => fn(s));
   }
 
-  /** A live session retries, whatever went wrong (1.10: it stayed on `connecting` after a refused token). */
+  /** A refusal ends it, also after a first connection: a 401 will not pass by asking every 5 s. The rest is retried. */
   private connectFailed(error: unknown): void {
-    if (this.wasOnline) {
-      this.setStatus('offline');
-      this.scheduleReconnect();
-    } else if (error instanceof CollabRefused) {
+    if (error instanceof CollabRefused) {
       this.failed = true;
       this.setStatus('offline');
-    } else {
-      this.scheduleReconnect();
+      return;
     }
+    if (this.wasOnline) this.setStatus('offline');
+    this.scheduleReconnect();
   }
 
   private async doConnect(): Promise<void> {

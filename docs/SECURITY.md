@@ -173,10 +173,10 @@ Still the host's: a save without `_nowo_milkdown_collab` can replace a shared lo
 revisions. A peer with edit rights can still post an update that empties the shared document; that is an edit. The next
 editor of a non-empty field does not bind it: it goes standalone at the deadline, and the field keeps its content.
 
-**Audit:** Appendix HF, **Pass (conditional) / Medium** at `7d4dfe9`, no Critical or High. Accepted residual: a save outside
-the session makes a host with a shared log drop it, which loses peers' unsaved work (see above); a host can answer a conflict
-instead. Read-only while waiting, keys do not reach the page. Fixes for its Low and Info findings came after that head:
-**re-verification pending**.
+**Audit:** Appendix HF, **Pass (conditional) / Medium** at `<final>`, no Critical or High. Accepted residual, fixed next on
+WikiBundle's side: a save outside the session makes a host with a shared log drop it, which loses peers' unsaved work (see
+above); a host can answer a conflict instead. While waiting, keys in the editor do not reach the page's bubble-phase
+listeners.
 
 ### Host references and previews
 

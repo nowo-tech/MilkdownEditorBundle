@@ -46,12 +46,13 @@ host keeps revisions the body can be restored; typed text cannot. Independent au
     not replaced and nothing is sent, not even presence. Until it joins, a client posts no presence and no compaction.
 - **An empty state no longer reaches the field.** A `GET state` answering an error with a JSON body (a 429), a non-JSON
   page or JSON without a state was read as an empty document. It is now an error. An empty state without `seed: true`
-  (another client holds the seed) waits for the content, and asks again in case the holder left; it never binds an empty
+  (another client holds the seed) waits for the content, and asks again in case the holder left (not from a hidden tab); it never binds an empty
   document over a non-empty field. A log holding only paragraphs without text counts as empty, also when a peer deleted
   the text. An order to seed only applies to a blank document (the previous
   condition looked at the text, so it replaced a document with only an image).
-- `data-collab="online"` is set after the bind, not before it. A refused token or state on a **reconnect** now shows
-  `offline` and retries, instead of staying on `connecting` for good. A host reset does not reload away text typed
+- `data-collab="online"` is set after the bind, not before it. A token or state error on a **reconnect** no longer stays on
+  `connecting` for good: 429 and 5xx show `offline` and retry; 401, 403, 404 or an unusable state end the session
+  (`standalone`), and the text stays. A host reset does not reload away text typed
   without collaboration, also when it is typed in the 1.5 s before the reload.
 
 ### Added

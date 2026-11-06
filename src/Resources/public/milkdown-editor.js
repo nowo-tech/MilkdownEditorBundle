@@ -5248,7 +5248,9 @@ function xu(e) {
 	return n ? n.dataset.theme === "dark" : typeof matchMedia == "function" && matchMedia("(prefers-color-scheme: dark)").matches;
 }
 function Su(e) {
-	return [...e.ownerDocument.querySelectorAll("a[href], button:not([disabled]), input:not([disabled]):not([type=\"hidden\"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex=\"-1\"])")].filter((t) => t.offsetParent !== null && e.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_PRECEDING).pop();
+	let t = e.ownerDocument, n = [...t.querySelectorAll("a[href], area[href], button, input:not([type=\"hidden\"]), select, textarea, summary, iframe, audio[controls], video[controls], [contenteditable]:not([contenteditable=\"false\"]), [tabindex]")].filter((n) => !(e.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_PRECEDING) || Number(n.getAttribute("tabindex") ?? 0) < 0 || n.disabled ? !1 : n.getClientRects().length > 0 && t.defaultView?.getComputedStyle(n).visibility === "visible");
+	for (let e of n.reverse()) if (e.focus(), t.activeElement === e) return !0;
+	return !1;
 }
 function Cu(e) {
 	if (!e.id) return null;
@@ -5332,7 +5334,7 @@ async function Eu(e, t = {}) {
 	let g = new $n({
 		root: c,
 		defaultValue: f
-	}), _ = g.editor, v = r.collaboration ? await import("./chunks/collab-Wq4D51Qx.js") : null, y = r.features.includes("context_menu") ? await import("./chunks/context-menu-oadJiNWk.js") : null, b = r.features.includes("block_actions") ? await import("./chunks/block-actions-DDAkuQs9.js") : null, x = r.features.includes("colors") ? await import("./chunks/colors-DijjJWNk.js") : null, S = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-RS-VpiFB.js") : null, C = r.comments ? await import("./chunks/comments-Dmn8Mh65.js") : null, w = null, T = null, E = r.comments ? {
+	}), _ = g.editor, v = r.collaboration ? await import("./chunks/collab-CssqXktV.js") : null, y = r.features.includes("context_menu") ? await import("./chunks/context-menu-oadJiNWk.js") : null, b = r.features.includes("block_actions") ? await import("./chunks/block-actions-DDAkuQs9.js") : null, x = r.features.includes("colors") ? await import("./chunks/colors-DijjJWNk.js") : null, S = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-RS-VpiFB.js") : null, C = r.comments ? await import("./chunks/comments-Dmn8Mh65.js") : null, w = null, T = null, E = r.comments ? {
 		root: e,
 		announce: (e, t) => u(e, t),
 		yjs: () => w,
@@ -5429,14 +5431,12 @@ async function Eu(e, t = {}) {
 			let e = p;
 			if (p = null, !e || !k?.isConnected) return;
 			let { submitter: t, name: n, value: r } = e;
-			if (t?.isConnected && !t.disabled && t.form === k) k.requestSubmit(t);
-			else {
-				if (n) {
-					let e = document.createElement("input");
-					e.type = "hidden", e.name = n, e.value = r, k.append(e), k.addEventListener("formdata", () => window.setTimeout(() => e.remove(), 0), { once: !0 });
-				}
-				k.requestSubmit();
+			if (t?.isConnected && !t.disabled && t.form === k) {
+				k.requestSubmit(t);
+				return;
 			}
+			let i = null;
+			n && (i = document.createElement("input"), i.type = "hidden", i.name = n, i.value = r, k.append(i)), k.requestSubmit(), i?.remove();
 		};
 		k?.addEventListener("submit", m, !0), c.setAttribute("tabindex", "-1");
 		let y = () => {
@@ -5444,10 +5444,7 @@ async function Eu(e, t = {}) {
 		};
 		c.addEventListener("pointerdown", y);
 		let b = (e) => {
-			if (e.key === "Tab" && e.shiftKey && e.type === "keydown") {
-				let t = Su(c);
-				t && (e.preventDefault(), t.focus());
-			} else e.key !== "Tab" && e.key !== "Escape" && (e.stopPropagation(), e.ctrlKey || e.metaKey || e.altKey || /^F\d+$/.test(e.key) || e.preventDefault());
+			e.key === "Tab" && e.shiftKey && e.type === "keydown" ? Su(c) ? e.preventDefault() : c.blur() : e.key !== "Tab" && e.key !== "Escape" && (e.stopPropagation(), e.ctrlKey || e.metaKey || e.altKey || /^F\d+$/.test(e.key) || e.preventDefault());
 		}, x = [
 			"keydown",
 			"keypress",
@@ -5467,9 +5464,9 @@ async function Eu(e, t = {}) {
 			},
 			onReady: () => {
 				ee = !1, g.setReadonly(r.readonly), e.removeAttribute("aria-busy"), i.forEach((e) => e.disabled = !1), S();
-				let t = document.activeElement, n = te && (!t || t === document.body || t === c);
+				let t = (e) => !e || e === document.body || e === c, n = te && (t(document.activeElement) || c.contains(document.activeElement));
 				te = !1, window.setTimeout(() => {
-					c.removeAttribute("tabindex"), n && A(), h();
+					c.removeAttribute("tabindex"), n && t(document.activeElement) && A(), h();
 				}, 0);
 			},
 			isUntouched: () => O() === a

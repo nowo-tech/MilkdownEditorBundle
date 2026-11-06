@@ -74,10 +74,26 @@ export function isDark(root: HTMLElement): boolean {
   return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
-/** The last visible control before an element in tab order. */
-function previousStop(element: HTMLElement): HTMLElement | undefined {
-  const stops = element.ownerDocument.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
-  return [...stops].filter((stop) => stop.offsetParent !== null && element.compareDocumentPosition(stop) & Node.DOCUMENT_POSITION_PRECEDING).pop();
+/**
+ * Moves the focus to the last control before an element that takes it. A stop may look fine and still refuse: `inert`, a
+ * disabled fieldset, outside an open modal dialog. Only focus moving proves it.
+ *
+ * @param element - Where the focus is
+ * @returns Whether the focus moved
+ */
+function focusPreviousStop(element: HTMLElement): boolean {
+  const doc = element.ownerDocument;
+  const selector = 'a[href], area[href], button, input:not([type="hidden"]), select, textarea, summary, iframe, audio[controls], video[controls], [contenteditable]:not([contenteditable="false"]), [tabindex]';
+  const stops = [...doc.querySelectorAll<HTMLElement>(selector)].filter((stop) => {
+    if (!(element.compareDocumentPosition(stop) & Node.DOCUMENT_POSITION_PRECEDING)) return false;
+    if (Number(stop.getAttribute('tabindex') ?? 0) < 0 || (stop as HTMLButtonElement).disabled) return false;
+    return stop.getClientRects().length > 0 && doc.defaultView?.getComputedStyle(stop).visibility === 'visible';
+  });
+  for (const stop of stops.reverse()) {
+    stop.focus();
+    if (doc.activeElement === stop) return true;
+  }
+  return false;
 }
 
 /** The form label of the textarea becomes the editable's name (`aria-labelledby`); a click on it focuses the editor. */
@@ -381,15 +397,17 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
         return;
       }
       // The host disabled or removed the button meanwhile: its name and value still go.
+      let carried: HTMLInputElement | null = null;
       if (name) {
-        const carried = document.createElement('input');
+        carried = document.createElement('input');
         carried.type = 'hidden';
         carried.name = name;
         carried.value = value;
         form.append(carried);
-        form.addEventListener('formdata', () => window.setTimeout(() => carried.remove(), 0), { once: true });
       }
       form.requestSubmit();
+      // The entries are built by now. If validation or a host handler stopped it, the field must not go with a later save.
+      carried?.remove();
     };
     form?.addEventListener('submit', holdSubmit, true);
     // Read-only, a click would leave the focus on the page and keys would reach the host's shortcuts or scroll it. The
@@ -401,13 +419,11 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     };
     surface.addEventListener('pointerdown', noteClick);
     const keepKey = (event: KeyboardEvent): void => {
-      // Firefox does not move backwards out of an element with tabindex -1: move for it.
+      // Browsers do not reliably move backwards out of an element with tabindex -1: move for them. With nothing to move to
+      // (first on the page, first in a modal dialog), leave the surface and let the browser go on from there.
       if (event.key === 'Tab' && event.shiftKey && event.type === 'keydown') {
-        const stop = previousStop(surface);
-        if (stop) {
-          event.preventDefault();
-          stop.focus();
-        }
+        if (focusPreviousStop(surface)) event.preventDefault();
+        else surface.blur();
         return;
       }
       if (event.key === 'Tab' || event.key === 'Escape') return;
@@ -461,15 +477,15 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
         root.removeAttribute('aria-busy');
         actions.forEach((button) => (button.disabled = false));
         releaseKeys();
-        // Not when the person has moved on to another control.
-        const active = document.activeElement;
-        const backToEditor = clicked && (!active || active === document.body || active === surface);
+        // Not when the person has moved on to another control. Inside the surface counts (a code block is rebuilt at the bind).
+        const lost = (element: Element | null): boolean => !element || element === document.body || element === surface;
+        const backToEditor = clicked && (lost(document.activeElement) || surface.contains(document.activeElement));
         clicked = false;
         // After the current call: binding reconfigures the view and would drop the focus, the status comes next, and a save
         // must leave from the settled state.
         window.setTimeout(() => {
           surface.removeAttribute('tabindex');
-          if (backToEditor) focus();
+          if (backToEditor && lost(document.activeElement)) focus();
           releaseSubmit();
         }, 0);
       },

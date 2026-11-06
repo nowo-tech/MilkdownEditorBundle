@@ -4637,7 +4637,7 @@ var dl = class {
 		this.status = e, this.listeners.forEach((t) => t(e));
 	}
 	connectFailed(e) {
-		this.wasOnline ? (this.setStatus("offline"), this.scheduleReconnect()) : e instanceof cl ? (this.failed = !0, this.setStatus("offline")) : this.scheduleReconnect();
+		e instanceof cl ? (this.failed = !0, this.setStatus("offline")) : (this.wasOnline && this.setStatus("offline"), this.scheduleReconnect());
 	}
 	async doConnect() {
 		this.setStatus("connecting"), this.es?.close();
@@ -4894,7 +4894,7 @@ function Ol(e, t, n, r) {
 		s === "waiting" && (s = "standalone", window.clearTimeout(ae), r.onReady(), r.onStatus("standalone"), f());
 	}, te = () => !o.seed && El(a) && n.trim() !== "", ne = () => {
 		window.clearTimeout(u), u = window.setTimeout(() => {
-			s === "bound" || c || (o.status === "online" && te() && o.connect().catch(() => void 0), ne());
+			s === "bound" || c || (o.status === "online" && te() && !document.hidden && o.connect().catch(() => void 0), ne());
 		}, wl);
 	}, re = () => {
 		if (!(s === "bound" || c || o.status !== "online")) {
@@ -4927,7 +4927,10 @@ function Ol(e, t, n, r) {
 			r.onStatus(e), xl(t.topic) ? d = window.setTimeout(() => {
 				s === "standalone" && !r.isUntouched() ? (p(), r.onStatus("standalone")) : _l.reload();
 			}, gl) : (m(), r.onReloadPaused());
-		} else s === "bound" ? r.onStatus(e) : o.failed ? (m(), p()) : o.corrupt ? m() : e === "online" ? re() : s === "waiting" && r.onStatus("connecting");
+		} else if (o.failed) {
+			let e = s === "bound" && !c;
+			m(), p(), e && r.onStatus("standalone");
+		} else s === "bound" ? r.onStatus(e) : o.corrupt ? m() : e === "online" ? re() : s === "waiting" && r.onStatus("connecting");
 	});
 	let h = typeof t.connectTimeout == "number" && Number.isFinite(t.connectTimeout) ? Math.min(Cl, Math.max(0, Math.round(t.connectTimeout))) : Sl, ae = window.setTimeout(m, h);
 	return o.connect().catch(() => void 0), {

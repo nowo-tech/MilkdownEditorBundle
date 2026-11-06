@@ -33,10 +33,12 @@ async function fakeHub(page: Page, opensAfter: number | null): Promise<void> {
       onopen: ((e: unknown) => void) | null = null;
       onerror: ((e: unknown) => void) | null = null;
       onmessage: ((e: unknown) => void) | null = null;
-      constructor() {
+      constructor(url: string | URL) {
         const w = window as unknown as { __hub: unknown; __hubDown?: boolean };
-        w.__hub = this;
-        if (w.__hubDown) setTimeout(() => this.onerror?.({}), 0);
+        // The page's other clients (hot reload) get the fake too: only the collaboration hub counts.
+        const collab = String(url).includes('/collab/hub');
+        if (collab) w.__hub = this;
+        if (collab && w.__hubDown) setTimeout(() => this.onerror?.({}), 0);
         else if (ms !== null) setTimeout(() => this.onopen?.({}), ms);
       }
       close(): void {}
@@ -76,14 +78,12 @@ const mostTyped = (page: Page): Promise<number> => page.evaluate(() => (window a
 
 /** The connection drops after it was online; from here on the hub is down. */
 async function dropHub(page: Page): Promise<void> {
-  await expect(async () => {
-    await page.evaluate(() => {
-      const w = window as unknown as { __hub: { onerror: ((e: unknown) => void) | null }; __hubDown: boolean };
-      w.__hubDown = true;
-      w.__hub.onerror?.({});
-    });
-    expect(await widget(page).getAttribute('data-collab')).toMatch(/offline|connecting/);
-  }).toPass({ timeout: 5000 });
+  await page.evaluate(() => {
+    const w = window as unknown as { __hub: { onerror: ((e: unknown) => void) | null }; __hubDown: boolean };
+    w.__hubDown = true;
+    w.__hub.onerror?.({});
+  });
+  await expect(widget(page)).toHaveAttribute('data-collab', /offline|connecting|standalone/);
 }
 
 test.describe.configure({ timeout: 45000 });
@@ -279,6 +279,58 @@ for (let run = 1; run <= BEACON_REPEAT; run++) {
   });
 }
 
+/** Shift+Tab out of the waiting editor: the page before it is rebuilt for each scene. */
+test.describe('Shift+Tab while waiting', () => {
+  const FIRST = '<input id="first" aria-label="first">';
+  const scenes: [string, string, string][] = [
+    ['an input', '<input id="target" aria-label="x">', 'target'],
+    ['past a visibility:hidden input', `<input id="target" aria-label="x"><input style="visibility:hidden" aria-label="y">`, 'target'],
+    ['past an inert input', `<input id="target" aria-label="x"><input inert aria-label="y">`, 'target'],
+    ['past a disabled fieldset', `<input id="target" aria-label="x"><fieldset disabled><input aria-label="y"></fieldset>`, 'target'],
+    ['a fixed link', `${FIRST}<a id="target" href="#x" style="position:fixed;top:0;left:0">x</a>`, 'target'],
+    ['a summary', `${FIRST}<details><summary id="target">x</summary></details>`, 'target'],
+    ['an iframe', `${FIRST}<iframe id="target" title="x" srcdoc="<p>x</p>"></iframe>`, 'target'],
+    ['a contenteditable', `<div id="target" contenteditable="true" aria-label="x">x</div>`, 'target'],
+    ['nothing before it', '', ''],
+  ];
+
+  async function prepare(page: Page, html: string): Promise<void> {
+    await fakeHub(page, null);
+    await open(page, '&connect_timeout=30000');
+    await page.evaluate((markup) => {
+      document.querySelector('header.demo-nav')?.remove();
+      const before = document.createElement('div');
+      before.innerHTML = markup;
+      document.body.prepend(before);
+    }, html);
+  }
+
+  for (const [name, html, target] of scenes) {
+    test(`${name}`, async ({ page }) => {
+      await prepare(page, html);
+      await surface(page).click();
+      await expect(page.locator('.nowo-milkdown__surface')).toBeFocused();
+      await page.keyboard.press('Shift+Tab');
+      await expect(page.locator('.nowo-milkdown__surface')).not.toBeFocused();
+      if (target) await expect(page.locator(`#${target}`)).toBeFocused();
+    });
+  }
+
+  test('first in a modal dialog', async ({ page }) => {
+    await prepare(page, '<input aria-label="outside">');
+    await page.evaluate(() => {
+      const dialog = document.createElement('dialog');
+      document.body.append(dialog);
+      dialog.append(document.querySelector('form')!);
+      dialog.showModal();
+    });
+    await surface(page).click();
+    await expect(page.locator('.nowo-milkdown__surface')).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(page.locator('.nowo-milkdown__surface')).not.toBeFocused();
+  });
+});
+
 test.describe('hub that fails', () => {
   test('hub never opens: after the wait the content can be edited and saved, and the person is told', async ({ page }) => {
     await watch(page);
@@ -357,14 +409,6 @@ test.describe('hub that fails', () => {
     await page.keyboard.press('Tab');
     await expect(page.locator('.nowo-milkdown__surface')).not.toBeFocused();
     expect(await page.evaluate(() => (window as unknown as { __keys: string[] }).__keys)).toEqual(['Tab']);
-    // And backwards, from the surface again.
-    await surface(page).click();
-    await expect(page.locator('.nowo-milkdown__surface')).toBeFocused();
-    await page.keyboard.press('Shift+Tab');
-    await page.waitForTimeout(100);
-    const after = await page.evaluate(() => `${document.activeElement?.tagName}.${document.activeElement?.className}`);
-    console.log(`SHIFTTAB ${test.info().project.name} ${after}`);
-    expect(after, 'Shift+Tab stays on the surface').not.toContain('nowo-milkdown__surface');
   });
 
   test('another client holds the seed and an empty state comes back: this client never saves it', async ({ page }) => {
@@ -392,6 +436,43 @@ test.describe('hub that fails', () => {
     expect((await surface(page).innerText()).trim()).toBe(`${ORIGINAL}${MARKER}`);
     expect(updates).toEqual([]);
     expect(await savedText(page)).toBe(`${ORIGINAL}${MARKER}`);
+  });
+
+  test('a refused button value does not go with a later save (HF-L5)', async ({ page }) => {
+    await fakeHub(page, 400);
+    await open(page);
+    const posted = page.waitForRequest((r) => r.method() === 'POST' && r.url().includes('/collab?'));
+    const entries = await page.evaluate(async () => {
+      const form = document.querySelector('form')!;
+      const publish = document.createElement('button');
+      publish.name = 'action';
+      publish.value = 'publish';
+      publish.textContent = 'Publish';
+      form.append(publish);
+      const required = document.createElement('input');
+      required.required = true;
+      required.name = 'extra';
+      required.setAttribute('aria-label', 'extra');
+      form.append(required);
+      publish.addEventListener('click', () => setTimeout(() => (publish.disabled = true), 0));
+      // A click on a form that is valid for now: the field becomes invalid during the hold, so the resubmit stops.
+      required.value = 'x';
+      publish.click();
+      required.value = '';
+      await new Promise((r) => setTimeout(r, 900));
+      const left = form.querySelectorAll('input[name="action"]').length;
+      required.value = 'x';
+      const save = document.createElement('button');
+      save.name = 'action';
+      save.value = 'save';
+      form.append(save);
+      save.click();
+      return left;
+    });
+    expect(entries).toBe(0);
+    const body = (await posted).postData() ?? '';
+    expect(body.match(/action=/g)).toHaveLength(1);
+    expect(body).toContain('action=save');
   });
 
   test('the hub opens late, nothing typed: the editor joins the session', async ({ page }) => {

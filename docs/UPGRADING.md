@@ -72,9 +72,12 @@ Behaviour changes with collaboration on:
   [USAGE](USAGE.md#collaboration)).
 - **`token` and `state` answers:** 401, 403 and 404 fall back at once. A 429 (its `Retry-After` is honoured), a 5xx or any
   other error is retried, during the wait and after it while the content is untouched. A 2xx `state` must have a `state`
-  string or an `updates` list; anything else falls back at once.
-- **A client waiting on another's seed asks again every 31 s** (`POST token`, `GET state`), so a host's stale seed claim gets
-  taken over. An editor that has been edited while standalone asks nothing and claims nothing.
+  string or an `updates` list; anything else falls back at once. After a first connection, a 401, 403, 404 or unusable
+  `state` ends the session too: `data-collab` becomes `standalone`, the text stays, nothing more is requested, and a save
+  goes outside the session. 429 and 5xx keep being retried.
+- **A client waiting on another's seed asks again every 31 s** (`POST token`, the hub connection, `GET state`), not while the
+  tab is hidden, so a host's stale seed claim gets taken over. An editor that has been edited while standalone asks nothing
+  and claims nothing.
 
 ## To 1.9.0
 

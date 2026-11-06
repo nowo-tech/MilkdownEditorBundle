@@ -134,7 +134,7 @@ export function allowReload(topic: string, storage: Storage | null = sessionStor
 export const DEFAULT_CONNECT_TIMEOUT = 5000;
 export const MAX_CONNECT_TIMEOUT = 60_000;
 /**
- * A client waiting on another client's seed asks again this often (ms). Its request also claims the seed once the claim
+ * A client waiting on another client's seed asks again this often (ms), unless its tab is hidden. Its request also claims the seed once the claim
  * has gone stale, so a holder that left does not leave the document unseeded (WikiBundle's `seed_timeout` is 30 s).
  */
 export const SEED_RECHECK = 31_000;
@@ -239,7 +239,8 @@ export function startCollaboration(editor: Editor, options: CollaborationOptions
     window.clearTimeout(recheck);
     recheck = window.setTimeout(() => {
       if (phase === 'bound' || ended) return;
-      if (provider.status === 'online' && waitingOnSeed()) void provider.connect().catch(() => undefined);
+      // Not from a hidden tab: nobody is there to join.
+      if (provider.status === 'online' && waitingOnSeed() && !document.hidden) void provider.connect().catch(() => undefined);
       askAgain();
     }, SEED_RECHECK);
   };
@@ -311,13 +312,16 @@ export function startCollaboration(editor: Editor, options: CollaborationOptions
       }
       return;
     }
-    if (phase === 'bound') {
-      hooks.onStatus(s);
-      return;
-    }
+    // Refused: the session is over, also for a bound editor. It keeps its text, and a save goes outside the session.
     if (provider.failed) {
+      const live = phase === 'bound' && !ended;
       fallback();
       end();
+      if (live) hooks.onStatus('standalone');
+      return;
+    }
+    if (phase === 'bound') {
+      hooks.onStatus(s);
       return;
     }
     // A corrupt log: no document to bind. The hub stays open for the host's reset, which reloads an untouched editor.
