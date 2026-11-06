@@ -41,6 +41,12 @@ Until you upgrade, the only complete mitigation is to turn collaboration off: dr
 `nowo_wiki.collaboration.enabled: false`). A server check that refuses an empty body on a save without the
 `_nowo_milkdown_collab` field stops the empty saves but not the loss of typed text.
 
+**Finding and repairing empty saves.** The bundle keeps no history; it depends on the host. Measured on WikiBundle (5 of 5,
+v1.9.0): the empty save adds a revision with an empty body, the earlier revision stays intact, restoring it brings the body
+back, and the editor then shows it. Look for revisions with an empty body whose previous revision was not empty, and restore
+that one before any history pruning removes it. Text typed before the bind is **not** recoverable: it never reached the
+server (0 revisions held it, 10 of 10). A host that overwrites without revisions cannot recover the body.
+
 Behaviour changes with collaboration on:
 
 - **The editor is read-only until the document is bound**, at most `connect_timeout_ms` (default 5 s). Keys pressed before
