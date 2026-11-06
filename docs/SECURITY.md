@@ -212,11 +212,13 @@ upload endpoint must:
   the answer has one.
 
 **File cards (1.8).** `::file[name]{href size type}` comes from Markdown anyone with edit rights can write. The editor
-and the PHP renderer escape the name and drop control, bidi-override and isolate characters (a right-to-left override
-could make `fdp.exe` read as `exe.pdf`), keep only relative or http(s) links (`safeUrl()`, also when
+and the PHP renderer escape the name and drop control and invisible format characters (Cc / Cf: a right-to-left
+override could make `fdp.exe` read as `exe.pdf`), keep only relative or http(s) links (`safeUrl()`, also when
 `allow_unsafe_links` is on), percent-encode quotes and brackets before the URL is written into the Markdown, add
-`rel="noopener noreferrer"`, and render a card without a usable URL as plain text. The badge is derived from the
-extension (letters and digits only); `size` must be digits; nothing from the card reaches a `style` attribute.
+`rel="noopener noreferrer"`, and render a card without a usable URL as plain text. The badge and category come from
+the link target (its extension, else the MIME type), never only from the label, so `::file[invoice.pdf]{href=
+"/u/setup.exe"}` shows `EXE`; badges are letters and digits only; `size` must be digits; nothing from the card reaches
+a `style` attribute.
 
 **Top layer (1.8).** Menus use `popover="manual"` (an attribute, not a style) and are positioned through CSSOM, which a
 strict `style-src-attr` allows; the fallback without the Popover API copies the theme tokens with `style.setProperty()`.

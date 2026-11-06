@@ -60,20 +60,25 @@ same widget JSON (only `messages` gains the new strings).
   The 1.0 answers `{url}` and `{url, name, image, alt}` keep working. HTTP 415 is announced as a type error.
 - **`upload_accept_images` / `upload_accept_files`** (profile keys and form options): accepted types per kind. Empty
   by default: `upload_accept` keeps its meaning. With either list set, the editor accepts their union (images default
-  to `upload_accept`) and the widget JSON `upload` gains `acceptImages` / `acceptFiles`.
+  to `upload_accept`; `upload_accept_files` alone accepts only those files, never "any type") and the widget JSON
+  `upload` gains `acceptImages` / `acceptFiles`.
 - Demo: `/layers` (editors in a transformed box, under a sticky header with `z-index: 100` and in a modal dialog, with
   `action_bar_insert: []`), file cards and per-kind types in the wiki profile, and an upload endpoint that answers
   the 1.8 contract with the kind from the sniffed type (fileinfo; the old endpoint needed symfony/mime, which the demo
-  does not install). Playwright: `layers.spec.ts` (menu and submenu on top, at the pointer, keyboard, focus, axe, CSP)
+  does not install). The demo endpoint is marked DEMO ONLY; it stores files outside `public/` and serves them with
+  `nosniff`, `Content-Security-Policy: sandbox` and `Content-Disposition: attachment` for documents (audit GR-L1). Playwright: `layers.spec.ts` (menu and submenu on top, at the pointer, keyboard, focus, axe, CSP)
   and `files.spec.ts` (PNG + PDF + CSV dropped in order, save, reload, read side; refused type; `/file`).
 
 ### Security
 
-- File cards: the name loses control, bidi-override and isolate characters (no right-to-left override hiding an
-  `.exe` extension) and square brackets, and is cut at 200 characters, in the editor and in PHP; the link goes through
+- File cards: the name loses control and invisible format characters (Unicode Cc / Cf: bidi overrides and isolates,
+  ALM, zero-width characters, word joiner, BOM — no right-to-left override hiding an `.exe` extension) and square
+  brackets, and is cut at 200 characters, in the editor and in PHP; the link goes through
   the link rules (`safeUrl()` / `DialectRenderer::safeUrl()`: relative or http(s) only, **even with
   `allow_unsafe_links`**), quotes and brackets in the URL are percent-encoded before they reach the Markdown, and a card
-  without a usable URL renders without a link. Card links carry `rel="noopener noreferrer"`.
+  without a usable URL renders without a link. Card links carry `rel="noopener noreferrer"`. The badge and category
+  come from the link target (its extension, else the MIME type), not from the label, so a PDF name on an `.exe` link
+  shows `EXE`.
 - Upload answers: `size` must be a non-negative integer and `type` a MIME type, otherwise the file's own values are
   used; names are cleaned as above; the kind is the host's. Hosts must validate type and size on the server (see
   SECURITY.md).

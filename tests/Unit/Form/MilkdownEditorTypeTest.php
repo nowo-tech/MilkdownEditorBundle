@@ -176,8 +176,10 @@ final class MilkdownEditorTypeTest extends TypeTestCase
             $this->uploadJson(['upload_accept_files' => ['application/pdf', 'text/csv']]),
         );
         self::assertSame(['image/png', 'image/*'], $this->uploadJson(['upload_accept_images' => ['image/png'], 'upload_accept_files' => ['image/*']])['accept']);
-        // Images accept anything (upload_accept empty): the union stays "any".
-        self::assertSame([], $this->uploadJson(['upload_accept' => [], 'upload_accept_files' => ['.pdf']])['accept']);
+        // upload_accept_files alone (audit GR-I3): only those files, never "any type".
+        $files = $this->uploadJson(['upload_accept' => [], 'upload_accept_files' => ['.pdf']]);
+        self::assertSame(['.pdf'], $files['accept']);
+        self::assertSame([], $files['acceptImages']);
     }
 
     #[Test]

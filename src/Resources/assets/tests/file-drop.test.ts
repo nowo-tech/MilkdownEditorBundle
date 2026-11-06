@@ -5,8 +5,10 @@ import { editorViewCtx } from '@milkdown/kit/core';
 import type { EditorView } from '@milkdown/kit/prose/view';
 import { TextSelection } from '@milkdown/kit/prose/state';
 import type { MilkdownEditorHandle } from '../src/editor';
-import { fileBadge, fileCard, fileCategory, fileName, formatSize } from '../src/dialect/file-card';
+import { fileCard, fileKind, fileName, formatSize, hrefExtension } from '../src/dialect/file-card';
 import { parseOptions } from '../src/options';
+import { createFileDrop } from '../src/plugins/file-drop';
+import { defaultRuntime } from '../src/runtime';
 import { editor, keydown, tick } from './helpers';
 
 type Answer = { status?: number; body: Record<string, unknown> };
@@ -249,6 +251,36 @@ describe('file drop and paste (1.8, ME-3)', () => {
   });
 });
 
+describe('file drop handlers without an editor (audit GR-I5)', () => {
+  const said: string[] = [];
+  const make = (withUpload: boolean) =>
+    createFileDrop({ upload: withUpload ? upload : null, cards: true, runtime: defaultRuntime(), announce: (key) => said.push(key) });
+  const event = (type: string, data: unknown) => {
+    const e = new Event(type, { cancelable: true });
+    Object.defineProperty(e, type === 'paste' ? 'clipboardData' : 'dataTransfer', { value: data });
+    return e as DragEvent & ClipboardEvent;
+  };
+  const view = (extra: Record<string, unknown> = {}) => ({ editable: true, dragging: null, ...extra }) as unknown as EditorView;
+
+  it('leaves internal drags, empty drops and missing data to ProseMirror', async () => {
+    const drop = make(true);
+    const files1 = { files: files([file('a.png', 'image/png')]), types: ['Files'] };
+    // A drag of editor content (ProseMirror moves it) is never an upload.
+    expect(drop.props.handleDOMEvents.drop(view({ dragging: { slice: null, move: true } }), event('drop', files1))).toBe(false);
+    expect(drop.props.handleDOMEvents.drop(view(), event('drop', null))).toBe(false);
+    expect(drop.props.handleDOMEvents.dragover(view(), event('dragover', null))).toBe(false);
+    expect(drop.props.handleDOMEvents.dragover(view({ editable: false }), event('dragover', null))).toBe(false);
+    expect(drop.props.handlePaste(view(), event('paste', null))).toBe(false);
+    expect(drop.props.handlePaste(view(), event('paste', { files: files([]), types: [], getData: () => '' }))).toBe(false);
+    // Nothing to upload, or uploads off: no transaction at all.
+    const dispatch = vi.fn();
+    await drop.uploadFiles(view({ dispatch }), [], 0);
+    await make(false).uploadFiles(view({ dispatch }), [file('a.png', 'image/png')], 0);
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(said).toEqual([]);
+  });
+});
+
 describe('action_bar_insert (1.8, ME-2)', () => {
   const labels = (h: MilkdownEditorHandle) => [...h.root.querySelectorAll('.nowo-milkdown__action')].map((b) => b.textContent);
 
@@ -286,13 +318,12 @@ describe('action_bar_insert (1.8, ME-2)', () => {
 
 describe('file cards (dialect, shared fixture with PHP)', () => {
   const fixture = JSON.parse(readFileSync(resolve(__dirname, '../../../../tests/Fixtures/file-cards.json'), 'utf8')) as {
-    cards: { name: string; type: string; size: string; category: string; badge: string; sizeText: string }[];
+    cards: { name: string; type: string; href: string; size: string; category: string; badge: string; sizeText: string }[];
     names: [string, string][];
   };
 
-  it.each(fixture.cards)('$name ($type, $size)', (c) => {
-    expect(fileCategory(c.name, c.type)).toBe(c.category);
-    expect(fileBadge(c.name)).toBe(c.badge);
+  it.each(fixture.cards)('$name ($type, $href, $size)', (c) => {
+    expect(fileKind(c.name, c.type, c.href)).toEqual({ category: c.category, badge: c.badge });
     expect(formatSize(c.size)).toBe(c.sizeText);
   });
 
@@ -306,5 +337,11 @@ describe('file cards (dialect, shared fixture with PHP)', () => {
     expect(card.querySelector('.nowo-milkdown-file__size')).toBeNull();
     expect(card.textContent).toBe('PDFx.pdf');
     expect(formatSize(undefined)).toBe('');
+    expect(fileKind('x')).toEqual({ category: 'other', badge: 'FILE' });
+    expect(hrefExtension('/a/b')).toBe('');
+    // Audit GR-I1: the link decides.
+    const exe = fileCard('invoice.pdf', { href: '/u/setup.exe', type: 'application/pdf' });
+    expect(exe.className).toBe('nowo-milkdown-file nowo-milkdown-file--other');
+    expect(exe.querySelector('.nowo-milkdown-file__badge')!.textContent).toBe('EXE');
   });
 });

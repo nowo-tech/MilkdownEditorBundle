@@ -6,12 +6,14 @@ namespace Nowo\MilkdownEditorBundle\Markdown;
 
 use Nowo\MilkdownEditorBundle\Markdown\Node\LeafDirective;
 
+use function explode;
 use function floor;
 use function mb_substr;
 use function preg_match;
 use function preg_replace;
 use function round;
 use function str_starts_with;
+use function strrpos;
 use function strtolower;
 use function strtoupper;
 use function strtr;
@@ -58,11 +60,11 @@ final class FileCard
      */
     public static function render(LeafDirective $node): string
     {
-        $name     = self::name($node->label);
-        $href     = DialectRenderer::safeUrl($node->attributes['href'] ?? '');
-        $category = self::category($name, $node->attributes['type'] ?? '');
-        $size     = self::size($node->attributes['size'] ?? '');
-        $inner    = '<span class="nowo-md-file__badge" aria-hidden="true">' . DialectRenderer::e(self::badge($name)) . '</span>'
+        $name               = self::name($node->label);
+        $href               = DialectRenderer::safeUrl($node->attributes['href'] ?? '');
+        [$category, $badge] = self::kind($name, $node->attributes['type'] ?? '', $href);
+        $size               = self::size($node->attributes['size'] ?? '');
+        $inner              = '<span class="nowo-md-file__badge" aria-hidden="true">' . DialectRenderer::e($badge) . '</span>'
             . '<span class="nowo-md-file__name">' . DialectRenderer::e($name) . '</span>'
             . ($size !== '' ? '<span class="nowo-md-file__size">' . DialectRenderer::e($size) . '</span>' : '');
         $card = $href !== ''
@@ -73,13 +75,15 @@ final class FileCard
     }
 
     /**
-     * The shown name: without control, bidi-override and isolate characters, brackets as parentheses, single spaces,
+     * The shown name: without control or invisible format characters (Unicode Cc / Cf), brackets as parentheses, single spaces,
      * at most {@see self::MAX_NAME} characters; `file` when nothing is left (the editor's `fileName()`).
      */
     public static function name(string $value): string
     {
         $clean = (string) preg_replace('/\s+/u', ' ', $value);
-        $clean = (string) preg_replace('/[\x{0000}-\x{001F}\x{007F}-\x{009F}\x{200E}\x{200F}\x{202A}-\x{202E}\x{2066}-\x{2069}]/u', '', $clean);
+        // Controls and every invisible format character (Cf: bidi overrides and isolates, ALM, zero-width, word joiner,
+        // BOM; audit GR-I2).
+        $clean = (string) preg_replace('/[\p{Cc}\p{Cf}]/u', '', $clean);
         $clean = trim(strtr($clean, ['[' => '(', ']' => ')']));
         $clean = trim(mb_substr($clean, 0, self::MAX_NAME));
 
@@ -92,16 +96,49 @@ final class FileCard
         return preg_match('/\.([a-z0-9]{1,8})$/i', trim($name), $m) === 1 ? strtolower($m[1]) : '';
     }
 
-    /** Category from the extension, else from the MIME type (one of pdf, image, audio, video, archive, sheet, doc, slides, text, code, other). */
-    public static function category(string $name, string $type = ''): string
+    /**
+     * Category (pdf, image, audio, video, archive, sheet, doc, slides, text, code, other) and badge of a card (audit
+     * GR-I1, the editor's `fileKind()`). The **target** decides, not the label: the extension of the link's file when it
+     * has one, else the MIME type, else the label's extension. The badge is the deciding extension in capitals (at most
+     * 4 characters); a label extension that disagrees with the type, or none, gives `FILE`.
+     *
+     * @return array{string, string} category and badge
+     */
+    public static function kind(string $name, string $type = '', string $href = ''): array
     {
-        $byExtension = self::BY_EXTENSION[self::extension($name)] ?? null;
-        if ($byExtension !== null) {
-            return $byExtension;
+        $fromHref = self::hrefExtension($href);
+        if ($fromHref !== '') {
+            return [self::BY_EXTENSION[$fromHref] ?? 'other', self::badgeOf($fromHref)];
         }
+        $label  = self::extension($name);
+        $byType = self::typeCategory($type);
+        if ($byType !== null) {
+            return [$byType, $label !== '' && (self::BY_EXTENSION[$label] ?? null) === $byType ? self::badgeOf($label) : 'FILE'];
+        }
+
+        return [self::BY_EXTENSION[$label] ?? 'other', $label !== '' ? self::badgeOf($label) : 'FILE'];
+    }
+
+    /** The category a MIME type names, or null for an unknown or empty type. */
+    public static function typeCategory(string $type): ?string
+    {
         $type = strtolower($type);
+        if ($type === '') {
+            return null;
+        }
         if ($type === 'application/pdf') {
             return 'pdf';
+        }
+        // Specific families first: `text/csv` is a sheet, `text/rtf` a document.
+        $family = match (true) {
+            preg_match('/zip|compressed|tar|gzip/', $type) === 1     => 'archive',
+            preg_match('/spreadsheet|excel|csv/', $type) === 1       => 'sheet',
+            preg_match('/presentation|powerpoint/', $type) === 1     => 'slides',
+            preg_match('/word|opendocument\.text|rtf/', $type) === 1 => 'doc',
+            default                                                  => null,
+        };
+        if ($family !== null) {
+            return $family;
         }
         foreach (['image', 'audio', 'video', 'text'] as $prefix) {
             if (str_starts_with($type, $prefix . '/')) {
@@ -109,21 +146,21 @@ final class FileCard
             }
         }
 
-        return match (true) {
-            preg_match('/zip|compressed|tar|gzip/', $type) === 1     => 'archive',
-            preg_match('/spreadsheet|excel|csv/', $type) === 1       => 'sheet',
-            preg_match('/presentation|powerpoint/', $type) === 1     => 'slides',
-            preg_match('/word|opendocument\.text|rtf/', $type) === 1 => 'doc',
-            default                                                  => 'other',
-        };
+        return null;
     }
 
-    /** The badge: the extension in capitals (at most 4 characters), else `FILE`. */
-    public static function badge(string $name): string
+    /** The extension of the last path segment of a URL (query and fragment ignored), or ''. */
+    public static function hrefExtension(string $href): string
     {
-        $extension = self::extension($name);
+        $path  = explode('?', explode('#', $href, 2)[0], 2)[0];
+        $slash = strrpos($path, '/');
 
-        return $extension !== '' ? strtoupper(substr($extension, 0, 4)) : 'FILE';
+        return self::extension($slash === false ? $path : substr($path, $slash + 1));
+    }
+
+    private static function badgeOf(string $extension): string
+    {
+        return strtoupper(substr($extension, 0, 4));
     }
 
     /** A byte count as `512 B`, `1.5 KB`, `12 MB` (1024 steps; one decimal under 10); '' when not a count. */

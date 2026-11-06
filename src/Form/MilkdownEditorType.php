@@ -431,7 +431,8 @@ final class MilkdownEditorType extends AbstractType
 
     /**
      * The `upload` part of the widget JSON. 1.8 (ME-3): with `upload_accept_images` / `upload_accept_files`, `accept` is
-     * their union (images default to `upload_accept`) and both lists are sent; without them the JSON is unchanged.
+     * their union (images default to `upload_accept`; with neither, no image type) and both lists are sent; without
+     * them the JSON is unchanged.
      *
      * @param array<string, mixed> $options The resolved options
      *
@@ -455,8 +456,9 @@ final class MilkdownEditorType extends AbstractType
             return $upload;
         }
         $images = $images !== [] ? $images : $accept;
-        // An empty image list means "any type": the union stays "any".
-        $upload['accept']       = $images === [] ? [] : array_values(array_unique([...$images, ...$files]));
+        // The union of the lists that are set: with upload_accept_files alone, only those files (audit GR-I3; an
+        // empty list never widens the filter to "any type").
+        $upload['accept']       = array_values(array_unique([...$images, ...$files]));
         $upload['acceptImages'] = $images;
         $upload['acceptFiles']  = $files;
 

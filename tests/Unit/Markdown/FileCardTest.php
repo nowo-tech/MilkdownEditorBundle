@@ -17,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 
 use function file_get_contents;
 use function json_decode;
+use function substr_count;
 use function trim;
 
 use const JSON_THROW_ON_ERROR;
@@ -28,23 +29,23 @@ use const JSON_THROW_ON_ERROR;
 final class FileCardTest extends TestCase
 {
     /**
-     * @return array{cards: list<array{name: string, type: string, size: string, category: string, badge: string, sizeText: string}>, names: list<array{string, string}>}
+     * @return array{cards: list<array{name: string, type: string, href: string, size: string, category: string, badge: string, sizeText: string}>, names: list<array{string, string}>}
      */
     private static function fixture(): array
     {
-        /** @var array{cards: list<array{name: string, type: string, size: string, category: string, badge: string, sizeText: string}>, names: list<array{string, string}>} $data */
+        /** @var array{cards: list<array{name: string, type: string, href: string, size: string, category: string, badge: string, sizeText: string}>, names: list<array{string, string}>} $data */
         $data = json_decode((string) file_get_contents(__DIR__ . '/../../Fixtures/file-cards.json'), true, 8, JSON_THROW_ON_ERROR);
 
         return $data;
     }
 
     /**
-     * @return iterable<string, array{string, string, string, string, string, string}>
+     * @return iterable<string, array{string, string, string, string, string, string, string}>
      */
     public static function cards(): iterable
     {
         foreach (self::fixture()['cards'] as $c) {
-            yield $c['name'] . ' ' . $c['type'] . ' ' . $c['size'] => [$c['name'], $c['type'], $c['size'], $c['category'], $c['badge'], $c['sizeText']];
+            yield $c['name'] . ' ' . $c['type'] . ' ' . $c['href'] . ' ' . $c['size'] => [$c['name'], $c['type'], $c['href'], $c['size'], $c['category'], $c['badge'], $c['sizeText']];
         }
     }
 
@@ -58,10 +59,9 @@ final class FileCardTest extends TestCase
 
     #[Test]
     #[DataProvider('cards')]
-    public function categoryBadgeAndSizeMatchTheEditor(string $name, string $type, string $size, string $category, string $badge, string $sizeText): void
+    public function categoryBadgeAndSizeMatchTheEditor(string $name, string $type, string $href, string $size, string $category, string $badge, string $sizeText): void
     {
-        self::assertSame($category, FileCard::category($name, $type));
-        self::assertSame($badge, FileCard::badge($name));
+        self::assertSame([$category, $badge], FileCard::kind($name, $type, $href));
         self::assertSame($sizeText, FileCard::size($size));
     }
 
@@ -93,6 +93,27 @@ final class FileCardTest extends TestCase
             self::assertStringNotContainsString('nowo-md-file__size', $html);
         }
         self::assertStringContainsString('href="https://cdn.example/x.zip"', FileCard::render(new LeafDirective('file', 'x.zip', ['href' => 'https://cdn.example/x.zip'])));
+    }
+
+    /** Audit GR-I1: a PDF label on an .exe link shows the link's badge. */
+    #[Test]
+    public function theTargetDecidesTheBadge(): void
+    {
+        $html = FileCard::render(new LeafDirective('file', 'invoice.pdf', ['href' => '/u/setup.exe', 'type' => 'application/pdf']));
+        self::assertStringContainsString('nowo-md-file--other', $html);
+        self::assertStringContainsString('aria-hidden="true">EXE</span>', $html);
+    }
+
+    /** Audit GR-I4: `allow_unsafe_links` keeps script links of ordinary links, never of file cards. */
+    #[Test]
+    public function aScriptCardHasNoLinkEvenWithUnsafeLinksAllowed(): void
+    {
+        $renderer = new MilkdownMarkdownRenderer(['footnotes' => false, 'allow_unsafe_links' => true], new NullPageResolver(), new NullUserResolver(), new AllowlistIconResolver(null, []));
+        $html     = $renderer->render("::file[x.pdf]{href=\"javascript:alert(1)\"}\n\n::file[y.pdf]{href=\"data:text/html,x\"}");
+        self::assertStringNotContainsString('<a', $html);
+        self::assertStringNotContainsString('javascript:', $html);
+        self::assertStringNotContainsString('data:', $html);
+        self::assertSame(2, substr_count($html, '<span class="nowo-md-file__link">'));
     }
 
     #[Test]

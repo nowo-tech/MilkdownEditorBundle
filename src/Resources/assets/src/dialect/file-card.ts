@@ -1,7 +1,7 @@
 /**
  * File cards of the dialect (1.8, ME-3): `::file[name]{href="…" size="…" type="…"}`, a leaf directive written for
  * uploads that are not images (`file_cards`). The editor and the PHP renderer (`FileCard.php`) derive the same badge,
- * category and size text; both are tested against `tests/Fixtures/file-cards.json`.
+ * category (from the link target first, see {@link fileKind}) and size text; both are tested against `tests/Fixtures/file-cards.json`.
  */
 import { safeUrl } from '../link-titles';
 
@@ -9,14 +9,17 @@ import { safeUrl } from '../link-titles';
 export const MAX_NAME = 200;
 
 /**
- * A file name safe to show and to store in the Markdown: no control, bidi-override or isolate characters, no square
+ * A file name safe to show and to store in the Markdown: no control or invisible format characters, no square
  * brackets (the directive label), single spaces, at most {@link MAX_NAME} characters; `file` when nothing is left.
  */
 export function fileName(value: string): string {
   const clean = value
+    // U+FEFF is whitespace for JavaScript's \s but not for PHP's: dropped first so both sides agree.
+    .replace(/\uFEFF/g, '')
     .replace(/\s+/g, ' ')
-    // eslint-disable-next-line no-control-regex
-    .replace(/[\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '')
+    // Controls and every invisible format character (bidi overrides and isolates, ALM, zero-width, word joiner, BOM:
+    // Unicode category Cf; audit GR-I2).
+    .replace(/[\p{Cc}\p{Cf}]/gu, '')
     .replace(/\[/g, '(')
     .replace(/\]/g, ')')
     .trim();
@@ -46,24 +49,40 @@ export function extensionOf(name: string): string {
   return m ? m[1]!.toLowerCase() : '';
 }
 
-/** Category from the extension, else from the MIME type. */
-export function fileCategory(name: string, type = ''): FileCategory {
-  const byExt = BY_EXTENSION[extensionOf(name)];
-  if (byExt) return byExt;
+/** The category a MIME type names, or null for an unknown or empty type. */
+export function typeCategory(type: string): FileCategory | null {
   const t = type.toLowerCase();
+  if (t === '') return null;
   if (t === 'application/pdf') return 'pdf';
-  for (const prefix of ['image', 'audio', 'video', 'text'] as const) if (t.startsWith(`${prefix}/`)) return prefix;
+  // Specific families first: `text/csv` is a sheet, `text/rtf` a document.
   if (/zip|compressed|tar|gzip/.test(t)) return 'archive';
   if (/spreadsheet|excel|csv/.test(t)) return 'sheet';
   if (/presentation|powerpoint/.test(t)) return 'slides';
   if (/word|opendocument\.text|rtf/.test(t)) return 'doc';
-  return 'other';
+  for (const prefix of ['image', 'audio', 'video', 'text'] as const) if (t.startsWith(`${prefix}/`)) return prefix;
+  return null;
 }
 
-/** The badge text: the extension in capitals (at most 4 characters), else `FILE`. */
-export function fileBadge(name: string): string {
-  const ext = extensionOf(name);
-  return ext ? ext.slice(0, 4).toUpperCase() : 'FILE';
+/** The extension of the last path segment of a URL (query and fragment ignored), or ''. */
+export function hrefExtension(href: string): string {
+  const path = href.split(/[?#]/, 1)[0] ?? '';
+  return extensionOf(path.slice(path.lastIndexOf('/') + 1));
+}
+
+/**
+ * Category and badge of a card (1.8, audit GR-I1). The **target** decides, not the label (any editor writes the
+ * label): the extension of the link's file when it has one, else the MIME type, else the label's extension. The badge
+ * is the deciding extension in capitals (at most 4 characters); a label extension that disagrees with the type, or no
+ * extension at all, gives `FILE`. So `::file[invoice.pdf]{href="/u/setup.exe" type="application/pdf"}` shows `EXE`.
+ */
+export function fileKind(name: string, type = '', href = ''): { category: FileCategory; badge: string } {
+  const badge = (ext: string): string => ext.slice(0, 4).toUpperCase();
+  const fromHref = hrefExtension(href);
+  if (fromHref) return { category: BY_EXTENSION[fromHref] ?? 'other', badge: badge(fromHref) };
+  const label = extensionOf(name);
+  const byType = typeCategory(type);
+  if (byType) return { category: byType, badge: label && BY_EXTENSION[label] === byType ? badge(label) : 'FILE' };
+  return { category: BY_EXTENSION[label] ?? 'other', badge: label ? badge(label) : 'FILE' };
 }
 
 /** A byte count as `512 B`, `1.5 KB`, `12 MB`, `3.4 GB` (1024 steps; one decimal under 10). '' for no size. */
@@ -92,8 +111,9 @@ export function formatSize(value: string | number | undefined): string {
 export function fileCard(label: string, attributes: Record<string, string>): HTMLElement {
   const name = fileName(label);
   const href = safeUrl(attributes.href ?? '');
+  const kind = fileKind(name, attributes.type ?? '', href);
   const card = document.createElement('div');
-  card.className = `nowo-milkdown-file nowo-milkdown-file--${fileCategory(name, attributes.type ?? '')}`;
+  card.className = `nowo-milkdown-file nowo-milkdown-file--${kind.category}`;
   const inner = document.createElement(href ? 'a' : 'span');
   inner.className = 'nowo-milkdown-file__link';
   if (inner instanceof HTMLAnchorElement) {
@@ -104,7 +124,7 @@ export function fileCard(label: string, attributes: Record<string, string>): HTM
   const badge = document.createElement('span');
   badge.className = 'nowo-milkdown-file__badge';
   badge.setAttribute('aria-hidden', 'true');
-  badge.textContent = fileBadge(name);
+  badge.textContent = kind.badge;
   const title = document.createElement('span');
   title.className = 'nowo-milkdown-file__name';
   title.textContent = name;

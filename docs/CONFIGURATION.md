@@ -158,7 +158,7 @@ With the defaults the worst input measured peaks at about 39 MB (process total) 
 | `upload_csrf_token` | `?string` | `null` | Sent as `X-CSRF-Token` |
 | `upload_max_size` | `int` | profile | Bytes |
 | `upload_accept` | `list<string>` | profile | Accepted types (empty: any) |
-| `upload_accept_images` | `list<string>` | profile (`[]`) | 1.8: types expected as images; with `upload_accept_files` the editor accepts their union (see [USAGE](USAGE.md#uploads)) |
+| `upload_accept_images` | `list<string>` | profile (`[]`) | 1.8: types expected as images; with `upload_accept_files` the editor accepts their union (images default to `upload_accept`; `upload_accept_files` alone: only those files; see [USAGE](USAGE.md#uploads)) |
 | `upload_accept_files` | `list<string>` | profile (`[]`) | 1.8: other types accepted as attachments (file cards with `file_cards`) |
 | `action_bar_insert` | `list<'file'\|'icon'>` | profile (`[file, icon]`) | 1.8: action-bar buttons; `[]` hides *Insert file* and *Insert icon* (sent in the widget JSON only when not the default) |
 | `collaboration` | `?array{url, hub_url, topic, user?: {name, color}, update_delay_ms?: int, awareness_delay_ms?: int, max_update_bytes?: int}` | `null` | Opt-in Yjs over Mercure; send windows in ms and the largest update per POST (1.5.1, defaults 200 / 750 / 256 KiB, see [USAGE](USAGE.md#collaboration)) |

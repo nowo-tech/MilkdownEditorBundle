@@ -10,10 +10,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\HttpKernel\Profiler\Profiler;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfToken;
@@ -138,9 +140,16 @@ final class DemoController extends AbstractController
     }
 
     /**
+     * DEMO ONLY — see docs/SECURITY.md › Uploads and docs/USAGE.md › Uploads before writing your own endpoint.
+     *
      * Upload endpoint (1.8 contract `{url, name, size, type, kind}`): the server decides the kind from the sniffed MIME
-     * type (never the client's), images and an allow-list of documents only, 2 MiB, stored under a random name with an
-     * extension from the allow-list.
+     * type (never the client's), images and an allow-list of documents only, 2 MiB, stored outside public/ under a
+     * random name with an extension from the allow-list, served by {@see self::uploaded()} with nosniff,
+     * `Content-Disposition: attachment` for documents and `Content-Security-Policy: sandbox`.
+     *
+     * What a real endpoint adds and this demo does not: authentication and the right to edit the field's object
+     * (CSRF alone only proves the form came from this site), a quota and a rate limit per user, a retention / cleanup
+     * policy (the demo keeps files until `var/` is cleared), and ideally a separate cookie-less origin for the files.
      */
     #[Route('/api/upload', name: 'demo_api_upload', methods: ['POST'])]
     public function upload(Request $request): JsonResponse
@@ -158,9 +167,14 @@ final class DemoController extends AbstractController
         if ($extension === null) {
             return $this->json(['error' => 'Type not allowed'], Response::HTTP_UNSUPPORTED_MEDIA_TYPE);
         }
+        // libmagic reads small CSV files as text/plain: keep the .csv of a plain-text file named so (still text, same
+        // serving rules), so the card shows a sheet, as the target's extension decides (audit GR-I1).
+        if ($extension === 'txt' && str_ends_with(strtolower($file->getClientOriginalName()), '.csv')) {
+            $extension = 'csv';
+        }
         $size = (int) $file->getSize();
         $name = bin2hex(random_bytes(8)) . '.' . $extension;
-        $file->move($this->getParameter('kernel.project_dir') . '/public/uploads', $name);
+        $file->move(self::uploadDir($this->getParameter('kernel.project_dir')), $name);
 
         return $this->json([
             'url'  => '/uploads/' . $name,
@@ -169,6 +183,35 @@ final class DemoController extends AbstractController
             'type' => $mime,
             'kind' => isset(self::IMAGES[$mime]) ? 'image' : 'file',
         ]);
+    }
+
+    /**
+     * DEMO ONLY: serves an uploaded file with the headers docs/SECURITY.md › Uploads requires — `nosniff`,
+     * `Content-Security-Policy: sandbox`, `Content-Disposition: attachment` for anything that is not a raster image —
+     * and the type stored at upload time (never sniffed again by the browser). The name is the random one the upload
+     * gave (the route requirement rejects anything else, no path is built from user input).
+     */
+    #[Route('/uploads/{name}', name: 'demo_uploaded', requirements: ['name' => '[0-9a-f]{16}\\.(?:png|jpg|gif|webp|pdf|txt|csv|zip|docx|xlsx)'], methods: ['GET'])]
+    public function uploaded(string $name): Response
+    {
+        $path = self::uploadDir((string) $this->getParameter('kernel.project_dir')) . '/' . $name;
+        if (!is_file($path)) {
+            throw $this->createNotFoundException();
+        }
+        $extension = pathinfo($name, \PATHINFO_EXTENSION);
+        $type      = array_search($extension, self::IMAGES, true) ?: array_search($extension, self::DOCUMENTS, true) ?: 'application/octet-stream';
+        $image     = in_array($extension, self::IMAGES, true);
+        $response  = new BinaryFileResponse($path, 200, ['Content-Type' => $type]);
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+        $response->headers->set('Content-Security-Policy', 'sandbox');
+        $response->setContentDisposition($image ? ResponseHeaderBag::DISPOSITION_INLINE : ResponseHeaderBag::DISPOSITION_ATTACHMENT, $name);
+
+        return $response;
+    }
+
+    private static function uploadDir(mixed $projectDir): string
+    {
+        return (is_string($projectDir) ? $projectDir : '') . '/var/uploads';
     }
 
     /**

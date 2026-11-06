@@ -82,5 +82,23 @@ final class DemoControllerTest extends WebTestCase
         self::assertStringEndsWith('.pdf', $pdf['url']);
         [$status] = $post('<!doctype html><html><script>alert(1)</script></html>', 'page.txt', 'text/plain');
         self::assertSame(415, $status);
+
+        // Served with the headers of SECURITY.md › Uploads (audit GR-L1): images inline, documents as attachments.
+        $client->request('GET', $image['url']);
+        self::assertResponseIsSuccessful();
+        $headers = $client->getResponse()->headers;
+        self::assertSame('nosniff', $headers->get('X-Content-Type-Options'));
+        self::assertSame('sandbox', $headers->get('Content-Security-Policy'));
+        self::assertSame('image/png', $headers->get('Content-Type'));
+        self::assertStringStartsWith('inline', (string) $headers->get('Content-Disposition'));
+        $client->request('GET', $pdf['url']);
+        $headers = $client->getResponse()->headers;
+        self::assertStringStartsWith('attachment', (string) $headers->get('Content-Disposition'));
+        self::assertSame('application/pdf', $headers->get('Content-Type'));
+        self::assertSame('sandbox', $headers->get('Content-Security-Policy'));
+        $client->request('GET', '/uploads/0000000000000000.png');
+        self::assertResponseStatusCodeSame(404);
+        $client->request('GET', '/uploads/..%2F..%2Fcomposer.json');
+        self::assertResponseStatusCodeSame(404);
     }
 }

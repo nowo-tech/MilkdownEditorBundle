@@ -137,8 +137,21 @@ Answer (1.8) with:
 - HTTP 413 shows *too large*, 415 *not an allowed file type*; other errors *could not be uploaded*.
 
 `upload_accept` filters files before any request (the file picker's `accept` too). With `upload_accept_images` /
-`upload_accept_files` the accepted types are their union (images default to `upload_accept`); the lists also guide the
-browser's guess for hosts whose answer has no `kind`.
+`upload_accept_files` the accepted types are their union (images default to `upload_accept`; `upload_accept_files`
+alone accepts only those files, an empty list never means "any type" here); the lists also guide the browser's guess
+for hosts whose answer has no `kind`.
+
+**The demo endpoint is DEMO ONLY** (`demo/symfony8/src/Controller/DemoController.php`): it shows the contract and the
+server-side kind, not a production upload service. A real endpoint also needs:
+
+- **authentication and authorisation**: the user may edit the object the field belongs to (CSRF only proves the
+  request came from your form);
+- **a quota and a rate limit** per user (and a retention or cleanup policy, e.g. with WikiBundle's
+  `nowo_wiki.page.files_purged`);
+- **serving headers** on every stored file: `X-Content-Type-Options: nosniff`, `Content-Disposition: attachment` for
+  anything that is not a raster image, `Content-Security-Policy: sandbox` (the demo serves its files this way through
+  a controller, from outside `public/`);
+- preferably a **separate, cookie-less origin** for the files.
 
 The browser checks are a convenience only: a direct POST skips them. The endpoint must validate the token and the
 size again, detect the type from the content (do not trust the client's type or name) and **never accept
