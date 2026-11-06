@@ -8,6 +8,8 @@ use League\CommonMark\Environment\EnvironmentBuilderInterface;
 use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\ExtensionInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Node\ContainerDirective;
+use Nowo\MilkdownEditorBundle\Markdown\Node\HiddenReference;
+use Nowo\MilkdownEditorBundle\Markdown\Node\ImageFigure;
 use Nowo\MilkdownEditorBundle\Markdown\Node\LeafDirective;
 use Nowo\MilkdownEditorBundle\Markdown\Node\Math;
 use Nowo\MilkdownEditorBundle\Markdown\Node\MathBlock;
@@ -55,7 +57,7 @@ final readonly class MilkdownDialectExtension implements ExtensionInterface
         if ($this->math) {
             $environment->addInlineParser(new MathInlineParser(), 180);
         }
-        foreach ([WikiLink::class, Mention::class, TablerIcon::class, Math::class, MathBlock::class, TextDirective::class, ContainerDirective::class, LeafDirective::class] as $class) {
+        foreach ([WikiLink::class, Mention::class, TablerIcon::class, Math::class, MathBlock::class, TextDirective::class, ContainerDirective::class, LeafDirective::class, HiddenReference::class, ImageFigure::class] as $class) {
             $environment->addRenderer($class, $this->renderer);
         }
     }

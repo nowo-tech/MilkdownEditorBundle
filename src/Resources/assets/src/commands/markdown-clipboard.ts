@@ -86,6 +86,12 @@ export function throughSchema(doc: PmNode): PmNode {
 /** Schemes a pasted link or image may keep; any other (`javascript:`, `data:`, `vbscript:`…) is emptied. */
 const SAFE_SCHEMES = new Set(['http', 'https', 'mailto', 'tel']);
 
+/** 1.9 (ME-5): host schemes of the page's editors (`hostSchemes`): pasted host references are kept. */
+const hostPasteSchemes = new Set<string>();
+export const allowPastedHostSchemes = (schemes: Iterable<string>): void => {
+  for (const scheme of schemes) hostPasteSchemes.add(scheme.toLowerCase());
+};
+
 /**
  * Whether a pasted link or image target is safe: relative, an anchor, or one of {@link SAFE_SCHEMES} (controls and
  * spaces the URL parser would ignore are ignored here too, so `java\tscript:` is still `javascript:`).
@@ -95,7 +101,7 @@ export function isSafePastedUrl(value: unknown): boolean {
   // eslint-disable-next-line no-control-regex
   const url = value.replace(/[\u0000-\u0020]+/g, '');
   const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(url)?.[1];
-  return scheme === undefined || SAFE_SCHEMES.has(scheme.toLowerCase());
+  return scheme === undefined || SAFE_SCHEMES.has(scheme.toLowerCase()) || hostPasteSchemes.has(scheme.toLowerCase());
 }
 
 const cleanMark = (mark: Mark): Mark => (isSafePastedUrl(mark.attrs.href) ? mark : mark.type.create({ ...mark.attrs, href: '' }));

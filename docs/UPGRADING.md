@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
+- [Unreleased (1.9.0)](#unreleased-190)
 - [Unreleased (1.8.0)](#unreleased-180)
 - [To 1.8.0](#to-180)
 - [To 1.7.0](#to-170)
@@ -29,6 +30,24 @@
 Public API covered by Semantic Versioning: the configuration tree, profile keys, form options, Twig filter / function
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
+
+## Unreleased (1.9.0)
+
+From **1.8.0**: no BC break; run `assets:install`. With the defaults (no `host_schemes`, no new feature) the renderer's
+output and the widget JSON do not change, and images in the editor are still Milkdown's `<img>`.
+
+- **Adopting host references.** Set `markdown.host_schemes` and, to check the viewer in PHP, alias
+  `HostFileResolverInterface` / `FilePreviewResolverInterface` to your services. Existing Markdown with those references
+  starts to resolve. Your file endpoints must check the viewer themselves when you keep the default template resolvers.
+- **A scheme you configure stops being a URL**: an invalid value of that scheme renders *Content not visible* and no link.
+- **Remote host images**: an absolute `image` template or resolver URL renders as a link while `allow_remote_images` is
+  off, until its origin is in `markdown.host_image_origins`.
+- **Previews need the host's CSP**: `frame-src` must allow the preview URLs, and the endpoint must send the headers in
+  [USAGE](USAGE.md#previews).
+- **`image_block`** has two switches: the profile feature (editor) and `markdown.image_block` (renderer). With only the
+  feature, `{width=…}` shows as text on read pages.
+- `DocumentProcessor`, `MilkdownMarkdownRenderer`, `DialectRenderer` and `MilkdownEditorType` gain optional constructor
+  arguments at the end; `FileCard::render()` gains an optional second argument.
 
 ## Unreleased (1.8.0)
 

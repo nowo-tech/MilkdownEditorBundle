@@ -6,6 +6,7 @@
 - [Profiles](#profiles)
 - [Features](#features)
 - [Markdown renderer](#markdown-renderer)
+  - [Host references](#host-references)
   - [Renderer limits](#renderer-limits)
 - [Form options](#form-options)
 - [Icons](#icons)
@@ -21,7 +22,7 @@ nowo_milkdown_editor:
     profiles:
         default:
             # toolbar, top_bar, link_tooltip, table, code_mirror, math, mermaid, placeholder, cursor, slash_menu,
-            # context_menu (1.3), block_actions, block_drag, colors (1.4), file_cards (1.8)
+            # context_menu (1.3), block_actions, block_drag, colors (1.4), file_cards (1.8), image_block, insert_button (1.9)
             features: [toolbar, link_tooltip, table, code_mirror, placeholder, cursor, slash_menu]
             theme: auto                 # light | dark | auto
             min_height: 12rem           # CSS length: px, rem, em or vh
@@ -48,7 +49,11 @@ nowo_milkdown_editor:
         max_nesting_level: 50
         max_input_length: 100000        # bytes; longer input renders as escaped text (also the form's max_length)
         max_inline_markers: 10000       # more [ ] * _ ` ! < & @ : $ ~ | \ characters and line feeds: escaped text
-        max_references: 500             # distinct page ids / handles sent to each resolver per document
+        max_references: 500             # distinct page ids / handles / host references sent to each resolver per document
+        host_schemes: {}                # 1.9: scheme => {image, file, preview} URL templates with {id} (see below)
+        host_image_origins: []          # 1.9: origins host images may load from while allow_remote_images is off
+        image_block: false              # 1.9: images take {width=… align=…}; a standalone image renders as a figure
+        file_preview_sandbox: []        # 1.9: tokens added to the sandbox attribute of preview frames
         icon_sprite_url: ~
         icons: []
         icon_catalog: false             # 1.7: also render any Tabler outline icon (and callout icon) from the bundled shards
@@ -109,7 +114,9 @@ the `Nowo\MilkdownEditorBundle\ProfileRegistry` service.
 | `comments` | Inline comment anchors, highlights, **Ctrl / ⌘ + Alt + M**, next / previous comment, events; optional thread component with `comments.url` (1.6, see [USAGE](USAGE.md#comments)) | lazy |
 | `version_view` | Read-only view of an old version with a banner (*Restore* / *Copy to a new page* events); never with `comments` (1.6, see [USAGE](USAGE.md#version-view-and-diff)) | lazy |
 | `heading_ids` | Headings get ids `nowo-h-<slug>`, the same as the renderer's `markdown.heading_ids` (1.6) | lazy |
-| `file_cards` | Uploads that are not images become file cards `::file[name]{href size type}` instead of links (1.8, see [USAGE](USAGE.md#uploads)); `::file` is always rendered as a card | entry |
+| `file_cards` | Uploads that are not images become file cards `::file[name]{href size type}` instead of links (1.8, see [USAGE](USAGE.md#uploads)); `::file` is always rendered as a card. 1.9: *View* and *Preview height* menus and `/file` variants ([USAGE](USAGE.md#file-views-and-previews)) | entry |
+| `image_block` | 1.9: caption, width and alignment of images with a toolbar on the selected image ([USAGE](USAGE.md#images)); enable `markdown.image_block` for the read side | entry |
+| `insert_button` | 1.9: a "+" beside the empty line with the caret opens the `/` menu (needs `slash_menu`) | entry |
 
 Lists, task lists, blockquotes, headings, links, images and the dialect nodes are always available.
 
@@ -118,6 +125,24 @@ Lists, task lists, blockquotes, headings, links, images and the dialect nodes ar
 See the reference above. Hosts implement the resolver interfaces (see [USAGE.md](USAGE.md#rendering-markdown-in-php)):
 `PageResolverInterface`, `UserResolverInterface`, `IconResolverInterface` (default: the configured allowlist) and
 tagged `DirectiveRendererInterface` services.
+
+### Host references
+
+```yaml
+nowo_milkdown_editor:
+    markdown:
+        host_schemes:
+            app-file:
+                image: /files/{id}/thumbnail   # <img src>; default: file
+                file: /files/{id}              # links and file cards
+                preview: /files/{id}/preview   # view="preview"; none: no previews
+        host_image_origins: [https://cdn.example.com]
+```
+
+A scheme is lower-case letters, digits, `+`, `.` and `-`, and not one of the browser's (`http`, `data`, `javascript`,
+`file`…). A template is a path starting with one `/` or an http(s) URL, contains `{id}` and has at most 500 characters;
+anything else fails at container build. The templates are in the editor's widget JSON, so do not put secrets in them.
+See [USAGE](USAGE.md#host-references).
 
 ### Renderer limits
 

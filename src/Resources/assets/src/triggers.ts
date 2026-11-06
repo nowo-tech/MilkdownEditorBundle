@@ -206,5 +206,9 @@ export function slashItems(ctx: Ctx, options: EditorOptions, runtime: Runtime): 
   // 1.7: *Icon…* opens the picker at the caret (inline) when there are icons to pick; otherwise it types `:`.
   if (pickerAvailable(runtime)) out.push(block('icon', (view) => void openPickerAtCaret(view, runtime)));
   else if (options.suggestions[':']) out.push(block('icon', text(':')));
+  // 1.9 (ME-6): the same picker with another view of the files (with `file_cards`), after *Icon…* so `/icon` keeps its item.
+  if (pick && options.features.includes('file_cards')) {
+    for (const view of ['link', 'icon', 'preview'] as const) out.push(block(`file_${view}`, (v) => pick(v, view)));
+  }
   return out;
 }

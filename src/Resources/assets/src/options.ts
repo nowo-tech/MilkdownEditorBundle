@@ -2,6 +2,7 @@
  * Reads and validates the widget options (`data-nowo-milkdown-options`, JSON written by the form type).
  */
 import { isIconName } from './dialect/patterns';
+import { parseHostSchemes } from './host';
 import { FEATURES, type ActionBarInsert, type CollaborationOptions, type CommentsOptions, type EditorOptions, type Feature, type Theme, type Trigger, type UploadOptions } from './types';
 
 export const DEFAULT_FEATURES: Feature[] = ['toolbar', 'link_tooltip', 'table', 'code_mirror', 'placeholder', 'cursor', 'slash_menu'];
@@ -47,6 +48,14 @@ function collaboration(value: unknown): CollaborationOptions | null {
   if (typeof v.awarenessDelay === 'number') out.awarenessDelay = v.awarenessDelay;
   if (typeof v.maxUpdateBytes === 'number') out.maxUpdateBytes = v.maxUpdateBytes;
   return out;
+}
+
+/** Preview frame `sandbox` tokens (1.9): known tokens only, never `allow-scripts` with `allow-same-origin`. */
+export function previewSandbox(value: unknown): string {
+  const known = ['allow-scripts', 'allow-same-origin', 'allow-popups', 'allow-popups-to-escape-sandbox', 'allow-downloads'];
+  let tokens = [...new Set(String(typeof value === 'string' ? value : '').toLowerCase().split(/\s+/))].filter((t) => known.includes(t));
+  if (tokens.includes('allow-scripts')) tokens = tokens.filter((t) => t !== 'allow-same-origin');
+  return tokens.join(' ');
 }
 
 /** The action-bar buttons (1.8): both by default, an array keeps the known ones in canonical order. */
@@ -152,6 +161,8 @@ export function parseOptions(raw: string | undefined | null): EditorOptions {
     menuIcons: data.menuIcons !== false,
     upload: versionOn ? null : uploadOptions(data.upload),
     actionBarInsert: actionBarInsert(data.actionBarInsert),
+    hostSchemes: parseHostSchemes(data.hostSchemes),
+    previewSandbox: previewSandbox(data.previewSandbox),
     collaboration: versionOn ? null : collaboration(data.collaboration),
     colors: Array.isArray(data.colors) ? data.colors.filter((c): c is string => typeof c === 'string') : [],
     mentionDisplay: data.mentionDisplay === 'name' ? 'name' : 'handle',

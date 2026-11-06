@@ -326,9 +326,13 @@ export const containerDirectiveView = $view(containerDirectiveSchema.node, (ctx)
 
 export const leafDirectiveView = $view(leafDirectiveSchema.node, (ctx) => (node) => {
   const runtime = ctx.get(runtimeCtx.key);
-  // 1.8 (ME-3): `::file[name]{href size type}` is a file card.
+  // 1.8 (ME-3): `::file[name]{href size type}` is a file card; 1.9 (ME-6): in its view (link, icon, card, preview).
   if (node.attrs.name === 'file') {
-    const card = fileCard(node.attrs.label as string, decodeAttributes(node.attrs.attributes));
+    const card = fileCard(node.attrs.label as string, decodeAttributes(node.attrs.attributes), {
+      hostSchemes: runtime.hostSchemes,
+      previewSandbox: runtime.previewSandbox,
+      label: (key) => t(runtime, `file.${key}`),
+    });
     card.contentEditable = 'false';
     card.dataset.leafDirective = 'file';
     return { dom: card, ignoreMutation: () => true, stopEvent: (event: Event) => event.type === 'click' && (event.target as Element).closest?.('a') !== null };

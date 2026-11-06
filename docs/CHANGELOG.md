@@ -22,6 +22,41 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+Host references for images and files, images with caption, width and alignment, a "+" button on empty lines, and four
+views of a file (link, link with icon, card, sandboxed preview). All opt-in: hosts that change nothing get the same
+output and the same widget JSON. Requested by Beacon on 2026-11-06 (*milkdown-file-views-and-previews*, ME-5, ME-6);
+see [UPGRADING](UPGRADING.md#unreleased-190) and `specs/008-host-files-image-block/spec.md`.
+
+### Added
+
+- **Host references (ME-5).** `markdown.host_schemes` declares schemes a host stores instead of URLs
+  (`![alt](app-file:<id>)`, `[name](app-file:<id>)`, `::file[name]{href="app-file:<id>"}`), each with `image`, `file` and
+  `preview` URL templates (`{id}`). The editor and the renderer resolve them with the same rules; a reference that
+  cannot be resolved stays inert (*Image not available* in the editor, *Content not visible* on read pages).
+- **`HostFileResolverInterface`** (`resolveFiles(list<string>): array<string, ResolvedFile>`): one batch per document, for
+  the viewer, optionally with per-viewer URLs and the image's size. Default: the templates
+  (`TemplateHostFileResolver`).
+- **`markdown.host_image_origins`**: other origins host images may load from while `allow_remote_images` is off.
+- **`image_block`** (feature and `markdown.image_block`): `![alt](src "caption"){width=50% align=center}`. Caption, width
+  (`25%`, `50%`, `75%`, `100%`, `<n>px`) and alignment; a toolbar on the selected image, *Edit image…* in the block and
+  context menus as the keyboard path; a paragraph holding only an image renders as a `<figure>`.
+- **`insert_button`** (feature): a "+" beside the empty line that holds the caret opens the `/` menu.
+- **File views (ME-6).** `::file[name]{… view="link|icon|card|preview" height="…"}`, switched from *View* and *Preview
+  height* in the block and context menus (radio items) and picked up front with `/file` variants (*File as a link…*,
+  *File as a link with icon…*, *File with preview…*). The `icon` view has one icon per file type. Unknown views are
+  cards, so 1.8 Markdown renders as before.
+- **Previews (ME-6)**: a host page in a sandboxed `<iframe>` (`loading="lazy"`, `referrerpolicy="no-referrer"`, the file
+  name as title) under a header with the card, *Open* and *Download*. `FilePreviewResolverInterface` says per file
+  whether a preview exists for the viewer (default: the `preview` template); without one the card is shown.
+  `markdown.file_preview_sandbox` adds `sandbox` tokens (`allow-scripts` with `allow-same-origin` is refused).
+
+### Security
+
+- A resolved URL (template or resolver) passes `safeUrl()`; images also the remote-image policy (a remote URL off
+  `host_image_origins` renders as a link, without a request). Ids are `[A-Za-z0-9._~-]{1,200}` and never only dots.
+- No value of an image's attribute block reaches a `style` attribute; invalid blocks stay text. See
+  [SECURITY](SECURITY.md#host-references-and-previews).
+
 ## [1.8.0] - 2026-11-06
 
 Menus open in the top layer, the action bar's insert buttons are configurable (`action_bar_insert`), and several files can be dropped or pasted at once: images become image nodes, other files become file cards (`file_cards`).

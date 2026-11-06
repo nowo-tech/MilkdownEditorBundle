@@ -8,14 +8,19 @@ use Nowo\MilkdownEditorBundle\Diff\MarkdownDiffRenderer;
 use Nowo\MilkdownEditorBundle\Diff\MarkdownDiffRendererInterface;
 use Nowo\MilkdownEditorBundle\Form\MilkdownEditorType;
 use Nowo\MilkdownEditorBundle\Markdown\Directive\DirectiveRendererInterface;
+use Nowo\MilkdownEditorBundle\Markdown\HostSchemes;
 use Nowo\MilkdownEditorBundle\Markdown\MarkdownRendererInterface;
 use Nowo\MilkdownEditorBundle\Markdown\MilkdownMarkdownRenderer;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\AllowlistIconResolver;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\FilePreviewResolverInterface;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\HostFileResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\IconResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\NullPageResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\NullUserResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\PageResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TablerCatalog;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateFilePreviewResolver;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateHostFileResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\UserResolverInterface;
 use Nowo\MilkdownEditorBundle\ProfileRegistry;
 use Nowo\MilkdownEditorBundle\Twig\MilkdownEditorTwig;
@@ -53,6 +58,14 @@ return static function (ContainerConfigurator $container): void {
     $services->set(AllowlistIconResolver::class)->args([null, [], null]);
     $services->alias(IconResolverInterface::class, AllowlistIconResolver::class);
 
+    // 1.9: host references (`markdown.host_schemes`) and file previews; point the interfaces at the host's resolvers
+    // to check the viewer and give per-viewer URLs.
+    $services->set(HostSchemes::class)->args([[], []]);
+    $services->set(TemplateHostFileResolver::class)->args([service(HostSchemes::class)]);
+    $services->alias(HostFileResolverInterface::class, TemplateHostFileResolver::class);
+    $services->set(TemplateFilePreviewResolver::class)->args([service(HostSchemes::class)]);
+    $services->alias(FilePreviewResolverInterface::class, TemplateFilePreviewResolver::class);
+
     $services->set(MilkdownMarkdownRenderer::class)
         ->args([
             '$options'            => [],
@@ -63,6 +76,9 @@ return static function (ContainerConfigurator $container): void {
             '$translator'         => service('translator')->nullOnInvalid(),
             '$logger'             => service('logger')->nullOnInvalid(),
             '$secret'             => '%kernel.secret%',
+            '$hostSchemes'        => service(HostSchemes::class),
+            '$sources'            => service(HostFileResolverInterface::class),
+            '$previews'           => service(FilePreviewResolverInterface::class),
         ])
         ->tag('monolog.logger', ['channel' => 'nowo_milkdown_editor'])
         // 1.2.1: per-request footnote render counters (FootnoteSalt) are cleared between requests (worker mode).
@@ -80,6 +96,7 @@ return static function (ContainerConfigurator $container): void {
             service(CspNonceProviderInterface::class)->nullOnInvalid(),
             service('translator')->nullOnInvalid(),
         ])
+        ->arg('$hostSchemes', service(HostSchemes::class))
         ->tag('form.type');
 
     $services->set(MilkdownEditorTwig::class)

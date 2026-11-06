@@ -12,6 +12,8 @@ use Nowo\MilkdownEditorBundle\DependencyInjection\Configuration;
 use Nowo\MilkdownEditorBundle\Form\MilkdownEditorType;
 use Nowo\MilkdownEditorBundle\Markdown\Directive\DirectiveRendererInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Node\ContainerDirective;
+use Nowo\MilkdownEditorBundle\Markdown\Node\HiddenReference;
+use Nowo\MilkdownEditorBundle\Markdown\Node\ImageFigure;
 use Nowo\MilkdownEditorBundle\Markdown\Node\LeafDirective;
 use Nowo\MilkdownEditorBundle\Markdown\Node\Math;
 use Nowo\MilkdownEditorBundle\Markdown\Node\MathBlock;
@@ -25,7 +27,9 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\ResolvedUser;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 use function in_array;
+use function str_ends_with;
 use function strlen;
+use function substr;
 
 use const ENT_HTML5;
 use const ENT_QUOTES;
@@ -47,6 +51,7 @@ final readonly class DialectRenderer implements NodeRendererInterface
      * @param list<string> $markColors Accepted `:mark` colours
      * @param TranslatorInterface|null $translator Translates *Content not visible* (per request locale)
      * @param string $mentionDisplay `handle` (`@handle`) or `name` (the resolved name, handle in `data-handle` / `title`)
+     * @param string $previewSandbox `sandbox` of file preview frames (1.9, `markdown.file_preview_sandbox`)
      */
     public function __construct(
         private IconResolverInterface $icons,
@@ -54,6 +59,7 @@ final readonly class DialectRenderer implements NodeRendererInterface
         private array $markColors = ['yellow'],
         private ?TranslatorInterface $translator = null,
         private string $mentionDisplay = 'handle',
+        private string $previewSandbox = '',
     ) {
     }
 
@@ -76,6 +82,8 @@ final readonly class DialectRenderer implements NodeRendererInterface
             $node instanceof TextDirective      => $this->textDirective($node, $childRenderer->renderNodes($node->children())),
             $node instanceof ContainerDirective => $this->container($node, $childRenderer->renderNodes($node->children())),
             $node instanceof LeafDirective      => $this->leaf($node),
+            $node instanceof HiddenReference    => '<span class="nowo-md-ref nowo-md-ref--hidden">' . self::e($this->hidden()) . '</span>',
+            $node instanceof ImageFigure        => $this->figure($node, $childRenderer->renderNodes($node->children())),
             default                             => throw new InvalidArgumentException('Unsupported node ' . $node::class),
         };
     }
@@ -113,12 +121,30 @@ final readonly class DialectRenderer implements NodeRendererInterface
         return str_replace(["\t", "\n", "\r"], '', trim($url, "\x00..\x20\x7f"));
     }
 
+    /** *Content not visible*, translated. */
+    private function hidden(): string
+    {
+        return $this->translator?->trans('ref.hidden', [], MilkdownEditorType::DOMAIN) ?? 'Content not visible';
+    }
+
+    /** 1.9 `image_block`: a figure with the alignment and width classes (no style), and the caption. */
+    private function figure(ImageFigure $node, string $content): string
+    {
+        $class = 'nowo-md-figure' . ($node->align !== '' ? ' nowo-md-figure--' . $node->align : '');
+        // A % width is a class; a px width is the image's HTML width attribute (set by DocumentProcessor; no style).
+        if (str_ends_with($node->width, '%')) {
+            $class .= ' nowo-md-figure--w' . substr($node->width, 0, -1);
+        }
+
+        return '<figure class="' . $class . '">' . $content . ($node->caption !== '' ? '<figcaption>' . self::e($node->caption) . '</figcaption>' : '') . '</figure>';
+    }
+
     private function wikiLink(WikiLink $node): string
     {
         $page = $node->page;
         $url  = $page instanceof ResolvedPage ? self::safeUrl($page->url) : '';
         if (!$page instanceof ResolvedPage) {
-            return '<span class="nowo-md-ref nowo-md-ref--hidden">' . self::e($this->translator?->trans('ref.hidden', [], MilkdownEditorType::DOMAIN) ?? 'Content not visible') . '</span>';
+            return '<span class="nowo-md-ref nowo-md-ref--hidden">' . self::e($this->hidden()) . '</span>';
         }
         $title = self::e($page->title . ($node->anchor !== '' ? ' › ' . $node->anchor : ''));
         if ($url === '') {
@@ -248,9 +274,14 @@ final readonly class DialectRenderer implements NodeRendererInterface
                 return $renderer->render($node);
             }
         }
-        // 1.8 (ME-3): file cards, unless a host renderer above handles `::file` itself.
+        // 1.8 (ME-3): file cards, unless a host renderer above handles `::file` itself; 1.9: views and previews.
         if ($node->name === FileCard::NAME) {
-            return FileCard::render($node);
+            return FileCard::render($node, [
+                'open'     => $this->translator?->trans('file.open', [], MilkdownEditorType::DOMAIN) ?? 'Open',
+                'download' => $this->translator?->trans('file.download', [], MilkdownEditorType::DOMAIN) ?? 'Download',
+                'hidden'   => $this->hidden(),
+                'sandbox'  => $this->previewSandbox,
+            ]);
         }
 
         return '<div class="nowo-md-directive nowo-md-directive--leaf" data-directive="' . self::e($node->name) . '"></div>';

@@ -15,6 +15,8 @@ import { runtimeCtx, t, type Runtime } from '../runtime';
 import { Menu, type MenuGroups, type MenuItem } from '../ui/menu';
 import { TURN_INTO, deleteBlock, duplicateBlock, moveBlock, selectionRunner, turnInto } from '../commands/blocks';
 import { colorItems } from '../commands/colors';
+import { fileViewItems } from '../commands/file-view';
+import { imageItems } from '../nodes/image';
 import { flushSelection } from './keyboard';
 
 export const blockActionsKey = new PluginKey('nowo-milkdown-block-actions');
@@ -165,7 +167,10 @@ export class BlockActionsView {
   private openFromButton(): void {
     if (this.target !== null) {
       const $inside = this.view.state.doc.resolve(Math.min(this.target + 1, this.view.state.doc.content.size));
-      this.view.dispatch(this.view.state.tr.setSelection(TextSelection.near($inside)));
+      // 1.9: a file card has no inside: it gets selected (the caret would land in the next block).
+      const node = this.view.state.doc.nodeAt(this.target);
+      const file = node?.type.name === 'leafDirective' && node.attrs.name === 'file';
+      this.view.dispatch(this.view.state.tr.setSelection(file ? NodeSelection.create(this.view.state.doc, this.target) : TextSelection.near($inside)));
     }
     const rect = this.button.getBoundingClientRect();
     this.open(rect.left, rect.bottom);
@@ -184,6 +189,9 @@ export class BlockActionsView {
     const first: MenuItem[] = [];
     if (turn.length) first.push({ id: 'turn_into', label: t(runtime, 'menu.turn_into'), items: turn });
     if (runtime.features.has('colors')) first.push({ id: 'color', label: t(runtime, 'menu.color'), items: colorItems(state, runtime, false, run) });
+    // 1.9 (ME-6): view and preview height of a file card.
+    if (view.editable) first.push(...fileViewItems(state, runtime, run));
+    first.push(...imageItems(view, runtime));
     return [
       first,
       [

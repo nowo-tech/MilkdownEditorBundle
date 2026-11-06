@@ -57,6 +57,12 @@ export const ITEM_GLYPHS: Readonly<Record<string, string>> = {
   mention: 'at',
   icon: 'icons',
   file: 'file-upload',
+  file_link: 'link',
+  file_icon: 'file',
+  file_preview: 'photo',
+  file_view: 'file',
+  file_height: 'arrow-down',
+  image_edit: 'photo',
   // Pickers and actions
   browse_icons: 'search',
   upload: 'file-upload',

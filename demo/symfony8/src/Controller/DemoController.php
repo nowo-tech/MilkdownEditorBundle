@@ -149,7 +149,7 @@ final class DemoController extends AbstractController
      *
      * What a real endpoint adds and this demo does not: authentication and the right to edit the field's object
      * (CSRF alone only proves the form came from this site), a quota and a rate limit per user, a retention / cleanup
-     * policy (the demo keeps files until `var/` is cleared), and ideally a separate cookie-less origin for the files.
+     * policy (the demo keeps files in the system's temporary directory), and ideally a separate cookie-less origin for the files.
      */
     #[Route('/api/upload', name: 'demo_api_upload', methods: ['POST'])]
     public function upload(Request $request): JsonResponse
@@ -177,7 +177,8 @@ final class DemoController extends AbstractController
         $file->move(self::uploadDir($this->getParameter('kernel.project_dir')), $name);
 
         return $this->json([
-            'url'  => '/uploads/' . $name,
+            // 1.9 (ME-5): `?reference=1` answers with a host reference (`/files`), resolved by the bundle's host scheme.
+            'url'  => $request->query->getBoolean('reference') ? 'demo-file:' . $name : '/uploads/' . $name,
             'name' => mb_substr($file->getClientOriginalName(), 0, 200),
             'size' => $size,
             'type' => $mime,
@@ -209,9 +210,60 @@ final class DemoController extends AbstractController
         return $response;
     }
 
+    /**
+     * 1.9 (ME-5, ME-6): host references. Images and files are stored as `demo-file:<id>` (the upload answers with one);
+     * the bundle resolves them through `markdown.host_schemes`. Also shows what cannot be resolved.
+     */
+    #[Route('/files', name: 'demo_files', methods: ['GET', 'POST'])]
+    public function files(Request $request): Response
+    {
+        if ($request->query->get('devtools') === '0') {
+            $this->profiler?->disable();
+        }
+        $form = $this->createFormBuilder(['body' => "Host files\n\n![broken](demo-file:..)\n\n"])
+            ->add('body', MilkdownEditorType::class, [
+                'label'             => 'demo.body',
+                'profile'           => 'files',
+                'upload_url'        => '/api/upload?reference=1',
+                'upload_csrf_token' => $this->csrf->getToken('milkdown_upload')->getValue(),
+            ])
+            ->add('save', SubmitType::class, ['label' => 'demo.save'])
+            ->getForm();
+        $form->handleRequest($request);
+
+        return $this->render('demo/files.html.twig', [
+            'form'  => $form,
+            'saved' => $form->isSubmitted() && $form->isValid() ? $form->getData() : null,
+        ]);
+    }
+
+    /**
+     * DEMO ONLY: the preview endpoint of `markdown.host_schemes` (`/uploads/{name}/preview`), embedded by file cards with
+     * `view="preview"`: what docs/USAGE.md › Previews asks from a host. Text and CSV files as an escaped page; nothing
+     * else has a preview (404). `sandbox` also in the CSP, no scripts, `nosniff`, framed by this site only. A real host
+     * also checks that the viewer may read the file, and caps the size.
+     */
+    #[Route('/uploads/{name}/preview', name: 'demo_uploaded_preview', requirements: ['name' => '[0-9a-f]{16}\\.(?:txt|csv)'], methods: ['GET'])]
+    public function uploadedPreview(string $name): Response
+    {
+        $path = self::uploadDir((string) $this->getParameter('kernel.project_dir')) . '/' . $name;
+        if (!is_file($path)) {
+            throw $this->createNotFoundException();
+        }
+        $text = (string) file_get_contents($path, false, null, 0, 65536);
+
+        return new Response('<!doctype html><html lang="en"><title>Preview</title><pre>' . htmlspecialchars($text, \ENT_QUOTES | \ENT_SUBSTITUTE) . '</pre></html>', 200, [
+            'Content-Type'            => 'text/html; charset=UTF-8',
+            'Content-Security-Policy' => "sandbox; default-src 'none'; frame-ancestors 'self'",
+            'X-Content-Type-Options'  => 'nosniff',
+            'Referrer-Policy'         => 'no-referrer',
+        ]);
+    }
+
+    /** Outside the project: FrankenPHP's `hot_reload` watches its images and would morph the page after an upload. */
     private static function uploadDir(mixed $projectDir): string
     {
-        return (is_string($projectDir) ? $projectDir : '') . '/var/uploads';
+        return sys_get_temp_dir() . '/milkdown-demo-uploads-' . md5(is_string($projectDir) ? $projectDir : '');
     }
 
     /**

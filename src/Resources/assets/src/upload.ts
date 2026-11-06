@@ -14,6 +14,7 @@ import type { Node as PmNode, Schema } from '@milkdown/kit/prose/model';
 import { encodeAttributes } from './dialect/directives';
 import { MAX_NAME, fileName } from './dialect/file-card';
 import { safeUrl } from './link-titles';
+import { hostReference, type HostSchemes } from './host';
 import type { UploadOptions } from './types';
 
 export type { UploadOptions };
@@ -53,7 +54,10 @@ export function checkFile(file: File, options: UploadOptions): void {
  * A link target for a file card: `safeUrl()` (relative or http(s)), with the characters that would end a quoted
  * directive attribute or an HTML attribute percent-encoded. '' when the URL is not allowed.
  */
-export function fileHref(url: string): string {
+export function fileHref(url: string, hostSchemes: HostSchemes = {}): string {
+  // 1.9 (ME-5): a host reference is stored as is (`host-file:<id>`); the renderers resolve it.
+  const reference = hostReference(url, hostSchemes);
+  if (reference) return reference;
   return safeUrl(url).replace(/["'<>`{}\s\\]/g, (c) => (c === "'" ? '%27' : encodeURIComponent(c)));
 }
 
@@ -76,7 +80,8 @@ function kindOf(body: Record<string, unknown>, file: File, options: UploadOption
  */
 export function parseResult(body: unknown, file: File, options: UploadOptions): UploadResult | null {
   const b = body && typeof body === 'object' && !Array.isArray(body) ? (body as Record<string, unknown>) : {};
-  const url = safeUrl(b.url);
+  // 1.9 (ME-5): a host reference of an allow-listed scheme (`host-file:<id>`) is kept as the stored value.
+  const url = safeUrl(b.url) || hostReference(b.url, options.hostSchemes ?? {}) || '';
   if (!url) return null;
   const name = fileName(typeof b.name === 'string' && b.name.trim() !== '' ? b.name : file.name);
   const size = typeof b.size === 'number' && Number.isSafeInteger(b.size) && b.size >= 0 ? b.size : file.size;
@@ -138,13 +143,17 @@ export function sendFile(file: File, options: UploadOptions, onProgress: (percen
  * @param schema - The editor schema
  * @param result - The validated answer
  * @param cards - Whether non-image files become `::file` cards (`file_cards`)
+ * @param view - 1.9: the view of a new card (`link`, `icon`, `card`, `preview`)
+ * @param hostSchemes - 1.9: host references kept as stored values
  */
-export function resultNode(schema: Schema, result: UploadResult, cards = false): PmNode | null {
+export function resultNode(schema: Schema, result: UploadResult, cards = false, view = 'card', hostSchemes: HostSchemes = {}): PmNode | null {
   if (result.kind === 'image' && schema.nodes.image) return schema.nodes.image.create({ src: result.url, alt: result.alt, title: '' });
-  const href = fileHref(result.url);
+  const href = fileHref(result.url, hostSchemes);
   if (cards && href && schema.nodes.leafDirective) {
     const attributes: Record<string, string> = { href, size: String(result.size) };
     if (result.type) attributes.type = result.type;
+    // 1.9 (ME-6): `/file` variants insert the files in another view.
+    if (view === 'link' || view === 'icon' || view === 'preview') attributes.view = view;
     return schema.nodes.leafDirective.create({ name: 'file', label: result.name, attributes: encodeAttributes(attributes) });
   }
   const link = schema.marks.link;
@@ -161,6 +170,7 @@ export function resultNode(schema: Schema, result: UploadResult, cards = false):
  * @param cards - `file_cards`
  * @param send - The transport (tests)
  * @param onProgress - Also called with the percentage (the drop placeholder)
+ * @param view - 1.9: the view of a new file card
  */
 export async function uploadOne(
   file: File,
@@ -170,6 +180,7 @@ export async function uploadOne(
   cards: boolean,
   send: typeof sendFile = sendFile,
   onProgress: (percent: number) => void = () => undefined,
+  view = 'card',
 ): Promise<{ node: PmNode | null; error: string | null }> {
   try {
     checkFile(file, options);
@@ -179,7 +190,7 @@ export async function uploadOne(
       announce('upload.uploading', { name: file.name, percent });
       onProgress(percent);
     });
-    const node = resultNode(schema, result, cards);
+    const node = resultNode(schema, result, cards, view, options.hostSchemes);
     announce('upload.done', { name: file.name });
     return { node, error: null };
   } catch (error) {

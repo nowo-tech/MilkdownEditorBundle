@@ -26,7 +26,9 @@ export type Feature =
   | 'comments'
   | 'version_view'
   | 'heading_ids'
-  | 'file_cards';
+  | 'file_cards'
+  | 'image_block'
+  | 'insert_button';
 
 export const FEATURES: readonly Feature[] = [
   'toolbar',
@@ -49,6 +51,8 @@ export const FEATURES: readonly Feature[] = [
   'version_view',
   'heading_ids',
   'file_cards',
+  'image_block',
+  'insert_button',
 ];
 
 /** Buttons of the action bar (1.8 `action_bar_insert`). */
@@ -64,6 +68,8 @@ export type UploadOptions = {
   /** 1.8: types expected to come back as images / as attachments (only when the host splits them). */
   acceptImages?: string[];
   acceptFiles?: string[];
+  /** 1.9 (ME-5): host references the answer may give instead of a URL (`host-file:<id>`), from `hostSchemes`. */
+  hostSchemes?: import('./host').HostSchemes;
 };
 
 /** Suggestion triggers of the FR-075 dialect: `@` mentions, `[[` page links, `:` icons and emoji. */
@@ -140,6 +146,10 @@ export type EditorOptions = {
   upload: UploadOptions | null;
   /** 1.8 (ME-2) `action_bar_insert`: the action-bar buttons shown (default both; `[]` hides the bar's insert buttons). */
   actionBarInsert: ActionBarInsert[];
+  /** 1.9 (ME-5): host references (`markdown.host_schemes`): scheme → URL templates with `{id}`. */
+  hostSchemes: import('./host').HostSchemes;
+  /** 1.9 (ME-6): extra `sandbox` tokens of file preview frames (`markdown.file_preview_sandbox`). */
+  previewSandbox: string;
   collaboration: CollaborationOptions | null;
   /** Colours the editor offers (`markdown.mark_colors`, 1.4); empty: the whole palette. */
   colors: string[];

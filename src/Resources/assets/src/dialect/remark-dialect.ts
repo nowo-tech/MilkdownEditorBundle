@@ -6,6 +6,7 @@
 import { directive } from 'micromark-extension-directive';
 import { directiveFromMarkdown, directiveToMarkdown } from 'mdast-util-directive';
 import { serialise, splitText } from './patterns';
+import { liftImageAttributes } from './image';
 
 export type MdNode = {
   type: string;
@@ -135,5 +136,9 @@ export function remarkNowoDialect(this: Processor): (tree: MdNode) => void {
       tablerIcon: (n: { name: string }) => serialise.tablerIcon(n),
     },
   });
-  return (tree: MdNode) => transform(tree);
+  return (tree: MdNode) => {
+    transform(tree);
+    // 1.9 `image_block`: `![…](…){width=… align=…}` keeps its attributes on the image.
+    liftImageAttributes(tree);
+  };
 }

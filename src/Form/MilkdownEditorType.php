@@ -8,6 +8,7 @@ use Nowo\MilkdownEditorBundle\Csp\CspNonceProviderInterface;
 use Nowo\MilkdownEditorBundle\DependencyInjection\Configuration;
 use Nowo\MilkdownEditorBundle\Feature;
 use Nowo\MilkdownEditorBundle\Form\DataTransformer\MarkdownNewlineTransformer;
+use Nowo\MilkdownEditorBundle\Markdown\HostSchemes;
 use Nowo\MilkdownEditorBundle\Markdown\MilkdownMarkdownRenderer;
 use Nowo\MilkdownEditorBundle\ProfileRegistry;
 use Nowo\MilkdownEditorBundle\Theme;
@@ -110,7 +111,17 @@ final class MilkdownEditorType extends AbstractType
         ],
         'markdown_clipboard' => ['menu.paste_markdown', 'menu.copy_markdown', 'clipboard.copied_markdown', 'clipboard.copy_failed'],
         'insert_menu'        => ['menu.insert', 'menu.insert_file'],
-        'version_view'       => [
+        'image_block'        => [
+            'image.alt', 'image.caption', 'image.width', 'image.width_original', 'image.align', 'image.align_left',
+            'image.align_center', 'image.align_right', 'image.hidden', 'menu.image_edit',
+        ],
+        'insert_button' => ['insert.button'],
+        'file_cards'    => [
+            'file.open', 'file.download', 'file.view.link', 'file.view.icon', 'file.view.card', 'file.view.preview',
+            'file.height.s', 'file.height.m', 'file.height.l', 'menu.file_view', 'menu.file_height', 'slash.file_link',
+            'slash.file_icon', 'slash.file_preview',
+        ],
+        'version_view' => [
             'version.region', 'version.viewing', 'version.viewing_old', 'version.restore', 'version.copy',
         ],
         'comments' => [
@@ -133,6 +144,8 @@ final class MilkdownEditorType extends AbstractType
      * @param TranslatorInterface|null $translator Translates the editor UI strings
      * @param int $maxInputLength Default `max_length` (the renderer's `max_input_length`)
      * @param list<string> $markColors The renderer's `mark_colors`: the colours the editor offers (1.4, audit DB-I7)
+     * @param HostSchemes|null $hostSchemes The renderer's `host_schemes`: the editor resolves the same references (1.9)
+     * @param string $previewSandbox The renderer's `file_preview_sandbox` tokens, space separated (1.9)
      */
     public function __construct(
         private readonly ProfileRegistry $profiles,
@@ -140,6 +153,8 @@ final class MilkdownEditorType extends AbstractType
         private readonly ?TranslatorInterface $translator = null,
         private readonly int $maxInputLength = MilkdownMarkdownRenderer::DEFAULT_MAX_INPUT_LENGTH,
         private readonly array $markColors = [],
+        private readonly ?HostSchemes $hostSchemes = null,
+        private readonly string $previewSandbox = '',
     ) {
     }
 
@@ -228,6 +243,13 @@ final class MilkdownEditorType extends AbstractType
         }
         if ($options['menu_icons'] === false) {
             $view->vars['milkdown_options']['menuIcons'] = false;
+        }
+        // 1.9 (ME-5 / ME-6): host references and the preview sandbox, only when configured (same JSON otherwise).
+        if ($this->hostSchemes instanceof HostSchemes && !$this->hostSchemes->isEmpty()) {
+            $view->vars['milkdown_options']['hostSchemes'] = $this->hostSchemes->toArray();
+        }
+        if ($this->previewSandbox !== '') {
+            $view->vars['milkdown_options']['previewSandbox'] = $this->previewSandbox;
         }
         // 1.8 (ME-2): only when not the default, so fields with the defaults keep the same widget JSON.
         if ($options['action_bar_insert'] !== Configuration::ACTION_BAR_INSERT) {
@@ -596,6 +618,10 @@ final class MilkdownEditorType extends AbstractType
         $keys = self::MESSAGE_KEYS;
         foreach ($features as $feature) {
             $keys = [...$keys, ...(self::FEATURE_MESSAGE_KEYS[$feature] ?? [])];
+        }
+        // 1.9 (ME-5): the placeholder of an image that cannot be shown, only with host references.
+        if ($this->hostSchemes instanceof HostSchemes && !$this->hostSchemes->isEmpty()) {
+            $keys[] = 'image.hidden';
         }
         $out = [];
         foreach ($keys as $key) {

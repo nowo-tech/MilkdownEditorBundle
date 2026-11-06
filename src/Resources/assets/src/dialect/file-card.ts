@@ -3,7 +3,8 @@
  * uploads that are not images (`file_cards`). The editor and the PHP renderer (`FileCard.php`) derive the same badge,
  * category (from the link target first, see {@link fileKind}) and size text; both are tested against `tests/Fixtures/file-cards.json`.
  */
-import { safeUrl } from '../link-titles';
+import { glyph } from '../ui/icons';
+import { hostUrl, targetUrl, type HostSchemes } from '../host';
 
 /** Longest file name kept (characters). */
 export const MAX_NAME = 200;
@@ -101,34 +102,103 @@ export function formatSize(value: string | number | undefined): string {
   return `${rounded} ${units[unit]}`;
 }
 
+/** Views of a file (1.9, ME-6); `card` is the default and the fallback. */
+export const FILE_VIEWS = ['link', 'icon', 'card', 'preview'] as const;
+export type FileView = (typeof FILE_VIEWS)[number];
+/** Preview heights (px): default, bounds and the S / M / L presets of the menus. */
+export const PREVIEW_HEIGHT = { default: 480, min: 160, max: 1200, presets: { s: 320, m: 480, l: 720 } } as const;
+
+/** The view of a card: `view=` when known, else `card` (the PHP `FileCard::view()`). */
+export const fileView = (attributes: Record<string, string>): FileView =>
+  (FILE_VIEWS as readonly string[]).includes(attributes.view ?? '') ? (attributes.view as FileView) : 'card';
+
+/** A preview height: digits within the bounds, else the default (the PHP `FileCard::height()`). */
+export function previewHeight(value: string | undefined): number {
+  if (!/^\d{1,4}$/.test(value ?? '')) return PREVIEW_HEIGHT.default;
+  const h = Number(value);
+  return h >= PREVIEW_HEIGHT.min && h <= PREVIEW_HEIGHT.max ? h : PREVIEW_HEIGHT.default;
+}
+
+/** The glyph of the `icon` view: per category, `CSV` has its own (the PHP `FileCard::icon()`). */
+const FILE_ICONS: Record<FileCategory | 'csv', string> = {
+  pdf: 'file-type-pdf',
+  image: 'photo',
+  audio: 'music',
+  video: 'movie',
+  archive: 'file-zip',
+  sheet: 'file-type-xls',
+  csv: 'file-type-csv',
+  doc: 'file-type-doc',
+  slides: 'file-type-ppt',
+  text: 'file-type-txt',
+  code: 'file-code',
+  other: 'file',
+};
+export const fileIcon = (kind: { category: FileCategory; badge: string }): string => FILE_ICONS[kind.badge === 'CSV' ? 'csv' : kind.category];
+
+/** What a card needs from the editor: host references, the preview sandbox and translated labels. */
+export type FileCardContext = {
+  hostSchemes: HostSchemes;
+  previewSandbox: string;
+  label?: (key: 'open' | 'download') => string;
+};
+
+const DEFAULT_CONTEXT: FileCardContext = { hostSchemes: {}, previewSandbox: '' };
+
 /**
- * The card of a `::file` directive, built with DOM APIs (no `innerHTML`): a link (when `href` is a safe URL) with a
- * decorative badge, the name and the size. In the editor the link opens in a new tab.
+ * A `::file` directive in its view, built with DOM APIs (no `innerHTML`; 1.9: `view="link|icon|card|preview"`). The
+ * target is the host reference resolved through its `file` template or a safe URL; without one there is no link. A
+ * preview needs the scheme's `preview` template (the host endpoint checks the viewer); without it the card is shown.
+ * Links open in a new tab from the editor.
  *
  * @param label - The file name (the directive label)
- * @param attributes - `href`, `size`, `type`
+ * @param attributes - `href`, `size`, `type`, `view`, `height`
+ * @param context - Host references, preview sandbox, labels
  */
-export function fileCard(label: string, attributes: Record<string, string>): HTMLElement {
+export function fileCard(label: string, attributes: Record<string, string>, context: FileCardContext = DEFAULT_CONTEXT): HTMLElement {
   const name = fileName(label);
-  const href = safeUrl(attributes.href ?? '');
+  const href = targetUrl(attributes.href ?? '', 'file', context.hostSchemes);
   const kind = fileKind(name, attributes.type ?? '', href);
-  const card = document.createElement('div');
-  card.className = `nowo-milkdown-file nowo-milkdown-file--${kind.category}`;
-  const inner = document.createElement(href ? 'a' : 'span');
-  inner.className = 'nowo-milkdown-file__link';
-  if (inner instanceof HTMLAnchorElement) {
-    inner.href = href;
-    inner.rel = 'noopener noreferrer';
-    inner.target = '_blank';
+  const view = fileView(attributes);
+  const anchor = (className: string): HTMLElement => {
+    const el = document.createElement(href ? 'a' : 'span');
+    el.className = className;
+    if (el instanceof HTMLAnchorElement) {
+      el.href = href;
+      el.rel = 'noopener noreferrer';
+      el.target = '_blank';
+    }
+    return el;
+  };
+  const nameSpan = (): HTMLSpanElement => {
+    const title = document.createElement('span');
+    title.className = 'nowo-milkdown-file__name';
+    title.textContent = name;
+    return title;
+  };
+
+  if (view === 'link' || view === 'icon') {
+    const p = document.createElement('p');
+    p.className = `nowo-milkdown-file nowo-milkdown-file--${view}-view nowo-milkdown-file--${kind.category}`;
+    p.dataset.view = view;
+    const a = anchor(view === 'link' ? 'nowo-milkdown-file__text' : 'nowo-milkdown-file__inline');
+    if (view === 'icon') {
+      const icon = glyph(fileIcon(kind), 'nowo-milkdown-file__icon');
+      if (icon) a.append(icon);
+      a.append(nameSpan());
+    } else {
+      a.textContent = name;
+    }
+    p.append(a);
+    return p;
   }
+
+  const inner = anchor('nowo-milkdown-file__link');
   const badge = document.createElement('span');
   badge.className = 'nowo-milkdown-file__badge';
   badge.setAttribute('aria-hidden', 'true');
   badge.textContent = kind.badge;
-  const title = document.createElement('span');
-  title.className = 'nowo-milkdown-file__name';
-  title.textContent = name;
-  inner.append(badge, title);
+  inner.append(badge, nameSpan());
   const size = formatSize(attributes.size);
   if (size) {
     const meta = document.createElement('span');
@@ -136,6 +206,47 @@ export function fileCard(label: string, attributes: Record<string, string>): HTM
     meta.textContent = size;
     inner.append(meta);
   }
+
+  const preview = view === 'preview' && href ? hostUrl(attributes.href ?? '', 'preview', context.hostSchemes) : null;
+  if (preview) {
+    const figure = document.createElement('figure');
+    figure.className = `nowo-milkdown-file nowo-milkdown-file--preview-view nowo-milkdown-file--${kind.category}`;
+    figure.dataset.view = 'preview';
+    const head = document.createElement('div');
+    head.className = 'nowo-milkdown-file__head';
+    const actions = document.createElement('span');
+    actions.className = 'nowo-milkdown-file__actions';
+    const open = document.createElement('a');
+    open.className = 'nowo-milkdown-file__open';
+    open.href = href;
+    open.target = '_blank';
+    open.rel = 'noopener noreferrer';
+    open.textContent = context.label?.('open') ?? 'Open';
+    const download = document.createElement('a');
+    download.className = 'nowo-milkdown-file__download';
+    download.href = href;
+    download.rel = 'noopener noreferrer';
+    download.setAttribute('download', '');
+    download.textContent = context.label?.('download') ?? 'Download';
+    actions.append(open, download);
+    head.append(inner, actions);
+    const frame = document.createElement('iframe');
+    frame.className = 'nowo-milkdown-file__frame';
+    frame.title = name;
+    // The strictest sandbox plus the host's tokens (never allow-scripts with allow-same-origin: options.ts). Set before
+    // the source, like every restriction of the frame.
+    frame.setAttribute('sandbox', context.previewSandbox);
+    frame.setAttribute('loading', 'lazy');
+    frame.setAttribute('referrerpolicy', 'no-referrer');
+    frame.height = String(previewHeight(attributes.height));
+    frame.src = preview;
+    figure.append(head, frame);
+    return figure;
+  }
+
+  const card = document.createElement('div');
+  card.className = `nowo-milkdown-file nowo-milkdown-file--${kind.category}`;
+  if (view !== 'card') card.dataset.view = view;
   card.append(inner);
   return card;
 }

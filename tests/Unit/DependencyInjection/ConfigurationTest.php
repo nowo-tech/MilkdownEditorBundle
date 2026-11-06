@@ -111,4 +111,58 @@ final class ConfigurationTest extends TestCase
         $this->expectException(InvalidConfigurationException::class);
         $this->process($config);
     }
+
+    /** 1.9 (ME-5, ME-6): off by default; schemes keep their "-"; templates, origins and the sandbox are validated. */
+    #[Test]
+    public function hostSchemesOriginsAndSandbox(): void
+    {
+        $markdown = $this->process([])['markdown'];
+        self::assertSame([[], [], [], false], [$markdown['host_schemes'] ?? null, $markdown['host_image_origins'] ?? null, $markdown['file_preview_sandbox'] ?? null, $markdown['image_block'] ?? null]);
+
+        $markdown = $this->process(['markdown' => [
+            'host_schemes'         => ['app-file' => ['image' => '/f/{id}/i', 'file' => 'https://x.example/{id}']],
+            'host_image_origins'   => ['https://cdn.example:8443'],
+            'file_preview_sandbox' => ['allow-scripts', 'allow-downloads'],
+        ]])['markdown'];
+        self::assertSame(['app-file' => ['image' => '/f/{id}/i', 'file' => 'https://x.example/{id}', 'preview' => null]], $markdown['host_schemes'] ?? null);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function invalidHostFileConfiguration(): iterable
+    {
+        yield 'reserved scheme' => [['host_schemes' => ['javascript' => ['file' => '/{id}']]]];
+        yield 'http scheme' => [['host_schemes' => ['https' => ['file' => '/{id}']]]];
+        yield 'upper case' => [['host_schemes' => ['App' => ['file' => '/{id}']]]];
+        yield 'no id' => [['host_schemes' => ['app' => ['file' => '/files']]]];
+        yield 'protocol relative' => [['host_schemes' => ['app' => ['file' => '//evil/{id}']]]];
+        yield 'backslash' => [['host_schemes' => ['app' => ['file' => '/\\\\evil/{id}']]]];
+        yield 'script' => [['host_schemes' => ['app' => ['preview' => 'javascript:{id}']]]];
+        yield 'relative' => [['host_schemes' => ['app' => ['image' => 'files/{id}']]]];
+        yield 'too long' => [['host_schemes' => ['app' => ['image' => '/{id}' . str_repeat('a', 500)]]]];
+        yield 'origin with a path' => [['host_image_origins' => ['https://cdn.example/x']]];
+        yield 'origin wildcard' => [['host_image_origins' => ['*']]];
+        yield 'unknown token' => [['file_preview_sandbox' => ['allow-top-navigation']]];
+        yield 'scripts and same origin' => [['file_preview_sandbox' => ['allow-scripts', 'allow-same-origin']]];
+    }
+
+    /**
+     * @param array<string, mixed> $markdown
+     */
+    #[Test]
+    #[DataProvider('invalidHostFileConfiguration')]
+    public function invalidHostFileConfigurationIsRefused(array $markdown): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->process(['markdown' => $markdown]);
+    }
+
+    #[Test]
+    public function invalidHostSchemesHelper(): void
+    {
+        self::assertNull(Configuration::invalidHostSchemes(['app' => 'not an array']));
+        self::assertNull(Configuration::invalidHostSchemes(['app' => ['file' => null]]));
+        self::assertNotNull(Configuration::invalidHostSchemes(['app' => ['file' => 5]]));
+    }
 }

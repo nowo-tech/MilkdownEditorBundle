@@ -37,6 +37,10 @@ enum Feature: string
     case HeadingIds = 'heading_ids';
     /** 1.8: uploads that are not images become file cards (`::file[name]{href size type}`) instead of links. */
     case FileCards = 'file_cards';
+    /** 1.9: images with caption, alt text, width and alignment (`![alt](src "caption"){width=… align=…}`). */
+    case ImageBlock = 'image_block';
+    /** 1.9: a "+" button beside empty lines opens the `/` menu. */
+    case InsertButton = 'insert_button';
 
     /**
      * Features enabled when a profile does not list its own.

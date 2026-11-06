@@ -12,8 +12,12 @@ use League\CommonMark\Extension\GithubFlavoredMarkdownExtension;
 use League\CommonMark\Extension\TaskList\TaskListItemMarker;
 use League\CommonMark\MarkdownConverter;
 use Nowo\MilkdownEditorBundle\Markdown\Directive\DirectiveRendererInterface;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\FilePreviewResolverInterface;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\HostFileResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\IconResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\PageResolverInterface;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateFilePreviewResolver;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateHostFileResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\UserResolverInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\Service\ResetInterface;
@@ -53,7 +57,7 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
     private ?FootnoteSalt $footnoteSalt = null;
 
     /**
-     * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, footnotes?: bool, max_footnote_refs?: int, mention_display?: string, max_nesting_level?: int, max_input_length?: int, max_inline_markers?: int, max_references?: int, mark_colors?: list<string>, heading_ids?: bool} $options The `nowo_milkdown_editor.markdown` configuration
+     * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, footnotes?: bool, max_footnote_refs?: int, mention_display?: string, max_nesting_level?: int, max_input_length?: int, max_inline_markers?: int, max_references?: int, mark_colors?: list<string>, heading_ids?: bool, image_block?: bool, file_preview_sandbox?: list<string>, host_schemes?: mixed} $options The `nowo_milkdown_editor.markdown` configuration
      * @param PageResolverInterface $pages Page link resolver (per viewer)
      * @param UserResolverInterface $users Mention resolver
      * @param IconResolverInterface $icons Icon allowlist and sprite
@@ -61,6 +65,9 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
      * @param TranslatorInterface|null $translator Translates *Content not visible*
      * @param LoggerInterface|null $logger Logs resolver failures
      * @param string $secret `kernel.secret`: keys the footnote id salt (1.3.1)
+     * @param HostSchemes $hostSchemes Host references (1.9, `host_schemes`)
+     * @param HostFileResolverInterface|null $sources Resolves host references per viewer (1.9; null: the templates)
+     * @param FilePreviewResolverInterface|null $previews Previews of `view="preview"` file cards (1.9; null: the templates)
      */
     public function __construct(
         private readonly array $options,
@@ -71,6 +78,9 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
         private readonly ?TranslatorInterface $translator = null,
         private readonly ?LoggerInterface $logger = null,
         private readonly string $secret = '',
+        private readonly HostSchemes $hostSchemes = new HostSchemes(),
+        private readonly ?HostFileResolverInterface $sources = null,
+        private readonly ?FilePreviewResolverInterface $previews = null,
     ) {
     }
 
@@ -152,7 +162,7 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
             $environment->addEventListener(DocumentParsedEvent::class, [new HeadingIds(), 'onDocumentParsed'], 0);
         }
         $environment->addExtension(new MilkdownDialectExtension(
-            new DialectRenderer($this->icons, $this->directiveRenderers, $this->options['mark_colors'] ?? ['yellow'], $this->translator, $this->options['mention_display'] ?? 'handle'),
+            new DialectRenderer($this->icons, $this->directiveRenderers, $this->options['mark_colors'] ?? ['yellow'], $this->translator, $this->options['mention_display'] ?? 'handle', implode(' ', $this->options['file_preview_sandbox'] ?? [])),
             new DocumentProcessor(
                 $this->pages,
                 $this->users,
@@ -160,6 +170,10 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
                 $this->options['allow_remote_images'] ?? false,
                 $this->logger,
                 $this->options['max_references'] ?? DocumentProcessor::DEFAULT_MAX_REFERENCES,
+                $this->hostSchemes,
+                $this->sources ?? new TemplateHostFileResolver($this->hostSchemes),
+                $this->previews ?? new TemplateFilePreviewResolver($this->hostSchemes),
+                $this->options['image_block'] ?? false,
             ),
             $math,
         ));

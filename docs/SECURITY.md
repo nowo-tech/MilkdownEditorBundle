@@ -6,6 +6,7 @@
 - [Attack surface](#attack-surface)
 - [Threat model](#threat-model)
 - [Mitigations](#mitigations)
+  - [Host references and previews](#host-references-and-previews)
 - [Content Security Policy](#content-security-policy)
 - [Secrets](#secrets)
 - [Logging](#logging)
@@ -156,6 +157,29 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
 - **Comment panel container (1.6).** `comments.container` resolves to the first match **outside** any editor, read
   view (`.nowo-md`) or contenteditable region, and `comments.mount()` refuses such elements, so page content can
   neither receive the panel nor get its text saved into the Markdown.
+
+### Host references and previews
+
+(1.9, opt-in.) What an author controls is the id, the view and the height; the templates, schemes, origins and sandbox
+tokens are configuration, and a host resolver's answer is semi-trusted.
+
+- **Schemes.** Only those of `markdown.host_schemes`, never a browser scheme. Unknown schemes follow the existing rules.
+- **Ids.** `[A-Za-z0-9._~-]{1,200}`, never only dots (`..` would walk up the template's path), URL-encoded into the
+  template. Any other value of the scheme is inert on both sides.
+- **Resolved URLs** (templates and resolvers, images, links, cards, previews) pass `safeUrl()` / `DialectRenderer::safeUrl()`
+  after resolution. A resolved image also meets the remote-image policy: off `host_image_origins` and with
+  `allow_remote_images` off it becomes a link, with no request. The list compares the whole origin, and author images never
+  use it. The editor shows what the templates give; there, as for author images, `img-src` is the control.
+- **Failures.** A reference the resolver leaves out, a thrown exception or an answer of the wrong type renders
+  *Content not visible* or the plain card; nothing about the file is shown, and logs carry no document content. References
+  are capped by `max_references`.
+- **Attribute block.** Bounded pattern, fixed keys and fixed values; classes and the `width` attribute only.
+- **Previews.** A frame with the strictest `sandbox` by default, `referrerpolicy="no-referrer"`, `loading="lazy"`. Tokens
+  are an allow-list, and `allow-scripts` with `allow-same-origin` is refused by the configuration and dropped by the
+  renderer and the editor. An author can make any reader's browser open a preview URL of the configured template for any
+  id: the **endpoint** must authorise the viewer and send the headers in [USAGE](USAGE.md#previews). Requests use `GET`.
+- **Editor view.** Host images and previews are built with DOM APIs; the toolbar writes node attributes, and values are
+  validated again when read.
 
 ## Content Security Policy
 

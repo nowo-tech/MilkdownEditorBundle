@@ -7,22 +7,45 @@ namespace Nowo\MilkdownEditorBundle\Markdown;
 use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\CommonMark\Node\Inline\Image;
 use League\CommonMark\Extension\CommonMark\Node\Inline\Link;
+use League\CommonMark\Node\Block\Paragraph;
+use League\CommonMark\Node\Inline\Text;
 use League\CommonMark\Node\Node;
 use Nowo\MilkdownEditorBundle\Markdown\Directive\DirectiveRendererInterface;
+use Nowo\MilkdownEditorBundle\Markdown\Node\HiddenReference;
+use Nowo\MilkdownEditorBundle\Markdown\Node\ImageFigure;
 use Nowo\MilkdownEditorBundle\Markdown\Node\LeafDirective;
 use Nowo\MilkdownEditorBundle\Markdown\Node\Mention;
 use Nowo\MilkdownEditorBundle\Markdown\Node\WikiLink;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\FilePreviewResolverInterface;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\FileReference;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\HostFileResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\PageResolverInterface;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\ResolvedFile;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\UserResolverInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
+use function array_filter;
+use function array_flip;
+use function array_intersect_key;
+use function array_keys;
 use function array_slice;
+use function array_values;
+use function count;
+use function is_string;
+use function str_ends_with;
+use function trim;
 
 /**
  * After parsing, resolves every page link and mention of the document in one call per resolver (FR-061: per viewer),
  * prepares host directive renderers, and turns remote images into links when they are not allowed. At most
  * `max_references` distinct page ids and handles are sent to each resolver; later ones render as not visible / text.
+ *
+ * 1.9: host references (`host-file:<id>`, `markdown.host_schemes`) of images, links and file cards are resolved in
+ * one batch ({@see HostFileResolverInterface}); every resolved URL goes through {@see DialectRenderer::safeUrl()} and
+ * images also through the remote-image policy. File cards with `view="preview"` ask {@see FilePreviewResolverInterface}.
+ * With `markdown.image_block`, an image takes the `{width=… align=…}` block that follows it, and a paragraph holding only
+ * an image becomes an {@see ImageFigure}.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  */
@@ -38,6 +61,10 @@ final readonly class DocumentProcessor
      * @param bool $allowRemoteImages Keep images from other hosts
      * @param LoggerInterface|null $logger Logs resolver failures (never document content)
      * @param int $maxReferences Distinct page ids / handles sent to each resolver per document
+     * @param HostSchemes $hostSchemes Allow-listed host schemes (1.9)
+     * @param HostFileResolverInterface|null $sources Resolves host references for the viewer (1.9; null: none resolve)
+     * @param FilePreviewResolverInterface|null $previews Previews of `view="preview"` file cards (1.9; null: none)
+     * @param bool $imageBlock Standalone images become figures with caption, width and alignment (1.9)
      */
     public function __construct(
         private PageResolverInterface $pages,
@@ -46,6 +73,10 @@ final readonly class DocumentProcessor
         private bool $allowRemoteImages = false,
         private ?LoggerInterface $logger = null,
         private int $maxReferences = self::DEFAULT_MAX_REFERENCES,
+        private HostSchemes $hostSchemes = new HostSchemes(),
+        private ?HostFileResolverInterface $sources = null,
+        private ?FilePreviewResolverInterface $previews = null,
+        private bool $imageBlock = false,
     ) {
     }
 
@@ -64,6 +95,13 @@ final readonly class DocumentProcessor
         $leaves = [];
         /** @var list<Image> $images */
         $images = [];
+        /** @var list<Image|Link> $hosted */
+        $hosted = [];
+        /** @var list<Paragraph> $paragraphs */
+        $paragraphs = [];
+        if ($this->imageBlock) {
+            $this->readImageAttributes($event->getDocument());
+        }
         foreach ($event->getDocument()->iterator() as $node) {
             if ($node instanceof WikiLink) {
                 $links[$node->pageId][] = $node;
@@ -71,8 +109,12 @@ final readonly class DocumentProcessor
                 $mentions[$node->handle][] = $node;
             } elseif ($node instanceof LeafDirective) {
                 $leaves[] = $node;
+            } elseif (($node instanceof Image || $node instanceof Link) && $this->hostSchemes->isHostUrl($node->getUrl())) {
+                $hosted[] = $node;
             } elseif ($node instanceof Image && !$this->allowRemoteImages && self::isRemote($node->getUrl())) {
                 $images[] = $node;
+            } elseif ($node instanceof Paragraph) {
+                $paragraphs[] = $node;
             }
         }
 
@@ -94,15 +136,193 @@ final readonly class DocumentProcessor
                 }
             }
         }
+        $fileCardsOwned = false;
         foreach ($this->directiveRenderers as $renderer) {
             $mine = array_values(array_filter($leaves, static fn (LeafDirective $l): bool => $renderer->supports($l->name)));
             if ($mine !== []) {
                 $renderer->prepare($mine);
             }
+            $fileCardsOwned = $fileCardsOwned || $renderer->supports(FileCard::NAME);
         }
         foreach ($images as $image) {
             $this->imageToLink($image);
         }
+        if ($this->imageBlock) {
+            foreach ($paragraphs as $paragraph) {
+                $this->toFigure($paragraph);
+            }
+        }
+        $cards = $fileCardsOwned ? [] : array_values(array_filter($leaves, static fn (LeafDirective $l): bool => $l->name === FileCard::NAME));
+        $this->resolveHosted($hosted, $cards);
+    }
+
+    /**
+     * 1.9 (ME-5 / ME-6): host references of images, links and file cards, then the previews of preview cards.
+     *
+     * @param list<Image|Link> $hosted
+     * @param list<LeafDirective> $cards
+     */
+    private function resolveHosted(array $hosted, array $cards): void
+    {
+        $references = [];
+        foreach ($hosted as $node) {
+            $reference = $this->hostSchemes->reference($node->getUrl());
+            if ($reference !== null) {
+                $references[$reference] = true;
+            }
+        }
+        foreach ($cards as $card) {
+            $reference = $this->hostSchemes->reference($card->attributes['href'] ?? '');
+            if ($reference !== null) {
+                $references[$reference] = true;
+            }
+        }
+        $ids      = array_slice(array_keys($references), 0, $this->maxReferences);
+        $resolved = $ids === [] || !$this->sources instanceof HostFileResolverInterface
+            ? []
+            : array_intersect_key($this->call(fn (): array => $this->sources->resolveFiles($ids), 'host file'), array_flip($ids));
+
+        foreach ($hosted as $node) {
+            $reference = $this->hostSchemes->reference($node->getUrl());
+            $source    = $reference !== null ? ($resolved[$reference] ?? null) : null;
+            $url       = $source instanceof ResolvedFile ? DialectRenderer::safeUrl($node instanceof Image ? ($source->imageUrl ?? $source->url) : $source->url) : '';
+            if ($node instanceof Link) {
+                if ($url === '') {
+                    $this->unwrap($node);
+                } else {
+                    $node->setUrl($url);
+                }
+                continue;
+            }
+            if ($url === '' || !$source instanceof ResolvedFile) {
+                $node->replaceWith(new HiddenReference());
+                continue;
+            }
+            $node->setUrl($url);
+            // The same remote-image policy as images written by authors, unless the host listed that origin.
+            if (!$this->allowRemoteImages && self::isRemote($url) && !$this->hostSchemes->isAllowedImageOrigin($url)) {
+                $this->imageToLink($node);
+                continue;
+            }
+            $node->data->set('attributes/loading', 'lazy');
+            if ((int) $source->width > 0 && (int) $source->height > 0 && !$node->data->has('attributes/width')) {
+                $node->data->set('attributes/width', (string) $source->width);
+                $node->data->set('attributes/height', (string) $source->height);
+            }
+        }
+
+        /** @var array<string, FileReference> $wanted */
+        $wanted = [];
+        /** @var array<string, list<LeafDirective>> $byHref */
+        $byHref = [];
+        foreach ($cards as $card) {
+            $href = $card->attributes['href'] ?? '';
+            $url  = DialectRenderer::safeUrl($href);
+            if ($this->hostSchemes->isHostUrl($href)) {
+                $reference = $this->hostSchemes->reference($href);
+                $source    = $reference !== null ? ($resolved[$reference] ?? null) : null;
+                $url       = $source instanceof ResolvedFile ? DialectRenderer::safeUrl($source->url) : '';
+                if ($url === '') {
+                    $card->data->set('nowo_file_hidden', true);
+                    continue;
+                }
+            }
+            $card->data->set('nowo_file_url', $url);
+            if ($url !== '' && FileCard::view($card->attributes) === 'preview') {
+                $byHref[$href][] = $card;
+                $wanted[$href]   = new FileReference($href, $url, FileCard::name($card->label), $card->attributes['type'] ?? '', $this->hostSchemes->reference($href));
+            }
+        }
+        if ($wanted === [] || !$this->previews instanceof FilePreviewResolverInterface) {
+            return;
+        }
+        $files = array_slice(array_values($wanted), 0, $this->maxReferences);
+        try {
+            $previews = $this->previews->resolvePreviews($files);
+        } catch (Throwable $e) {
+            $this->logger?->warning('Milkdown renderer: the {kind} resolver failed; references render as not visible.', ['kind' => 'file preview', 'exception' => $e::class]);
+            $previews = [];
+        }
+        foreach ($byHref as $href => $nodes) {
+            $preview = $previews[$href] ?? null;
+            $preview = is_string($preview) ? DialectRenderer::safeUrl($preview) : '';
+            if ($preview === '') {
+                continue;
+            }
+            foreach ($nodes as $card) {
+                $card->data->set('nowo_file_preview', $preview);
+            }
+        }
+    }
+
+    /** A link the viewer may not open keeps its text, without a target. */
+    private function unwrap(Link $link): void
+    {
+        /** @var list<Node> $children */
+        $children = [];
+        foreach ($link->children() as $child) {
+            $children[] = $child;
+        }
+        foreach ($children as $child) {
+            $link->insertBefore($child);
+        }
+        $link->detach();
+    }
+
+    /**
+     * 1.9 `image_block`: an image takes the `{width=… align=…}` block right after it, out of the text. A px width is the
+     * image's `width` attribute; everything else is for {@see self::toFigure()}.
+     */
+    private function readImageAttributes(Node $document): void
+    {
+        /** @var list<Image> $found */
+        $found = [];
+        foreach ($document->iterator() as $node) {
+            if ($node instanceof Image) {
+                $found[] = $node;
+            }
+        }
+        foreach ($found as $image) {
+            $next = $image->next();
+            $read = $next instanceof Text ? ImageAttributes::prefix($next->getLiteral()) : null;
+            if ($read === null || !$next instanceof Text) {
+                continue;
+            }
+            $rest = ImageAttributes::rest($next->getLiteral(), $read['length']);
+            if ($rest === '') {
+                $next->detach();
+            } else {
+                $next->setLiteral($rest);
+            }
+            $image->data->set('nowo_image', ['width' => $read['width'], 'align' => $read['align']]);
+            if (str_ends_with($read['width'], 'px')) {
+                $image->data->set('attributes/width', (string) (int) $read['width']);
+            }
+        }
+    }
+
+    /**
+     * 1.9 `image_block`: a paragraph that holds only an image becomes a figure (the caption is the image's title, which
+     * stops being a tooltip there).
+     */
+    private function toFigure(Paragraph $paragraph): void
+    {
+        $nodes = [];
+        foreach ($paragraph->children() as $child) {
+            if (!$child instanceof Text || trim($child->getLiteral()) !== '') {
+                $nodes[] = $child;
+            }
+        }
+        $image = $nodes[0] ?? null;
+        if (!$image instanceof Image || count($nodes) > 1) {
+            return;
+        }
+        /** @var array{width?: string, align?: string} $attributes */
+        $attributes = (array) $image->data->get('nowo_image', []);
+        $figure     = new ImageFigure($attributes['width'] ?? '', $attributes['align'] ?? '', (string) $image->getTitle());
+        $image->setTitle(null);
+        $paragraph->replaceWith($figure);
+        $figure->appendChild($image);
     }
 
     /**
