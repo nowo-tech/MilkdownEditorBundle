@@ -160,7 +160,7 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
 
 ### Host references and previews
 
-(1.9, opt-in. **Audit re-verification pending** for the fixes of Appendix GX.) What an author controls is the id, the view,
+(1.9, opt-in. Audited: Appendix GX, **Pass (good) / Info** at `1de17cd`.) What an author controls is the id, the view,
 the height, the label, `type`, `size`, caption, width and alignment; the templates, schemes, origins and sandbox tokens are
 configuration, and a host resolver's answer is semi-trusted.
 
@@ -185,7 +185,7 @@ configuration, and a host resolver's answer is semi-trusted.
   [USAGE](USAGE.md#previews). Requests use `GET`, so every path a template can reach must be free of side effects.
 - **Planted widgets.** Auto-mount takes `hostSchemes` and `previewSandbox` only from `script[data-nowo-milkdown-config]`
   (printed by `nowo_milkdown_editor_assets()`, with the page's nonce when it has one), never from a widget's JSON. On a page
-  without nonces the element itself is accepted: a sanitizer that lets `<script>` through has already failed.
+  without nonces the element itself is accepted: a sanitizer that allows `script type="application/json"` can let it through, and `frame-src` is what then stops a frame.
 - **Editor view.** Host images and previews are built with DOM APIs; the toolbar writes node attributes, and values are
   validated again when read.
 

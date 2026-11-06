@@ -27,7 +27,7 @@ views of a file (link, link with icon, card, sandboxed preview). All opt-in: hos
 output and the same widget JSON. Requested by Beacon on 2026-11-06 (*milkdown-file-views-and-previews*, ME-5, ME-6);
 see [UPGRADING](UPGRADING.md#unreleased-190) and `specs/008-host-files-image-block/spec.md`.
 
-**Audit: re-verification pending.** Appendix GX (Pass / Low at `e180751`) is fixed below; the fixes have not been audited yet.
+**Audit.** Appendix GX: **Pass (good) / Info** at `1de17cd` (first pass at `e180751`: Pass (good) / Low). GX-L1, GX-L2, GX-I1 to GX-I6, GX-I8 and GX-I9 are fixed. Open, all Info: GX-I7 (documented), GX-I10 (demo tooling), GX-D1, GX-D2, GX-D3.
 
 ### Added
 
