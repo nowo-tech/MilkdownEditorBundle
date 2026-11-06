@@ -42,6 +42,8 @@ export const MAX_BACKOFF = 30_000;
 /** A `Retry-After` is honoured within [MIN_RETRY_AFTER, MAX_RETRY_AFTER] ms (audit DS-L1: 0 or a past date looped). */
 export const MIN_RETRY_AFTER = 1000;
 export const MAX_RETRY_AFTER = 60_000;
+/** How often a bound editor asks again after a refusal (ms, 1.10). */
+export const REFUSED_RETRY = 30_000;
 /** `keepalive` bodies are limited to 64 KiB by browsers; larger flushes on page hide are sent normally. */
 const KEEPALIVE_MAX = 60_000;
 
@@ -76,8 +78,8 @@ type Message = { t: 'u' | 'a' | 'r'; c: number; d: string };
 export type StateAnswer = { state: string; seed?: boolean; updates?: unknown; seq?: unknown; compact?: unknown };
 
 /**
- * The host answered, and the answer is no (401, 403, 404, or a 2xx without a usable state): not an outage, retrying the
- * connection would not help (1.10). A 429, a 5xx or anything else is retried.
+ * The host answered, and the answer is no (401, 403, 404, or a 2xx without a usable state): not an outage (1.10). A client
+ * not in the session stops; a bound editor retries slowly. A 429, a 5xx or anything else is retried as usual.
  */
 export class CollabRefused extends Error {}
 
@@ -108,7 +110,7 @@ export class MercureProvider {
   status: Status = 'connecting';
   /** True when the host asked this client to seed the empty document from the field's Markdown. */
   seed = false;
-  /** 1.10: the host refused this client; it does not retry. */
+  /** 1.10: the host refused this client while it was not in the session; it does not retry. */
   failed = false;
   /** 1.10: connected, not in the session yet: no presence and no compaction until {@link join}. */
   quiet = false;
@@ -261,12 +263,18 @@ export class MercureProvider {
     this.listeners.forEach((fn) => fn(s));
   }
 
-  /** A refusal ends it, also after a first connection: a 401 will not pass by asking every 5 s. The rest is retried. */
+  /**
+   * A client not in the session stops on a refusal. A bound editor must not: logins lapse and come back, and a save that has
+   * lost its session makes the host drop the shared log. It retries, slowly (HF-M2).
+   */
   private connectFailed(error: unknown): void {
     if (error instanceof CollabRefused) {
-      this.failed = true;
-      this.setStatus('offline');
-      return;
+      if (!this.wasOnline || this.quiet) {
+        this.failed = true;
+        this.setStatus('offline');
+        return;
+      }
+      this.retryHint = REFUSED_RETRY;
     }
     if (this.wasOnline) this.setStatus('offline');
     this.scheduleReconnect();

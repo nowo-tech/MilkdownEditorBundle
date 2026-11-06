@@ -475,6 +475,42 @@ test.describe('hub that fails', () => {
     expect(body).toContain('action=save');
   });
 
+  for (const [name, path, refuse] of [
+    ['token 401', '**/collab/api/token', { status: 401, body: '' }],
+    ['state answering a login page', '**/collab/api/state', { status: 200, contentType: 'text/html', body: '<html>login</html>' }],
+  ] as const) {
+    test(`a bound editor refused for a moment (${name}): offline, rejoins, saves with its session (HF-M2)`, async ({ page }) => {
+      test.setTimeout(75000);
+      const updates: string[] = [];
+      page.on('request', (r) => {
+        if (r.url().endsWith('/collab/api/update')) updates.push(r.postData() ?? '');
+      });
+      await fakeHub(page, 0);
+      await open(page);
+      await expect(widget(page)).toHaveAttribute('data-collab', 'online', { timeout: 10000 });
+      await page.route(path, (route) => route.fulfill(refuse));
+      await dropHub(page);
+      await expect(widget(page)).toHaveAttribute('data-collab', 'offline');
+      await surface(page).click();
+      await page.keyboard.press('ControlOrMeta+End');
+      await page.keyboard.type(MARKER);
+      await page.waitForTimeout(1000);
+      await expect(widget(page)).toHaveAttribute('data-collab', 'offline');
+      await expect(page.locator('.nowo-milkdown__notice')).toHaveCount(0);
+      const before = updates.length;
+      await page.unroute(path);
+      await page.evaluate(() => {
+        (window as unknown as { __hubDown: boolean }).__hubDown = false;
+      });
+      await expect(widget(page)).toHaveAttribute('data-collab', 'online', { timeout: 35000 });
+      await expect.poll(() => updates.length).toBeGreaterThan(before);
+      expect((await surface(page).innerText()).trim()).toBe(`${ORIGINAL}${MARKER}`);
+      const posted = page.waitForRequest((r) => r.method() === 'POST' && r.url().includes('/collab?'));
+      expect(await savedText(page)).toBe(`${ORIGINAL}${MARKER}`);
+      expect((await posted).postData() ?? '').toContain('_nowo_milkdown_collab');
+    });
+  }
+
   test('the hub opens late, nothing typed: the editor joins the session', async ({ page }) => {
     await fakeHub(page, 2500);
     await open(page, '&connect_timeout=800');

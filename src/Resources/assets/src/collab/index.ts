@@ -312,16 +312,13 @@ export function startCollaboration(editor: Editor, options: CollaborationOptions
       }
       return;
     }
-    // Refused: the session is over, also for a bound editor. It keeps its text, and a save goes outside the session.
-    if (provider.failed) {
-      const live = phase === 'bound' && !ended;
-      fallback();
-      end();
-      if (live) hooks.onStatus('standalone');
-      return;
-    }
     if (phase === 'bound') {
       hooks.onStatus(s);
+      return;
+    }
+    if (provider.failed) {
+      fallback();
+      end();
       return;
     }
     // A corrupt log: no document to bind. The hub stays open for the host's reset, which reloads an untouched editor.

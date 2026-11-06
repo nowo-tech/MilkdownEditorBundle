@@ -51,8 +51,8 @@ host keeps revisions the body can be restored; typed text cannot. Independent au
   the text. An order to seed only applies to a blank document (the previous
   condition looked at the text, so it replaced a document with only an image).
 - `data-collab="online"` is set after the bind, not before it. A token or state error on a **reconnect** no longer stays on
-  `connecting` for good: 429 and 5xx show `offline` and retry; 401, 403, 404 or an unusable state end the session
-  (`standalone`), and the text stays. A host reset does not reload away text typed
+  `connecting` for good: it shows `offline`, keeps the text and retries (every 30 s after a 401, 403, 404 or unusable state),
+  so a save can rejoin the session. A host reset does not reload away text typed
   without collaboration, also when it is typed in the 1.5 s before the reload.
 
 ### Added

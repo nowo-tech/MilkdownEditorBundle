@@ -3,7 +3,7 @@ import * as Y from 'yjs';
 import { prosemirrorToYDoc } from 'y-prosemirror';
 import { editorViewCtx } from '@milkdown/kit/core';
 import { createEditor, type MilkdownEditorHandle } from '../src/editor';
-import { fromBase64, toBase64 } from '../src/collab/mercure-provider';
+import { REFUSED_RETRY, fromBase64, toBase64 } from '../src/collab/mercure-provider';
 import { DEFAULT_CONNECT_TIMEOUT, MAX_CONNECT_TIMEOUT, SEED_RECHECK, isBlank, page as collabPage, startCollaboration, waitPlugin } from '../src/collab/index';
 import { editor, tick, widget } from './helpers';
 
@@ -1009,31 +1009,52 @@ describe('after the bind, the connection comes and goes', () => {
     expect(host.log.length).toBeGreaterThan(1);
   });
 
+  const logText = (): string => {
+    const doc = new Y.Doc();
+    host.log.forEach((update) => Y.applyUpdate(doc, fromBase64(update)));
+    return doc.getXmlFragment('prosemirror').toString();
+  };
+
   it.each([
-    ['a 401 on the token', () => (host.token = { status: 401 })],
-    ['a 403 on the state', () => (host.state = { status: 403, json: {} })],
-    ['a state without state', () => (host.state = { json: {} })],
-  ])('%s after a first connection ends the session: the text stays and nothing more is asked (HF-I9)', async (_name, breakIt) => {
+    ['a token 401', (): unknown => (host.token = { status: 401 }), (): unknown => (host.token = {})],
+    ['a token 403', (): unknown => (host.token = { status: 403 }), (): unknown => (host.token = {})],
+    ['a token 404', (): unknown => (host.token = { status: 404 }), (): unknown => (host.token = {})],
+    ['a state answering a login page', (): unknown => (host.state = { body: '<html>login' }), (): unknown => (host.state = null)],
+    ['a state 403', (): unknown => (host.state = { status: 403, json: {} }), (): unknown => (host.state = null)],
+  ])('%s on a bound editor: offline, keeps the text, retries every 30 s and rejoins, with a session (HF-M2)', async (_name, breakIt, repair) => {
     host.store('Shared');
     const handle = keep(await editor('Shared', collab({ updateDelay: 0 })));
-    breakIt();
-    const requests = host.requests.length;
-    dropped();
-    await until(() => handle.root.dataset.collab === 'standalone');
-    expect(host.requests.length).toBeGreaterThan(requests);
-    expect(alertOf(handle.root)).toContain('without live co-editing');
-    expect(text(handle.root)).toBe('Shared');
-    expect(editable(handle.root)).toBe('true');
-    handle.setMarkdown('Typed after');
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     const form = handle.textarea.form!;
+    breakIt();
+    dropped();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(handle.root.dataset.collab).toBe('offline');
+    handle.setMarkdown('Typed while refused');
+    await vi.advanceTimersByTimeAsync(10);
+    expect(editable(handle.root)).toBe('true');
+    expect(alertOf(handle.root)).toBe('');
     submit(form);
-    expect(handle.textarea.value).toBe('Typed after\n');
+    expect(handle.textarea.value).toBe('Typed while refused\n');
     expect(session(form)).toBeNull();
+    // Slowly: nothing more until the 30 s are up.
     const asked = host.requests.length;
-    const posted = host.posts.length;
-    await tick(700);
+    await vi.advanceTimersByTimeAsync(REFUSED_RETRY - 1500);
     expect(host.requests.length).toBe(asked);
-    expect(host.posts.length).toBe(posted);
+    // Still refused at that retry: it stays offline and asks once more, 30 s later.
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(host.requests.length).toBeGreaterThan(asked);
+    expect(handle.root.dataset.collab).toBe('offline');
+    repair();
+    await vi.advanceTimersByTimeAsync(REFUSED_RETRY);
+    expect(handle.root.dataset.collab).toBe('online');
+    await vi.advanceTimersByTimeAsync(10);
+    expect(text(handle.root)).toBe('Typed while refused');
+    expect(logText()).toContain('Typed while refused');
+    submit(form);
+    expect(session(form)).toBe('t');
+    expect(handle.textarea.value).toBe('Typed while refused\n');
+    vi.useRealTimers();
   });
 
   it('getMarkdown() is the document in every state, never an empty unbound editor', async () => {
