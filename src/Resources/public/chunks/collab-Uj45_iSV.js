@@ -4552,6 +4552,7 @@ var fl = class {
 	quiet = !1;
 	skippedPresence = !1;
 	retryHint = 0;
+	refusals = 0;
 	wasOnline = !1;
 	es = null;
 	dirty = !1;
@@ -4642,7 +4643,7 @@ var fl = class {
 				this.failed = !0, this.setStatus("offline");
 				return;
 			}
-			this.retryHint = al;
+			this.retryHint = Math.min(al, 1e3 * 2 ** this.refusals++);
 		}
 		this.wasOnline && this.setStatus("offline"), this.scheduleReconnect();
 	}
@@ -4683,7 +4684,7 @@ var fl = class {
 			return;
 		}
 		let s = Ci(this.doc, ki(o));
-		o.destroy(), this.pending = [], this.unconfirmed = null, s.length > 2 && await this.post("update", s), this.dirty = !1, this.retry = 0, this.wasOnline = !0, this.setStatus("online"), this.closed || (this.quiet ? this.skippedPresence = !0 : (a.compact === !0 && typeof a.seq == "number" && Number.isInteger(a.seq) && await this.compact(a.seq), await this.post("awareness", Ns(this.awareness, [this.doc.clientID]))));
+		o.destroy(), this.pending = [], this.unconfirmed = null, s.length > 2 && await this.post("update", s), this.dirty = !1, this.retry = 0, this.refusals = 0, this.wasOnline = !0, this.setStatus("online"), this.closed || (this.quiet ? this.skippedPresence = !0 : (a.compact === !0 && typeof a.seq == "number" && Number.isInteger(a.seq) && await this.compact(a.seq), await this.post("awareness", Ns(this.awareness, [this.doc.clientID]))));
 	}
 	httpError(e, t) {
 		let n = `${e} ${t.status}`;

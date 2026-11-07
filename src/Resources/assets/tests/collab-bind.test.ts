@@ -1021,7 +1021,7 @@ describe('after the bind, the connection comes and goes', () => {
     ['a token 404', (): unknown => (host.token = { status: 404 }), (): unknown => (host.token = {})],
     ['a state answering a login page', (): unknown => (host.state = { body: '<html>login' }), (): unknown => (host.state = null)],
     ['a state 403', (): unknown => (host.state = { status: 403, json: {} }), (): unknown => (host.state = null)],
-  ])('%s on a bound editor: offline, keeps the text, retries every 30 s and rejoins, with a session (HF-M2)', async (_name, breakIt, repair) => {
+  ])('%s on a bound editor, lifted after about 1 s: offline, keeps the text, rejoins in about 2 s, with a session (HF-M2, HF-L6)', async (_name, breakIt, repair) => {
     host.store('Shared');
     const handle = keep(await editor('Shared', collab({ updateDelay: 0 })));
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
@@ -1037,16 +1037,8 @@ describe('after the bind, the connection comes and goes', () => {
     submit(form);
     expect(handle.textarea.value).toBe('Typed while refused\n');
     expect(session(form)).toBeNull();
-    // Slowly: nothing more until the 30 s are up.
-    const asked = host.requests.length;
-    await vi.advanceTimersByTimeAsync(REFUSED_RETRY - 1500);
-    expect(host.requests.length).toBe(asked);
-    // Still refused at that retry: it stays offline and asks once more, 30 s later.
-    await vi.advanceTimersByTimeAsync(1500);
-    expect(host.requests.length).toBeGreaterThan(asked);
-    expect(handle.root.dataset.collab).toBe('offline');
     repair();
-    await vi.advanceTimersByTimeAsync(REFUSED_RETRY);
+    await vi.advanceTimersByTimeAsync(2000);
     expect(handle.root.dataset.collab).toBe('online');
     await vi.advanceTimersByTimeAsync(10);
     expect(text(handle.root)).toBe('Typed while refused');
@@ -1054,6 +1046,33 @@ describe('after the bind, the connection comes and goes', () => {
     submit(form);
     expect(session(form)).toBe('t');
     expect(handle.textarea.value).toBe('Typed while refused\n');
+    vi.useRealTimers();
+  });
+
+  it('a lasting refusal backs off to 30 s, about 2 requests a minute; it still rejoins, and the next one starts over (HF-L6)', async () => {
+    host.store('Shared');
+    const handle = keep(await editor('Shared', collab({ updateDelay: 0 })));
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const tokens = (): number => host.requests.filter((r) => r === 'token').length;
+    host.token = { status: 401 };
+    dropped();
+    // 1, 2, 4, 8, 16, then 30 s.
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(handle.root.dataset.collab).toBe('offline');
+    const settled = tokens();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(tokens() - settled).toBe(2);
+    expect(handle.root.dataset.collab).toBe('offline');
+    host.token = {};
+    await vi.advanceTimersByTimeAsync(REFUSED_RETRY);
+    expect(handle.root.dataset.collab).toBe('online');
+    host.token = { status: 401 };
+    dropped();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(handle.root.dataset.collab).toBe('offline');
+    host.token = {};
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(handle.root.dataset.collab).toBe('online');
     vi.useRealTimers();
   });
 

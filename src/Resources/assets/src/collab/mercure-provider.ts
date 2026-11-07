@@ -42,7 +42,7 @@ export const MAX_BACKOFF = 30_000;
 /** A `Retry-After` is honoured within [MIN_RETRY_AFTER, MAX_RETRY_AFTER] ms (audit DS-L1: 0 or a past date looped). */
 export const MIN_RETRY_AFTER = 1000;
 export const MAX_RETRY_AFTER = 60_000;
-/** How often a bound editor asks again after a refusal (ms, 1.10). */
+/** The longest a bound editor waits to ask again after refusals in a row: 1 s, doubled each time (ms, 1.10). */
 export const REFUSED_RETRY = 30_000;
 /** `keepalive` bodies are limited to 64 KiB by browsers; larger flushes on page hide are sent normally. */
 const KEEPALIVE_MAX = 60_000;
@@ -116,6 +116,8 @@ export class MercureProvider {
   quiet = false;
   private skippedPresence = false;
   private retryHint = 0;
+  /** Refusals in a row of a bound editor (back-off exponent); 0 once online again. */
+  private refusals = 0;
   private wasOnline = false;
   private es: EventSource | null = null;
   private dirty = false;
@@ -265,7 +267,7 @@ export class MercureProvider {
 
   /**
    * A client not in the session stops on a refusal. A bound editor must not: logins lapse and come back, and a save that has
-   * lost its session makes the host drop the shared log. It retries, slowly (HF-M2).
+   * lost its session makes the host drop the shared log. It retries, backing off to {@link REFUSED_RETRY} (HF-M2, HF-L6).
    */
   private connectFailed(error: unknown): void {
     if (error instanceof CollabRefused) {
@@ -274,7 +276,7 @@ export class MercureProvider {
         this.setStatus('offline');
         return;
       }
-      this.retryHint = REFUSED_RETRY;
+      this.retryHint = Math.min(REFUSED_RETRY, 1000 * 2 ** this.refusals++);
     }
     if (this.wasOnline) this.setStatus('offline');
     this.scheduleReconnect();
@@ -334,6 +336,7 @@ export class MercureProvider {
     if (diff.length > 2) await this.post('update', diff);
     this.dirty = false;
     this.retry = 0;
+    this.refusals = 0;
     this.wasOnline = true;
     this.setStatus('online');
     if (this.closed) return;

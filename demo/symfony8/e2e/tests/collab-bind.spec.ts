@@ -480,7 +480,6 @@ test.describe('hub that fails', () => {
     ['state answering a login page', '**/collab/api/state', { status: 200, contentType: 'text/html', body: '<html>login</html>' }],
   ] as const) {
     test(`a bound editor refused for a moment (${name}): offline, rejoins, saves with its session (HF-M2)`, async ({ page }) => {
-      test.setTimeout(75000);
       const updates: string[] = [];
       page.on('request', (r) => {
         if (r.url().endsWith('/collab/api/update')) updates.push(r.postData() ?? '');
@@ -502,7 +501,7 @@ test.describe('hub that fails', () => {
       await page.evaluate(() => {
         (window as unknown as { __hubDown: boolean }).__hubDown = false;
       });
-      await expect(widget(page)).toHaveAttribute('data-collab', 'online', { timeout: 35000 });
+      await expect(widget(page)).toHaveAttribute('data-collab', 'online', { timeout: 5000 });
       await expect.poll(() => updates.length).toBeGreaterThan(before);
       expect((await surface(page).innerText()).trim()).toBe(`${ORIGINAL}${MARKER}`);
       const posted = page.waitForRequest((r) => r.method() === 'POST' && r.url().includes('/collab?'));

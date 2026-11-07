@@ -288,7 +288,10 @@ The wait ends at the bind or after `connect_timeout_ms` (0–60000, default **50
 404, a 2xx state that is not JSON or has no `state` or `updates`, or a corrupt log goes `standalone` at once. A 429 (honouring
 `Retry-After`), a 5xx or a hub error is retried during the wait, and afterwards while the content is untouched. Keys pressed
 in the editor while it waits stay there; Tab and Escape pass. A client not in the session stops on those refusals; a bound
-editor shows `offline`, keeps its text and retries every 30 s, so its save can rejoin the session. Without a usable answer the editor never binds an empty document over a non-empty field.
+editor shows `offline`, keeps its text and retries, backing off to every 30 s, so its save can rejoin the session. Without a usable answer the editor never binds an empty document over a non-empty field.
+
+**A save while `offline`** goes without a session and with no warning, as it has since 1.2, so a host with a shared log treats it
+as a save outside the session, the same as a standalone one (WikiBundle: `replaced()`, the log is dropped).
 
 **Why a save waits instead of leaving at once.** It would keep the field either way, but a save outside the session makes
 a host with a shared log drop it (see below), taking the unsaved work of anyone editing live. Waiting a bounded time

@@ -170,7 +170,8 @@ submit is bounded by a clamped timer (at most 60 s) and cannot block a form for 
 in PHP and clamped again in the browser; the new messages are text (`textContent`).
 
 Still the host's: a save without `_nowo_milkdown_collab` can replace a shared log, so check the base revision, and keep
-revisions. A peer with edit rights can still post an update that empties the shared document; that is an edit. The next
+revisions. A save while `offline` is one: it goes without a session and with no warning, as it has since 1.2, and the same
+path applies (WikiBundle: `replaced()`). A peer with edit rights can still post an update that empties the shared document; that is an edit. The next
 editor of a non-empty field does not bind it: it goes standalone at the deadline, and the field keeps its content.
 
 **Audit:** Appendix HF, **Pass (conditional) / Medium** at `<final>`, no Critical or High. Accepted residual, fixed next on

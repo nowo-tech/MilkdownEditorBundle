@@ -5334,7 +5334,7 @@ async function Eu(e, t = {}) {
 	let g = new $n({
 		root: c,
 		defaultValue: f
-	}), _ = g.editor, v = r.collaboration ? await import("./chunks/collab-Dl3GXmxr.js") : null, y = r.features.includes("context_menu") ? await import("./chunks/context-menu-oadJiNWk.js") : null, b = r.features.includes("block_actions") ? await import("./chunks/block-actions-DDAkuQs9.js") : null, x = r.features.includes("colors") ? await import("./chunks/colors-DijjJWNk.js") : null, S = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-RS-VpiFB.js") : null, C = r.comments ? await import("./chunks/comments-Dmn8Mh65.js") : null, w = null, T = null, E = r.comments ? {
+	}), _ = g.editor, v = r.collaboration ? await import("./chunks/collab-Uj45_iSV.js") : null, y = r.features.includes("context_menu") ? await import("./chunks/context-menu-oadJiNWk.js") : null, b = r.features.includes("block_actions") ? await import("./chunks/block-actions-DDAkuQs9.js") : null, x = r.features.includes("colors") ? await import("./chunks/colors-DijjJWNk.js") : null, S = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-RS-VpiFB.js") : null, C = r.comments ? await import("./chunks/comments-Dmn8Mh65.js") : null, w = null, T = null, E = r.comments ? {
 		root: e,
 		announce: (e, t) => u(e, t),
 		yjs: () => w,
