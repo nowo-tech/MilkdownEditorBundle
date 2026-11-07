@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format foll
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.10.0] - 2026-11-07](#1100---2026-11-07)
 - [[1.9.0] - 2026-11-06](#190---2026-11-06)
 - [[1.8.0] - 2026-11-06](#180---2026-11-06)
 - [[1.7.0] - 2026-11-04](#170---2026-11-04)
@@ -22,6 +23,8 @@ All notable changes to this project are documented in this file. The format foll
 - [[1.0.0] - 2026-10-31](#100---2026-10-31)
 
 ## [Unreleased]
+
+## [1.10.0] - 2026-11-07
 
 **Upgrade if you use `collaboration`: every version since 1.0.0 can save an empty page.** Saving right after opening an
 edit form, or while the hub was down, replaced the body with nothing, and text typed before the bind was lost. Where the
