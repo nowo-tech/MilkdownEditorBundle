@@ -49,6 +49,8 @@ export const MAX_RETRY_AFTER = 60_000;
 export const CONNECT_STEP_TIMEOUT = 20_000;
 /** Stored updates that arrived before the one they follow, kept until it does (a longer gap gives up, see {@link MercureProvider.includedSeq}). */
 const MAX_WAITING_SEQ = 1024;
+/** The longest `POST update` and `POST compact` may take (ms, 1.12): an answer that never comes must not hold later edits. */
+export const POST_TIMEOUT = 20_000;
 /** The longest a bound editor waits to ask again after refusals in a row: 1 s, doubled each time (ms, 1.10). */
 export const REFUSED_RETRY = 30_000;
 /** `keepalive` bodies are limited to 64 KiB by browsers; larger flushes on page hide are sent normally. */
@@ -81,9 +83,9 @@ export function retryAfter(header: string | null, attempt: number, now: number =
   return Math.max(backoff, Math.min(MAX_RETRY_AFTER, Math.max(MIN_RETRY_AFTER, asked)));
 }
 /** `s` and `p` (1.11, optional): this update's sequence number in the host's log, and the one before it. */
-type Message = { t: 'u' | 'a' | 'r'; c: number; d: string; s?: unknown; p?: unknown };
+type Message = { t: 'u' | 'a' | 'r'; c: number; d: string; s?: unknown; p?: unknown; e?: unknown };
 /** `GET <url>/state` answer: `state` (1.0), plus the optional update log of 1.2. */
-export type StateAnswer = { state: string; seed?: boolean; updates?: unknown; seq?: unknown; compact?: unknown };
+export type StateAnswer = { state: string; seed?: boolean; updates?: unknown; seq?: unknown; compact?: unknown; epoch?: unknown };
 
 /**
  * The host answered, and the answer is no (401, 403, 404, or a 2xx without a usable state): not an outage (1.10). A client
@@ -124,6 +126,12 @@ export class MercureProvider {
   quiet = false;
   private skippedPresence = false;
   private retryHint = 0;
+  /**
+   * 1.12: which log this document belongs to, as the host named it; null with a host that names none. Every reset of the log
+   * changes it, so a client that was away cannot post its old document into the new log.
+   */
+  epoch: string | null = null;
+  private localEdits = false;
   /** 1.11: every update of the host's log up to here is in the document; null until a state gave a number. */
   private applied: number | null = null;
   /** Stored updates not reached yet: the sequence number before them → theirs. */
@@ -201,6 +209,24 @@ export class MercureProvider {
     return this.applied;
   }
 
+  /** 1.12: this client changed the document itself, as opposed to only receiving others' updates. */
+  get hasLocalEdits(): boolean {
+    return this.localEdits;
+  }
+
+  /** The log is not ours any more: stop for good, as on a reset message. Nothing more goes to the host. */
+  private logReplaced(): void {
+    if (this.closed) return;
+    this.closed = true;
+    this.es?.close();
+    this.setStatus('reset');
+  }
+
+  /** The epoch field of a request body: only for a host that named one. */
+  private withEpoch<T extends object>(body: T): T & { e?: string } {
+    return this.epoch === null ? body : { ...body, e: this.epoch };
+  }
+
   /** Records that an update is in the document, from the numbers the host gave for it. */
   private noteStored(seq: unknown, previous: unknown): void {
     if (!Number.isSafeInteger(seq) || !Number.isSafeInteger(previous)) return;
@@ -270,7 +296,7 @@ export class MercureProvider {
     this.pending = [merged];
     this.unconfirmed = merged;
     this.dirty = true;
-    const body = JSON.stringify({ c: this.doc.clientID, d: toBase64(merged) });
+    const body = JSON.stringify(this.withEpoch({ c: this.doc.clientID, d: toBase64(merged) }));
     void fetch(`${this.base}/update`, {
       method: 'POST',
       credentials: 'same-origin',
@@ -344,7 +370,8 @@ export class MercureProvider {
   private async doConnect(): Promise<void> {
     this.setStatus('connecting');
     this.es?.close();
-    const client = { 'X-Nowo-Collab-Client': String(this.doc.clientID) };
+    // 1.12: the epoch too, so that a client that turns out to be on an old log does not claim the seed of the new one.
+    const client = { 'X-Nowo-Collab-Client': String(this.doc.clientID), ...(this.epoch === null ? {} : { 'X-Nowo-Collab-Epoch': this.epoch }) };
     const token = await this.bounded('token', (signal) => fetch(`${this.base}/token`, { method: 'POST', credentials: 'same-origin', headers: client, signal }));
     if (!token.ok) throw this.httpError('token', token);
     const url = new URL(this.hubUrl, location.href);
@@ -382,6 +409,13 @@ export class MercureProvider {
     if (this.closed) return;
     this.seed = answer.seed === true;
     this.seq = typeof answer.seq === 'number' && Number.isInteger(answer.seq) ? answer.seq : 0;
+    // A different log: nothing is applied and nothing is posted (audit HV-M1). This client's document stays in the tab.
+    const epoch = typeof answer.epoch === 'string' && answer.epoch !== '' ? answer.epoch : null;
+    if (this.epoch !== null && epoch !== null && epoch !== this.epoch) {
+      this.logReplaced();
+      return;
+    }
+    this.epoch = epoch;
     this.applied = null;
     const server = new Y.Doc();
     try {
@@ -443,10 +477,16 @@ export class MercureProvider {
   }
 
   private onMessage(m: Message): void {
+    const named = this.epoch !== null && typeof m.e === 'string';
     if (m.t === 'r') {
-      this.closed = true;
-      this.es?.close();
-      this.setStatus('reset');
+      // The reset that made the log this client already has: a late message, nothing to do.
+      if (named && m.e === this.epoch) return;
+      this.logReplaced();
+      return;
+    }
+    if (named && m.e !== this.epoch) {
+      // From another log. Either a late message of the old one, or ours was replaced and the reset was missed: the state tells.
+      void this.connect().catch(() => undefined);
       return;
     }
     if (m.c === this.doc.clientID) {
@@ -486,7 +526,7 @@ export class MercureProvider {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ c: this.doc.clientID, s: this.seq }),
+        body: JSON.stringify(this.withEpoch({ c: this.doc.clientID, s: this.seq })),
       });
     } catch {
       // Nothing more to do: the editor stays offline until the page reloads.
@@ -495,6 +535,7 @@ export class MercureProvider {
 
   private readonly onDocUpdate = (update: Uint8Array, origin: unknown): void => {
     if (origin === this) return;
+    this.localEdits = true;
     if (this.status !== 'online') {
       this.dirty = true;
       return;
@@ -593,7 +634,8 @@ export class MercureProvider {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ c: this.doc.clientID, d: toBase64(Y.encodeStateAsUpdate(this.doc)), s: seq }),
+        body: JSON.stringify(this.withEpoch({ c: this.doc.clientID, d: toBase64(Y.encodeStateAsUpdate(this.doc)), s: seq })),
+        signal: AbortSignal.timeout(POST_TIMEOUT),
       });
     } catch {
       // The log stays as it is; the next connect may compact.
@@ -622,8 +664,14 @@ export class MercureProvider {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ c: this.doc.clientID, d: toBase64(data) }),
+        body: JSON.stringify(kind === 'update' ? this.withEpoch({ c: this.doc.clientID, d: toBase64(data) }) : { c: this.doc.clientID, d: toBase64(data) }),
+        signal: AbortSignal.timeout(POST_TIMEOUT),
       });
+      if (kind === 'update' && r.status === 409 && (await r.clone().json().catch(() => null))?.error === 'log_epoch') {
+        this.dirty = true;
+        this.logReplaced();
+        return 'failed';
+      }
       if (r.status === 429) {
         this.blockedUntil[kind] = Date.now() + retryAfter(r.headers.get('Retry-After'), this.throttled[kind]++);
         return 'throttled';
@@ -632,9 +680,12 @@ export class MercureProvider {
       this.throttled[kind] = 0;
       if (kind === 'update') await this.readStored(r);
       return 'sent';
-    } catch {
+    } catch (error) {
       if (kind === 'update') this.dirty = true;
       this.setStatus('offline');
+      // An answer that never came: nothing will wake this up, so reconnect, which sends what is missing.
+      // The name differs by browser: TimeoutError in Chromium and Firefox, AbortError in WebKit.
+      if (kind === 'update' && error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) this.scheduleReconnect();
       return 'failed';
     }
   }

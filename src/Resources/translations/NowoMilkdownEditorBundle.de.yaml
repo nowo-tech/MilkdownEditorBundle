@@ -111,6 +111,7 @@ collab.offline: "Offline: Änderungen bleiben erhalten und werden gesendet, soba
 collab.reset: "Diese Seite wurde wiederhergestellt oder ersetzt: wird mit dem neuen Inhalt neu geladen…"
 collab.reset_paused: "Diese Seite wurde mehrmals hintereinander ersetzt. Lade sie neu, wenn du bereit bist."
 collab.reload: "Neu laden"
+collab.replaced: "Diese Seite wurde ersetzt, während du weg warst. Dein Text ist noch da, aber nicht gespeichert. Beim Speichern wirst du vor dem Ersetzen gefragt; Neuladen verwirft ihn."
 collab.standalone: "Bearbeitung ohne Live-Zusammenarbeit: Die Verbindung ist nicht verfügbar. Beim Speichern wird der Inhalt für alle ersetzt."
 collab.save_waiting: "Wird gespeichert, sobald der Editor bereit ist…"
 menu.label: "Editor-Aktionen"

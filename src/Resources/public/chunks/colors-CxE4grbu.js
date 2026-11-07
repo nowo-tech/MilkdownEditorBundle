@@ -1,8 +1,8 @@
 import { $ as e, Ot as t, St as n, at as r, ct as i, et as a, nt as o, ot as s, st as c, ut as l } from "./lib-9QpRoHAM.js";
 import { u } from "./lib-DaU_YkmU.js";
 import { i as d } from "./dist-BmAqUYId.js";
-import { d as f, l as p, r as m, u as h } from "./directives-CFqDiL7P.js";
-import { a as g } from "./runtime-DYTwV1CM.js";
+import { d as f, l as p, r as m, u as h } from "./directives-Cjq-r_Gz.js";
+import { a as g } from "./runtime-DBQRQGPT.js";
 import { a as _, i as v, n as y, r as b, t as x } from "./layer-N-kUiX52.js";
 // src/Resources/assets/src/commands/blocks.ts
 function S(e) {

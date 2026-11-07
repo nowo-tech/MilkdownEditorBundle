@@ -92,7 +92,7 @@ final class MilkdownEditorType extends AbstractType
      *
      * @var list<string>
      */
-    public const COLLABORATION_MESSAGE_KEYS = ['collab.standalone', 'collab.save_waiting'];
+    public const COLLABORATION_MESSAGE_KEYS = ['collab.standalone', 'collab.replaced', 'collab.save_waiting'];
 
     /**
      * UI strings sent only when their feature is enabled (1.3+), so fields without the feature keep the same widget

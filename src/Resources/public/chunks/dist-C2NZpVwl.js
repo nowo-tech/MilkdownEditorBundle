@@ -1,5 +1,5 @@
 import { C as e, N as t, P as n, U as r, j as i, m as a, o, r as s, y as c } from "./dist-BUN4Kjhx.js";
-import { html as l } from "./dist-CIBPKuBw.js";
+import { html as l } from "./dist-BEbuTC4G.js";
 import { i as u, n as d, r as f } from "./dist-BgjOpFmx.js";
 import { F as p, a as m } from "./code-block-DB02z2VD.js";
 // node_modules/.pnpm/@codemirror+lang-jinja@6.0.1/node_modules/@codemirror/lang-jinja/dist/index.js

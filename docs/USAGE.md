@@ -355,8 +355,27 @@ gets the number of the last state read: the client's later typing then reads as 
 | ≥ 1.11 | Ignores the field | As before: the field is one more POST key, outside the form's name |
 | < 1.11 | Reads the field | No field: as before. Clients ignore `s`, `p` and the answer's body |
 
+**Which log (1.12).** A host that replaces its log (a restore, a save outside the session, a purge) should name each log with
+an **epoch**, an opaque string that every reset changes. A client that was away when the log was dropped otherwise posts its old
+document into the new one on reconnect, and the next session save makes that text current.
+
+| Where | Format | Host's rule |
+| --- | --- | --- |
+| `GET state` | `{"epoch": "ab12…", …}` | Names the current log |
+| `POST token`, `GET state`, from a client already on a log | Header `X-Nowo-Collab-Epoch: ab12…` | Different from the current one: **do not give this client the seed**. It is about to find out it is on an old log, and would hold the seed for nobody |
+| `POST update`, `POST compact`, `POST corrupt` | `{"e": "ab12…", …}` | Different from the current one: answer 409 `{"error": "log_epoch"}`, under the same lock as the write. Missing: as before |
+| Hub `u` messages, `r` messages | `"e": "ab12…"` | Optional. The epoch of that update; of the new log for `r` |
+| The page form, from an editor that was bound | `_nowo_milkdown_collab_epoch` | Different from the current one: **ask**, whatever the log holds (answer the conflict, write nothing). Missing: as before |
+
+On a different epoch the client applies nothing and posts nothing. With nothing of the person's in the tab it reloads onto the new
+text. If the person wrote here, the tab stays with the text: `data-collab="standalone"`, an alert that the page was replaced and
+that the text is not saved, a **Reload** button that discards it, and a save that sends the old epoch, so the host asks before it
+replaces the page. A message from another log is not applied; the client reads the state to tell a late message from a missed
+reset. A host without an epoch, or a client before 1.12, behaves as before.
+
 **Time limits (1.11).** The token, opening the hub and the state each get 20 s. A step that takes longer is aborted and retried
-like an outage, so a request that never answers no longer holds the connection for good.
+like an outage, so a request that never answers no longer holds the connection for good. `POST update` and `POST compact` get
+20 s too (1.12): a hung update goes offline and reconnects, which sends what is missing.
 
 **One seeding tab (1.2).** Token and state requests carry `X-Nowo-Collab-Client` (the tab's Yjs client id) so the
 host can tell two tabs of the same user apart when it decides who seeds.

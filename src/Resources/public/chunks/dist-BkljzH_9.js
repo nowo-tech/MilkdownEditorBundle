@@ -1,6 +1,6 @@
 import { C as e, N as t, P as n, d as r, j as i, o as a, r as o, y as s } from "./dist-BUN4Kjhx.js";
 import { n as c, r as l } from "./dist-BgjOpFmx.js";
-import { i as u, r as d } from "./code-YykI66lP.js";
+import { i as u, r as d } from "./code-DwDysq5o.js";
 // node_modules/.pnpm/@codemirror+lang-sql@6.10.0/node_modules/@codemirror/lang-sql/dist/index.js
 var ee = 36, f = 1, p = 2, m = 3, h = 4, te = 5, ne = 6, re = 7, ie = 8, ae = 9, oe = 10, se = 11, ce = 12, g = 13, _ = 14, le = 15, ue = 16, de = 17, v = 18, fe = 19, y = 20, b = 21, x = 22, S = 23, C = 24;
 function w(e) {
