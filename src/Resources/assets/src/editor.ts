@@ -42,6 +42,8 @@ import type { CommentsApi, CommentsHost, ThreadUi, YjsAnchors } from './comments
 export const SESSION_FIELD = '_nowo_milkdown_collab';
 /** Hidden field next to it (1.11): the sequence number of the host's log that this save's text includes. */
 export const SESSION_SEQ_FIELD = '_nowo_milkdown_collab_seq';
+/** Hidden field (1.12): the log this editor's text came from. Sent on any save of an editor that was bound, online or not. */
+export const SESSION_EPOCH_FIELD = '_nowo_milkdown_collab_epoch';
 export type MilkdownEditorHandle = {
   root: HTMLElement;
   textarea: HTMLTextAreaElement;
@@ -439,6 +441,25 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
       keyEvents.forEach((type) => surface.removeEventListener(type, keepKey, true));
     };
     let notice: HTMLElement | null = null;
+    // Its own element: later statuses must not clear it.
+    const showNotice = (key: string): void => {
+      if (!notice) {
+        notice = document.createElement('div');
+        notice.className = 'nowo-milkdown__notice';
+        notice.setAttribute('role', 'alert');
+        status.before(notice);
+      }
+      notice.textContent = t(runtime, key);
+    };
+    const offerReload = (): void => {
+      if (root.querySelector('.nowo-milkdown__reload')) return;
+      const reload = document.createElement('button');
+      reload.type = 'button';
+      reload.className = 'nowo-milkdown__reload';
+      reload.textContent = t(runtime, 'collab.reload');
+      reload.addEventListener('click', () => reloadModule.page.reload());
+      status.after(reload);
+    };
 
     const collaboration = collabModule.startCollaboration(editor, options.collaboration, initial, {
       onStatus: (s) => {
@@ -451,14 +472,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
         if (s === 'standalone') {
           standalone = true;
           status.textContent = '';
-          // Its own element: later statuses must not clear it.
-          if (!notice) {
-            notice = document.createElement('div');
-            notice.className = 'nowo-milkdown__notice';
-            notice.setAttribute('role', 'alert');
-            notice.textContent = t(runtime, 'collab.standalone');
-            status.before(notice);
-          }
+          showNotice('collab.standalone');
         } else {
           announce(`collab.${s}`, {});
         }
@@ -466,12 +480,14 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
       onReloadPaused: () => {
         // CX-L1: too many resets in a row — stay on the page, offer a manual reload.
         announce('collab.reset_paused', {});
-        const reload = document.createElement('button');
-        reload.type = 'button';
-        reload.className = 'nowo-milkdown__reload';
-        reload.textContent = t(runtime, 'collab.reload');
-        reload.addEventListener('click', () => reloadModule.page.reload());
-        status.after(reload);
+        offerReload();
+      },
+      onReplaced: () => {
+        root.dataset.collab = 'standalone';
+        standalone = true;
+        status.textContent = '';
+        showNotice('collab.replaced');
+        offerReload();
       },
       onReady: () => {
         waiting = false;
@@ -520,6 +536,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
       // Read in the same task as the text the form sends, so the number and the text agree.
       const seq = inSession ? live.includedSeq : null;
       hidden(SESSION_SEQ_FIELD, seq === null ? null : String(seq));
+      hidden(SESSION_EPOCH_FIELD, collaboration.bound() ? live.epoch : null);
     };
     form?.addEventListener('submit', markSession, true);
     // 1.5.1: edits waiting in the send window go out when the editor loses focus.

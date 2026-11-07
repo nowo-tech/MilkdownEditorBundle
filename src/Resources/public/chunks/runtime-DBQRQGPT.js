@@ -114,6 +114,7 @@ var t = {
 	"collab.reset_paused": "This page was replaced several times in a row. Reload it when you are ready.",
 	"collab.reload": "Reload",
 	"collab.standalone": "Editing without live co-editing: the connection is not available. Saving replaces the content for everyone.",
+	"collab.replaced": "This page was replaced while you were away. Your text is still here, not saved. Saving asks before it replaces the page; reloading discards it.",
 	"collab.save_waiting": "Saving as soon as the editor is ready…",
 	"menu.label": "Editor actions",
 	"menu.cut": "Cut",

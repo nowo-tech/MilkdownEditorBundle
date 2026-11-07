@@ -111,6 +111,7 @@ collab.offline: "Hors ligne : les modifications sont conservées et envoyées au
 collab.reset: "Cette page a été restaurée ou remplacée : rechargement avec le nouveau contenu…"
 collab.reset_paused: "Cette page a été remplacée plusieurs fois de suite. Rechargez-la quand vous êtes prêt."
 collab.reload: "Recharger"
+collab.replaced: "Cette page a été remplacée pendant votre absence. Votre texte est toujours là, non enregistré. Enregistrer vous demandera confirmation avant de remplacer la page ; recharger le supprime."
 collab.standalone: "Édition sans coédition en direct : la connexion n’est pas disponible. Enregistrer remplace le contenu pour tout le monde."
 collab.save_waiting: "Enregistrement dès que l’éditeur est prêt…"
 menu.label: "Actions de l'éditeur"

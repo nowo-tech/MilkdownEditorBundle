@@ -25,6 +25,16 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Fixed
+
+- **A tab that returns after the log was dropped no longer undoes the newer text** (audit HV-M1), with a host that names its
+  logs. On reconnect the client posted its whole document to whatever log it found, and the next session save made that text
+  current, with no ask. Now an **epoch** names the log: `state` gives it, `update`, `compact`, `corrupt` and the form send it, and a
+  mismatch posts nothing. A tab with nothing of the person's reloads; one with their text keeps it, says so, and its save asks.
+  Also covers a hub drop without going offline, a client that never heard the reset, and a live editor on the new log. Hosts and
+  clients without it behave as before ([USAGE](USAGE.md#collaboration)).
+- **`POST update` and `POST compact` have a time limit** of 20 s (audit HV-L3). A hung update held every later one.
+
 ## [1.11.0] - 2026-11-07
 
 ### Added

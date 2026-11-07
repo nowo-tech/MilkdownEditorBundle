@@ -147,6 +147,8 @@ export type CollaborationHooks = {
   onStatus: (status: SessionStatus) => void;
   /** Automatic reloads are capped: the person reloads by hand. */
   onReloadPaused: () => void;
+  /** 1.12: the log was replaced and this tab holds the person's own edits: it stays, with them, and says so. */
+  onReplaced?: () => void;
   /** The wait is over (about to bind, or standalone): the editor can be edited. May run again on a late bind. */
   onReady: () => void;
   /** False once the person changed the content while standalone: a late bind would replace it. */
@@ -295,6 +297,16 @@ export function startCollaboration(editor: Editor, options: CollaborationOptions
         end();
         return;
       }
+      // 1.12, with a host that names its logs: a reload would lose what the person wrote here. A save asks instead.
+      const holdsEdits = (): boolean => phase === 'bound' && provider.epoch !== null && provider.hasLocalEdits && !hooks.isUntouched();
+      const keep = (): void => {
+        end();
+        hooks.onReplaced?.();
+      };
+      if (holdsEdits()) {
+        keep();
+        return;
+      }
       hooks.onStatus(s);
       if (allowReload(options.topic)) {
         reloadTimer = window.setTimeout(() => {
@@ -302,6 +314,10 @@ export function startCollaboration(editor: Editor, options: CollaborationOptions
           if (phase === 'standalone' && !hooks.isUntouched()) {
             end();
             hooks.onStatus('standalone');
+            return;
+          }
+          if (holdsEdits()) {
+            keep();
             return;
           }
           page.reload();

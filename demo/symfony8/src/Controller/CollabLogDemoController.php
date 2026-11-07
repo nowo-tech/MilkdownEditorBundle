@@ -25,8 +25,9 @@ final class CollabLogDemoController extends AbstractController
 {
     private const FIELD = '_nowo_milkdown_collab';
     private const SEQ_FIELD = '_nowo_milkdown_collab_seq';
+    private const EPOCH_FIELD = '_nowo_milkdown_collab_epoch';
     private const DOC = '[a-z0-9-]{1,40}';
-    private const EMPTY = ['body' => 'Original body', 'updates' => [], 'seq' => 0, 'saved' => 0, 'claim' => null, 'revisions' => []];
+    private const EMPTY = ['body' => 'Original body', 'updates' => [], 'seq' => 0, 'saved' => 0, 'claim' => null, 'revisions' => [], 'epoch' => 'first'];
 
     public function __construct(
         #[Autowire(service: 'profiler')]
@@ -65,7 +66,12 @@ final class CollabLogDemoController extends AbstractController
             $text    = (string) $data['body'];
             $replace = $request->query->has('replace');
             $useSeq  = $legacy === '';
-            $status  = $this->locked($doc, static function (array $log) use ($session, $sent, $text, $replace, $useSeq): array {
+            $epoch   = $useSeq ? $request->request->get(self::EPOCH_FIELD) : null;
+            $status  = $this->locked($doc, static function (array $log) use ($session, $sent, $text, $replace, $useSeq, $epoch): array {
+                // Text from a log that has been replaced: it asks, whatever the log holds now (HV-M1).
+                if (is_string($epoch) && $epoch !== $log['epoch'] && !$replace) {
+                    return [$log, Response::HTTP_CONFLICT];
+                }
                 if (!$session && !$replace && $log['seq'] > $log['saved']) {
                     return [$log, Response::HTTP_CONFLICT];
                 }
@@ -75,7 +81,7 @@ final class CollabLogDemoController extends AbstractController
                     $seq          = $useSeq && is_string($sent) && ctype_digit($sent) ? min((int) $sent, $log['seq']) : $log['seq'];
                     $log['saved'] = max($log['saved'], $seq);
                 } else {
-                    $log = ['updates' => [], 'seq' => 0, 'saved' => 0, 'claim' => null] + $log;
+                    $log = ['updates' => [], 'seq' => 0, 'saved' => 0, 'claim' => null, 'epoch' => bin2hex(random_bytes(8))] + $log;
                 }
 
                 return [$log, Response::HTTP_FOUND];
@@ -107,7 +113,7 @@ final class CollabLogDemoController extends AbstractController
     }
 
     #[Route('/collab/log/{doc}/api/{legacy}state', name: 'demo_collab_log_state', requirements: ['doc' => self::DOC, 'legacy' => '(legacy/)?'], defaults: ['legacy' => ''], methods: ['GET'])]
-    public function state(Request $request, string $doc): JsonResponse
+    public function state(Request $request, string $doc, string $legacy): JsonResponse
     {
         $client = (string) $request->headers->get('X-Nowo-Collab-Client');
 
@@ -116,15 +122,18 @@ final class CollabLogDemoController extends AbstractController
             'updates' => array_column($log['updates'], 'd'),
             'seq'     => $log['seq'],
             'seed'    => $log['updates'] === [] && $log['claim'] === $client,
-        ]]));
+        ] + ($legacy === '' ? ['epoch' => $log['epoch']] : [])]));
     }
 
     #[Route('/collab/log/{doc}/api/{legacy}update', name: 'demo_collab_log_update', requirements: ['doc' => self::DOC, 'legacy' => '(legacy/)?'], defaults: ['legacy' => ''], methods: ['POST'])]
     public function update(Request $request, string $doc, string $legacy): Response
     {
-        /** @var array{d?: string} $body */
+        /** @var array{d?: string, e?: string} $body */
         $body   = $request->toArray();
         $stored = $this->locked($doc, static function (array $log) use ($body): array {
+            if (isset($body['e']) && $body['e'] !== $log['epoch']) {
+                return [$log, null];
+            }
             $previous        = $log['seq'];
             // Like a shared auto-increment: growing, with gaps.
             $log['seq']     += random_int(1, 3);
@@ -132,6 +141,10 @@ final class CollabLogDemoController extends AbstractController
 
             return [$log, ['s' => $log['seq'], 'p' => $previous]];
         });
+
+        if ($stored === null) {
+            return $this->json(['error' => 'log_epoch'], Response::HTTP_CONFLICT);
+        }
 
         return $legacy === '' ? $this->json($stored) : new Response(null, Response::HTTP_NO_CONTENT);
     }
@@ -147,7 +160,7 @@ final class CollabLogDemoController extends AbstractController
      *
      * @template T
      *
-     * @param callable(array{body: string, updates: list<array{s: int, d: string}>, seq: int, saved: int, claim: string|null, revisions: list<string>}): array{0: array<string, mixed>, 1: T} $work
+     * @param callable(array{body: string, updates: list<array{s: int, d: string}>, seq: int, saved: int, claim: string|null, revisions: list<string>, epoch: string}): array{0: array<string, mixed>, 1: T} $work
      *
      * @return T
      */
@@ -161,7 +174,7 @@ final class CollabLogDemoController extends AbstractController
         flock($file, LOCK_EX);
         try {
             $read = stream_get_contents($file);
-            /** @var array{body: string, updates: list<array{s: int, d: string}>, seq: int, saved: int, claim: string|null, revisions: list<string>} $log */
+            /** @var array{body: string, updates: list<array{s: int, d: string}>, seq: int, saved: int, claim: string|null, revisions: list<string>, epoch: string} $log */
             $log           = $read === '' || $read === false ? self::EMPTY : json_decode($read, true, flags: JSON_THROW_ON_ERROR);
             [$next, $back] = $work($log);
             ftruncate($file, 0);

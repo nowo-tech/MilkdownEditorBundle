@@ -171,7 +171,10 @@ in PHP and clamped again in the browser; the new messages are text (`textContent
 
 The number in `_nowo_milkdown_collab_seq` (1.11) comes from the client and is not proof: a host clamps it to its last number.
 It only decides whether a later save outside the session asks first, and an editor can replace the document anyway. A missing
-hub message cannot raise it: an update counts only once the one before it does. Independent audit (Appendix HV, 2026-11-07, `08cd125`): **Pass (good) / Low**. In about 1,500 fault-injection runs the number never counted an update the document lacks; a naive numbering failed the same test. Open: `POST update` has no time limit, so a hung answer stops sharing, though the session save still carries the text; connection steps give up after a fixed 20 s, which fails safe.
+hub message cannot raise it: an update counts only once the one before it does. Independent audit (Appendix HV, 2026-11-07), regraded on `v1.11.0`: **Pass (conditional) / Medium**. The number never counted an update the document lacks, in about 1,500 fault-injection runs. In every version up to 1.11, on reconnect a tab posted its document to whatever log it found, so a tab that was offline when the log was dropped undid the newer text at the next session save, with no ask; every revision stays in history (HV-M1). 1.12 closes this with a host that names its logs: an epoch that every reset changes, so such a tab posts nothing, and its save asks. Clients before 1.12 and hosts without an epoch keep it. `POST update` and `POST compact` now have a time limit (HV-L3); connection steps give up after a fixed 20 s, which fails safe. **The epoch: re-verification pending.**
+
+`e` and `_nowo_milkdown_collab_epoch` (1.12) come from the client and are compared with the host's current value: an equal one
+gains nothing, since an editor may replace the document anyway. A wrong one only makes that client's request refused or its save ask.
 
 Still the host's: a save without `_nowo_milkdown_collab` can replace a shared log, so check the base revision, and keep
 revisions. A save while `offline` is one: it goes without a session and with no warning, as it has since 1.2, and the same

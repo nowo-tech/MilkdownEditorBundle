@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
+- [To 1.12.0](#to-1120)
 - [To 1.11.0](#to-1110)
 - [To 1.10.0](#to-1100)
 - [To 1.9.0](#to-190)
@@ -31,6 +32,17 @@
 Public API covered by Semantic Versioning: the configuration tree, profile keys, form options, Twig filter / function
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
+
+## To 1.12.0
+
+From **1.11.0**: `composer update nowo-tech/milkdown-editor-bundle`, then run `assets:install`. Fields without `collaboration` do
+not change. With it, and a host that answers `epoch` in `state` (WikiBundle needs the matching release):
+
+- **A tab on a replaced log does not post, and a tab with the person's text does not reload.** It stays on the page, with
+  `data-collab="standalone"`, the alert `collab.replaced` and a **Reload** button. Before, it reloaded after 1.5 s and the text was gone.
+- **A save has one more POST key**, `_nowo_milkdown_collab_epoch`, also while offline. A form with an empty name and no
+  `allow_extra_fields` would refuse it, as it refuses the others.
+- **To name your logs** see [USAGE](USAGE.md#collaboration). A host that does not gets today's behaviour, including HV-M1.
 
 ## To 1.11.0
 

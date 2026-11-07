@@ -4515,8 +4515,8 @@ var $c = (e) => {
 	let t = "";
 	for (let n = 0; n < e.length; n += 32768) t += String.fromCharCode(...e.subarray(n, n + 32768));
 	return btoa(t);
-}, el = (e) => Uint8Array.from(atob(e), (e) => e.charCodeAt(0)), tl = 262144, nl = 3e4, rl = 1e3, il = 6e4, al = 2e4, ol = 1024, sl = 3e4, cl = 6e4, ll = (e, t, n) => typeof e == "number" && Number.isFinite(e) ? Math.min(n, Math.max(0, Math.round(e))) : t;
-function ul(e, t, n = Date.now()) {
+}, el = (e) => Uint8Array.from(atob(e), (e) => e.charCodeAt(0)), tl = 262144, nl = 3e4, rl = 1e3, il = 6e4, al = 2e4, ol = 1024, sl = 2e4, cl = 3e4, ll = 6e4, ul = (e, t, n) => typeof e == "number" && Number.isFinite(e) ? Math.min(n, Math.max(0, Math.round(e))) : t;
+function dl(e, t, n = Date.now()) {
 	let r = Math.min(nl, 1e3 * 2 ** t);
 	if (!e) return r;
 	let i = e.trim(), a;
@@ -4528,19 +4528,19 @@ function ul(e, t, n = Date.now()) {
 	}
 	return Math.max(r, Math.min(il, Math.max(rl, a)));
 }
-var dl = class extends Error {}, fl = (e) => [e.state, ...Array.isArray(e.updates) ? e.updates : []].filter((e) => typeof e == "string" && e !== "");
-async function pl(e) {
+var fl = class extends Error {}, pl = (e) => [e.state, ...Array.isArray(e.updates) ? e.updates : []].filter((e) => typeof e == "string" && e !== "");
+async function ml(e) {
 	let t;
 	try {
 		t = await e.json();
 	} catch {
-		throw new dl("state: not JSON");
+		throw new fl("state: not JSON");
 	}
 	let { state: n, updates: r } = t ?? {};
-	if (typeof n != "string" && !Array.isArray(r)) throw new dl("state: no state");
+	if (typeof n != "string" && !Array.isArray(r)) throw new fl("state: no state");
 	return t;
 }
-var ml = class {
+var hl = class {
 	doc;
 	base;
 	hubUrl;
@@ -4552,6 +4552,8 @@ var ml = class {
 	quiet = !1;
 	skippedPresence = !1;
 	retryHint = 0;
+	epoch = null;
+	localEdits = !1;
 	applied = null;
 	following = /* @__PURE__ */ new Map();
 	refusals = 0;
@@ -4593,13 +4595,25 @@ var ml = class {
 	awarenessDelay;
 	maxUpdateBytes;
 	constructor(e, t, n, r, i = {}) {
-		this.doc = e, this.base = t, this.hubUrl = n, this.topic = r, this.updateDelay = ll(i.updateDelay, 200, 2e3), this.awarenessDelay = ll(i.awarenessDelay, 750, 5e3), this.maxUpdateBytes = Math.max(1024, ll(i.maxUpdateBytes, tl, 67108864)), this.awareness = new js(e), e.on("update", this.onDocUpdate), this.awareness.on("update", this.onAwarenessUpdate), window.addEventListener("online", this.onOnline), window.addEventListener("offline", this.onOffline), window.addEventListener("beforeunload", this.onUnload), window.addEventListener("pagehide", this.onPageHide), document.addEventListener("visibilitychange", this.onVisibility);
+		this.doc = e, this.base = t, this.hubUrl = n, this.topic = r, this.updateDelay = ul(i.updateDelay, 200, 2e3), this.awarenessDelay = ul(i.awarenessDelay, 750, 5e3), this.maxUpdateBytes = Math.max(1024, ul(i.maxUpdateBytes, tl, 67108864)), this.awareness = new js(e), e.on("update", this.onDocUpdate), this.awareness.on("update", this.onAwarenessUpdate), window.addEventListener("online", this.onOnline), window.addEventListener("offline", this.onOffline), window.addEventListener("beforeunload", this.onUnload), window.addEventListener("pagehide", this.onPageHide), document.addEventListener("visibilitychange", this.onVisibility);
 	}
 	onStatus(e) {
 		this.listeners.add(e);
 	}
 	get includedSeq() {
 		return this.applied;
+	}
+	get hasLocalEdits() {
+		return this.localEdits;
+	}
+	logReplaced() {
+		this.closed || (this.closed = !0, this.es?.close(), this.setStatus("reset"));
+	}
+	withEpoch(e) {
+		return this.epoch === null ? e : {
+			...e,
+			e: this.epoch
+		};
 	}
 	noteStored(e, t) {
 		if (!Number.isSafeInteger(e) || !Number.isSafeInteger(t)) return;
@@ -4638,16 +4652,16 @@ var ml = class {
 		if (this.status !== "online" || !this.pending.length) return;
 		let t = Da(this.pending);
 		this.pending = [t], this.unconfirmed = t, this.dirty = !0;
-		let n = JSON.stringify({
+		let n = JSON.stringify(this.withEpoch({
 			c: this.doc.clientID,
 			d: $c(t)
-		});
+		}));
 		fetch(`${this.base}/update`, {
 			method: "POST",
 			credentials: "same-origin",
 			headers: { "Content-Type": "application/json" },
 			body: n,
-			keepalive: n.length <= cl
+			keepalive: n.length <= ll
 		}).then((e) => {
 			e.ok && this.unconfirmed === t && (this.unconfirmed = null, this.pending[0] === t && this.pending.shift(), this.dirty = !1);
 		}).catch(() => void 0);
@@ -4666,12 +4680,12 @@ var ml = class {
 		this.status = e, this.listeners.forEach((t) => t(e));
 	}
 	connectFailed(e) {
-		if (e instanceof dl) {
+		if (e instanceof fl) {
 			if (!this.wasOnline || this.quiet) {
 				this.failed = !0, this.setStatus("offline");
 				return;
 			}
-			this.retryHint = Math.min(sl, 1e3 * 2 ** this.refusals++);
+			this.retryHint = Math.min(cl, 1e3 * 2 ** this.refusals++);
 		}
 		this.wasOnline && this.setStatus("offline"), this.scheduleReconnect();
 	}
@@ -4704,20 +4718,26 @@ var ml = class {
 				signal: t
 			});
 			if (!n.ok) throw this.httpError("state", n);
-			return pl(n);
+			return ml(n);
 		});
 		if (this.closed) return;
-		this.seed = i.seed === !0, this.seq = typeof i.seq == "number" && Number.isInteger(i.seq) ? i.seq : 0, this.applied = null;
-		let a = new ii();
+		this.seed = i.seed === !0, this.seq = typeof i.seq == "number" && Number.isInteger(i.seq) ? i.seq : 0;
+		let a = typeof i.epoch == "string" && i.epoch !== "" ? i.epoch : null;
+		if (this.epoch !== null && a !== null && a !== this.epoch) {
+			this.logReplaced();
+			return;
+		}
+		this.epoch = a, this.applied = null;
+		let o = new ii();
 		try {
-			for (let e of fl(i)) bi(a, el(e)), bi(this.doc, el(e), this);
+			for (let e of pl(i)) bi(o, el(e)), bi(this.doc, el(e), this);
 		} catch {
-			a.destroy(), await this.reportCorrupt();
+			o.destroy(), await this.reportCorrupt();
 			return;
 		}
 		typeof i.seq == "number" && Number.isInteger(i.seq) && (this.applied = i.seq, this.advanceApplied());
-		let o = Ci(this.doc, ki(a));
-		a.destroy(), this.pending = [], this.unconfirmed = null, o.length > 2 && await this.post("update", o), this.dirty = !1, this.retry = 0, this.refusals = 0, this.wasOnline = !0, this.setStatus("online"), this.closed || (this.quiet ? this.skippedPresence = !0 : (i.compact === !0 && typeof i.seq == "number" && Number.isInteger(i.seq) && await this.compact(i.seq), await this.post("awareness", Ns(this.awareness, [this.doc.clientID]))));
+		let s = Ci(this.doc, ki(o));
+		o.destroy(), this.pending = [], this.unconfirmed = null, s.length > 2 && await this.post("update", s), this.dirty = !1, this.retry = 0, this.refusals = 0, this.wasOnline = !0, this.setStatus("online"), this.closed || (this.quiet ? this.skippedPresence = !0 : (i.compact === !0 && typeof i.seq == "number" && Number.isInteger(i.seq) && await this.compact(i.seq), await this.post("awareness", Ns(this.awareness, [this.doc.clientID]))));
 	}
 	httpError(e, t) {
 		let n = `${e} ${t.status}`;
@@ -4725,7 +4745,7 @@ var ml = class {
 			401,
 			403,
 			404
-		].includes(t.status) ? new dl(n) : (t.status === 429 && (this.retryHint = ul(t.headers.get("Retry-After"), 0)), Error(n));
+		].includes(t.status) ? new fl(n) : (t.status === 429 && (this.retryHint = dl(t.headers.get("Retry-After"), 0)), Error(n));
 	}
 	join() {
 		this.quiet = !1, this.skippedPresence && this.scheduleAwareness(), this.skippedPresence = !1;
@@ -4736,8 +4756,14 @@ var ml = class {
 		this.retryHint = 0, window.setTimeout(() => void this.connect().catch(() => void 0), e);
 	}
 	onMessage(e) {
+		let t = this.epoch !== null && typeof e.e == "string";
 		if (e.t === "r") {
-			this.closed = !0, this.es?.close(), this.setStatus("reset");
+			if (t && e.e === this.epoch) return;
+			this.logReplaced();
+			return;
+		}
+		if (t && e.e !== this.epoch) {
+			this.connect().catch(() => void 0);
 			return;
 		}
 		if (e.c === this.doc.clientID) {
@@ -4752,13 +4778,13 @@ var ml = class {
 			}
 			return;
 		}
-		let t = this.awareness.getStates().has(e.c);
+		let n = this.awareness.getStates().has(e.c);
 		try {
 			Ps(this.awareness, el(e.d), this);
 		} catch {
 			return;
 		}
-		t || this.scheduleAwareness();
+		n || this.scheduleAwareness();
 	}
 	async reportCorrupt() {
 		let e = !this.reported;
@@ -4767,15 +4793,15 @@ var ml = class {
 				method: "POST",
 				credentials: "same-origin",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
+				body: JSON.stringify(this.withEpoch({
 					c: this.doc.clientID,
 					s: this.seq
-				})
+				}))
 			});
 		} catch {}
 	}
 	onDocUpdate = (e, t) => {
-		t !== this && (this.status === "online" ? (this.pending.push(e), this.scheduleUpdates(this.updateDelay)) : this.dirty = !0);
+		t !== this && (this.localEdits = !0, this.status === "online" ? (this.pending.push(e), this.scheduleUpdates(this.updateDelay)) : this.dirty = !0);
 	};
 	scheduleUpdates(e) {
 		if (this.updateTimer || this.closed) return;
@@ -4832,11 +4858,12 @@ var ml = class {
 				method: "POST",
 				credentials: "same-origin",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
+				body: JSON.stringify(this.withEpoch({
 					c: this.doc.clientID,
 					d: $c(Ci(this.doc)),
 					s: e
-				})
+				})),
+				signal: AbortSignal.timeout(sl)
 			});
 		} catch {}
 	}
@@ -4852,30 +4879,35 @@ var ml = class {
 				method: "POST",
 				credentials: "same-origin",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
+				body: JSON.stringify(e === "update" ? this.withEpoch({
 					c: this.doc.clientID,
 					d: $c(t)
-				})
+				}) : {
+					c: this.doc.clientID,
+					d: $c(t)
+				}),
+				signal: AbortSignal.timeout(sl)
 			});
-			if (n.status === 429) return this.blockedUntil[e] = Date.now() + ul(n.headers.get("Retry-After"), this.throttled[e]++), "throttled";
+			if (e === "update" && n.status === 409 && (await n.clone().json().catch(() => null))?.error === "log_epoch") return this.dirty = !0, this.logReplaced(), "failed";
+			if (n.status === 429) return this.blockedUntil[e] = Date.now() + dl(n.headers.get("Retry-After"), this.throttled[e]++), "throttled";
 			if (!n.ok) throw Error(String(n.status));
 			return this.throttled[e] = 0, e === "update" && await this.readStored(n), "sent";
-		} catch {
-			return e === "update" && (this.dirty = !0), this.setStatus("offline"), "failed";
+		} catch (t) {
+			return e === "update" && (this.dirty = !0), this.setStatus("offline"), e === "update" && t instanceof Error && t.name === "TimeoutError" && this.scheduleReconnect(), "failed";
 		}
 	}
-}, hl = (e) => typeof e == "string" && /^#[0-9a-f]{6}$/i.test(e) ? e : "#6b7280";
-function gl(e) {
+}, gl = (e) => typeof e == "string" && /^#[0-9a-f]{6}$/i.test(e) ? e : "#6b7280";
+function _l(e) {
 	let t = document.createElement("span");
-	t.className = "ProseMirror-yjs-cursor", t.style.borderColor = hl(e.color);
+	t.className = "ProseMirror-yjs-cursor", t.style.borderColor = gl(e.color);
 	let n = document.createElement("div");
-	return n.style.backgroundColor = hl(e.color), n.textContent = typeof e.name == "string" ? e.name.slice(0, 40) : "", t.append(document.createTextNode("⁠"), n, document.createTextNode("⁠")), t;
+	return n.style.backgroundColor = gl(e.color), n.textContent = typeof e.name == "string" ? e.name.slice(0, 40) : "", t.append(document.createTextNode("⁠"), n, document.createTextNode("⁠")), t;
 }
-var _l = (e) => ({
-	style: `background-color: ${hl(e.color)}70`,
+var vl = (e) => ({
+	style: `background-color: ${gl(e.color)}70`,
 	class: "ProseMirror-yjs-selection"
 });
-function vl(e) {
+function yl(e) {
 	let t = () => Q.getState(e());
 	return {
 		encode: (e) => {
@@ -4898,14 +4930,14 @@ function vl(e) {
 		}
 	};
 }
-var yl = 1500, bl = { reload: () => window.location.reload() }, xl = 3, Sl = 3e5, Cl = () => {
+var bl = 1500, xl = { reload: () => window.location.reload() }, Sl = 3, Cl = 3e5, wl = () => {
 	try {
 		return window.sessionStorage;
 	} catch {
 		return null;
 	}
 };
-function wl(e, t = Cl(), n = Date.now()) {
+function Tl(e, t = wl(), n = Date.now()) {
 	let r = `nowo-milkdown-reloads:${e}`, i;
 	try {
 		i = JSON.parse(t?.getItem(r) ?? "[]");
@@ -4919,18 +4951,18 @@ function wl(e, t = Cl(), n = Date.now()) {
 	} catch {}
 	return !0;
 }
-var Tl = 5e3, El = 6e4, Dl = 31e3, Ol = (e) => e instanceof G && e.nodeName === "paragraph" && e.toArray().every((e) => e instanceof K && e.toString().trim() === "");
-function kl(e) {
-	return e.toArray().every(Ol);
+var El = 5e3, Dl = 6e4, Ol = 31e3, kl = (e) => e instanceof G && e.nodeName === "paragraph" && e.toArray().every((e) => e instanceof K && e.toString().trim() === "");
+function Al(e) {
+	return e.toArray().every(kl);
 }
-var Al = (e, t = () => void 0) => new p({
+var jl = (e, t = () => void 0) => new p({
 	filterTransaction: (t) => !t.docChanged || !e(),
 	view: () => ({ update: (e, n) => {
 		e.state.doc.eq(n.doc) || t();
 	} })
 });
-function jl(e, t, n, r) {
-	let i = new ii(), a = i.getXmlFragment("prosemirror"), o = new ml(i, t.url, t.hubUrl, t.topic, {
+function Ml(e, t, n, r) {
+	let i = new ii(), a = i.getXmlFragment("prosemirror"), o = new hl(i, t.url, t.hubUrl, t.topic, {
 		updateDelay: t.updateDelay,
 		awarenessDelay: t.awarenessDelay,
 		maxUpdateBytes: t.maxUpdateBytes
@@ -4942,10 +4974,10 @@ function jl(e, t, n, r) {
 		c || (c = !0, window.clearTimeout(u), i.off("update", ie), o.disconnect());
 	}, m = () => {
 		s === "waiting" && (s = "standalone", window.clearTimeout(ae), r.onReady(), r.onStatus("standalone"), f());
-	}, te = () => !o.seed && kl(a) && n.trim() !== "", ne = () => {
+	}, te = () => !o.seed && Al(a) && n.trim() !== "", ne = () => {
 		window.clearTimeout(u), u = window.setTimeout(() => {
 			s === "bound" || c || (o.status === "online" && te() && !document.hidden && o.connect().catch(() => void 0), ne());
-		}, Dl);
+		}, Ol);
 	}, re = () => {
 		if (!(s === "bound" || c || o.status !== "online")) {
 			if (te()) u || ne();
@@ -4956,9 +4988,9 @@ function jl(e, t, n, r) {
 					e.action((e) => {
 						let t = e.get(Xc);
 						t.setOptions({ yCursorOpts: {
-							cursorBuilder: gl,
-							selectionBuilder: _l
-						} }), t.bindDoc(i).setAwareness(o.awareness), o.seed && t.applyTemplate(n, () => kl(a)), t.connect();
+							cursorBuilder: _l,
+							selectionBuilder: vl
+						} }), t.bindDoc(i).setAwareness(o.awareness), o.seed && t.applyTemplate(n, () => Al(a)), t.connect();
 					});
 				} catch (e) {
 					console.error("nowo-milkdown", e), l = !1, m(), p();
@@ -4974,12 +5006,19 @@ function jl(e, t, n, r) {
 				p();
 				return;
 			}
-			r.onStatus(e), wl(t.topic) ? d = window.setTimeout(() => {
-				s === "standalone" && !r.isUntouched() ? (p(), r.onStatus("standalone")) : bl.reload();
-			}, yl) : (m(), r.onReloadPaused());
+			let n = () => s === "bound" && o.epoch !== null && o.hasLocalEdits && !r.isUntouched(), i = () => {
+				p(), r.onReplaced?.();
+			};
+			if (n()) {
+				i();
+				return;
+			}
+			r.onStatus(e), Tl(t.topic) ? d = window.setTimeout(() => {
+				s === "standalone" && !r.isUntouched() ? (p(), r.onStatus("standalone")) : n() ? i() : xl.reload();
+			}, bl) : (m(), r.onReloadPaused());
 		} else s === "bound" ? r.onStatus(e) : o.failed ? (m(), p()) : o.corrupt ? m() : e === "online" ? re() : s === "waiting" && r.onStatus("connecting");
 	});
-	let h = typeof t.connectTimeout == "number" && Number.isFinite(t.connectTimeout) ? Math.min(El, Math.max(0, Math.round(t.connectTimeout))) : Tl, ae = window.setTimeout(m, h);
+	let h = typeof t.connectTimeout == "number" && Number.isFinite(t.connectTimeout) ? Math.min(Dl, Math.max(0, Math.round(t.connectTimeout))) : El, ae = window.setTimeout(m, h);
 	return o.connect().catch(() => void 0), {
 		provider: o,
 		ready: ee,
@@ -4992,4 +5031,4 @@ function jl(e, t, n, r) {
 		}
 	};
 }
-export { Tl as DEFAULT_CONNECT_TIMEOUT, El as MAX_CONNECT_TIMEOUT, xl as RELOAD_CAP, Sl as RELOAD_WINDOW, yl as RESET_RELOAD_DELAY, Dl as SEED_RECHECK, wl as allowReload, Qc as collab, gl as cursorBuilder, kl as isBlank, bl as page, hl as safeColor, _l as selectionBuilder, jl as startCollaboration, Al as waitPlugin, vl as yjsAnchors };
+export { El as DEFAULT_CONNECT_TIMEOUT, Dl as MAX_CONNECT_TIMEOUT, Sl as RELOAD_CAP, Cl as RELOAD_WINDOW, bl as RESET_RELOAD_DELAY, Ol as SEED_RECHECK, Tl as allowReload, Qc as collab, _l as cursorBuilder, Al as isBlank, xl as page, gl as safeColor, vl as selectionBuilder, Ml as startCollaboration, jl as waitPlugin, yl as yjsAnchors };
