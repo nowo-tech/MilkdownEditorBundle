@@ -111,6 +111,8 @@ collab.offline: "Offline: Änderungen bleiben erhalten und werden gesendet, soba
 collab.reset: "Diese Seite wurde wiederhergestellt oder ersetzt: wird mit dem neuen Inhalt neu geladen…"
 collab.reset_paused: "Diese Seite wurde mehrmals hintereinander ersetzt. Lade sie neu, wenn du bereit bist."
 collab.reload: "Neu laden"
+collab.standalone: "Bearbeitung ohne Live-Zusammenarbeit: Die Verbindung ist nicht verfügbar. Beim Speichern wird der Inhalt für alle ersetzt."
+collab.save_waiting: "Wird gespeichert, sobald der Editor bereit ist…"
 menu.label: "Editor-Aktionen"
 menu.cut: "Ausschneiden"
 menu.copy: "Kopieren"

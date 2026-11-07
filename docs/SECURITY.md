@@ -6,6 +6,7 @@
 - [Attack surface](#attack-surface)
 - [Threat model](#threat-model)
 - [Mitigations](#mitigations)
+  - [Collaboration: availability and integrity of the field (1.10)](#collaboration-availability-and-integrity-of-the-field-110)
   - [Host references and previews](#host-references-and-previews)
 - [Content Security Policy](#content-security-policy)
 - [Secrets](#secrets)
@@ -157,6 +158,23 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
 - **Comment panel container (1.6).** `comments.container` resolves to the first match **outside** any editor, read
   view (`.nowo-md`) or contenteditable region, and `comments.mount()` refuses such elements, so page content can
   neither receive the panel nor get its text saved into the Markdown.
+
+### Collaboration: availability and integrity of the field (1.10)
+
+A failing or slow hub, or a hostile or broken `GET state`, must not be able to destroy content. The field is written only
+from a bound document or from what the person typed. An answer that is not a 2xx with a `state` string or an `updates` list
+is an error (retried, or a fallback), never an empty document. An empty state without an order to seed does not bind over a non-empty field. A
+client that is not in the session sends no presence, no compaction and no document update, so it cannot write an empty or
+stale document to the shared log. The hold on
+submit is bounded by a clamped timer (at most 60 s) and cannot block a form for good. The option is an integer validated
+in PHP and clamped again in the browser; the new messages are text (`textContent`).
+
+Still the host's: a save without `_nowo_milkdown_collab` can replace a shared log, so check the base revision, and keep
+revisions. A save while `offline` is one: it goes without a session and with no warning, as it has since 1.2, and the same
+path applies (WikiBundle: `replaced()`). A peer with edit rights can still post an update that empties the shared document; that is an edit. The next
+editor of a non-empty field does not bind it: it goes standalone at the deadline, and the field keeps its content.
+
+**Audit:** Appendix HF, **Pass (conditional) / Medium** at `4d2cc37`, no Critical or High. Accepted residual, closed next by a conflict answer on WikiBundle's side: a save outside the session makes a host with a shared log drop it, which loses peers' unsaved work (see above). That covers a standalone save, where the person is warned, and an `offline` save, where they are not. While waiting, keys in the editor do not reach the page's bubble-phase listeners.
 
 ### Host references and previews
 

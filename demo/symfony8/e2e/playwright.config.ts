@@ -39,6 +39,17 @@ export default defineConfig({
       testMatch: /.*\.spec\.ts/,
       testIgnore: /screenshots\.spec\.ts/,
     },
+    // The collaboration suite also runs on the other engines (`--project=firefox --project=webkit`).
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+      testMatch: /collab-bind\.spec\.ts/,
+    },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
+      testMatch: /collab-bind\.spec\.ts/,
+    },
     {
       name: 'screenshots',
       use: { ...devices['Desktop Chrome'] },

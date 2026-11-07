@@ -111,6 +111,8 @@ collab.offline: "Sem ligação: as alterações são guardadas e enviadas quando
 collab.reset: "Esta página foi restaurada ou substituída: a recarregar com o novo conteúdo…"
 collab.reset_paused: "Esta página foi substituída várias vezes seguidas. Recarregue-a quando estiver pronto."
 collab.reload: "Recarregar"
+collab.standalone: "A editar sem coedição em direto: a ligação não está disponível. Guardar substitui o conteúdo para todos."
+collab.save_waiting: "A guardar assim que o editor estiver pronto…"
 menu.label: "Ações do editor"
 menu.cut: "Cortar"
 menu.copy: "Copiar"

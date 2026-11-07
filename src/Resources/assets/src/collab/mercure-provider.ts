@@ -42,6 +42,8 @@ export const MAX_BACKOFF = 30_000;
 /** A `Retry-After` is honoured within [MIN_RETRY_AFTER, MAX_RETRY_AFTER] ms (audit DS-L1: 0 or a past date looped). */
 export const MIN_RETRY_AFTER = 1000;
 export const MAX_RETRY_AFTER = 60_000;
+/** The longest a bound editor waits to ask again after refusals in a row: 1 s, doubled each time (ms, 1.10). */
+export const REFUSED_RETRY = 30_000;
 /** `keepalive` bodies are limited to 64 KiB by browsers; larger flushes on page hide are sent normally. */
 const KEEPALIVE_MAX = 60_000;
 
@@ -75,17 +77,48 @@ type Message = { t: 'u' | 'a' | 'r'; c: number; d: string };
 /** `GET <url>/state` answer: `state` (1.0), plus the optional update log of 1.2. */
 export type StateAnswer = { state: string; seed?: boolean; updates?: unknown; seq?: unknown; compact?: unknown };
 
+/**
+ * The host answered, and the answer is no (401, 403, 404, or a 2xx without a usable state): not an outage (1.10). A client
+ * not in the session stops; a bound editor retries slowly. A 429, a 5xx or anything else is retried as usual.
+ */
+export class CollabRefused extends Error {}
+
 /** The base64 updates of a state answer, in order: `state`, then each string of `updates`; empty strings skipped. */
 export const stateUpdates = (answer: StateAnswer): string[] =>
   [answer.state, ...(Array.isArray(answer.updates) ? answer.updates : [])].filter(
     (u): u is string => typeof u === 'string' && u !== '',
   );
 
+/**
+ * The body of a 2xx `GET <url>/state`. A login page or JSON without a state is refused: read as an answer, it would
+ * be an empty document, and the editor would save that over the field (1.10).
+ */
+async function readState(res: Response): Promise<StateAnswer> {
+  let answer: unknown;
+  try {
+    answer = await res.json();
+  } catch {
+    throw new CollabRefused('state: not JSON');
+  }
+  const { state, updates } = (answer ?? {}) as { state?: unknown; updates?: unknown };
+  if (typeof state !== 'string' && !Array.isArray(updates)) throw new CollabRefused('state: no state');
+  return answer as StateAnswer;
+}
+
 export class MercureProvider {
   readonly awareness: Awareness;
   status: Status = 'connecting';
   /** True when the host asked this client to seed the empty document from the field's Markdown. */
   seed = false;
+  /** 1.10: the host refused this client while it was not in the session; it does not retry. */
+  failed = false;
+  /** 1.10: connected, not in the session yet: no presence and no compaction until {@link join}. */
+  quiet = false;
+  private skippedPresence = false;
+  private retryHint = 0;
+  /** Refusals in a row of a bound editor (back-off exponent); 0 once online again. */
+  private refusals = 0;
+  private wasOnline = false;
   private es: EventSource | null = null;
   private dirty = false;
   private retry = 0;
@@ -147,6 +180,11 @@ export class MercureProvider {
     this.listeners.add(fn);
   }
 
+  /** 1.10: the host's log could not be applied (reported once; the host may publish a reset). */
+  get corrupt(): boolean {
+    return this.reported;
+  }
+
   get hasPendingChanges(): boolean {
     return this.dirty || this.pending.length > 0 || this.inFlight || this.unconfirmed !== null;
   }
@@ -194,9 +232,15 @@ export class MercureProvider {
   /** Resolves once the stored state is applied (first connect): the caller then binds the editor. */
   connect(): Promise<void> {
     if (this.closed) return Promise.resolve();
-    this.connecting ??= this.doConnect().finally(() => {
-      this.connecting = null;
-    });
+    this.connecting ??= this.doConnect()
+      .catch((error: unknown) => {
+        this.es?.close();
+        if (!this.closed) this.connectFailed(error);
+        throw error;
+      })
+      .finally(() => {
+        this.connecting = null;
+      });
     return this.connecting;
   }
 
@@ -221,25 +265,38 @@ export class MercureProvider {
     this.listeners.forEach((fn) => fn(s));
   }
 
+  /**
+   * A client not in the session stops on a refusal. A bound editor must not: logins lapse and come back, and a save that has
+   * lost its session makes the host drop the shared log. It retries, backing off to {@link REFUSED_RETRY} (HF-M2, HF-L6).
+   */
+  private connectFailed(error: unknown): void {
+    if (error instanceof CollabRefused) {
+      if (!this.wasOnline || this.quiet) {
+        this.failed = true;
+        this.setStatus('offline');
+        return;
+      }
+      this.retryHint = Math.min(REFUSED_RETRY, 1000 * 2 ** this.refusals++);
+    }
+    if (this.wasOnline) this.setStatus('offline');
+    this.scheduleReconnect();
+  }
+
   private async doConnect(): Promise<void> {
     this.setStatus('connecting');
     this.es?.close();
     const client = { 'X-Nowo-Collab-Client': String(this.doc.clientID) };
     const token = await fetch(`${this.base}/token`, { method: 'POST', credentials: 'same-origin', headers: client });
-    if (!token.ok) throw new Error(`token ${token.status}`);
+    if (!token.ok) throw this.httpError('token', token);
     const url = new URL(this.hubUrl, location.href);
     url.searchParams.append('topic', this.topic);
     const es = new EventSource(url, { withCredentials: true });
     this.es = es;
-    try {
-      await new Promise<void>((resolve, reject) => {
-        es.onopen = () => resolve();
-        es.onerror = () => reject(new Error('eventsource'));
-      });
-    } catch (e) {
-      this.scheduleReconnect();
-      throw e;
-    }
+    await new Promise<void>((resolve, reject) => {
+      es.onopen = () => resolve();
+      es.onerror = () => reject(new Error('eventsource'));
+    });
+    if (this.closed) return;
     es.onerror = () => {
       this.setStatus('offline');
       es.close();
@@ -255,7 +312,9 @@ export class MercureProvider {
     };
 
     const res = await fetch(`${this.base}/state`, { credentials: 'same-origin', headers: client });
-    const answer = (await res.json()) as StateAnswer;
+    if (!res.ok) throw this.httpError('state', res);
+    const answer = await readState(res);
+    if (this.closed) return;
     this.seed = answer.seed === true;
     this.seq = typeof answer.seq === 'number' && Number.isInteger(answer.seq) ? answer.seq : 0;
     const server = new Y.Doc();
@@ -275,18 +334,41 @@ export class MercureProvider {
     this.pending = [];
     this.unconfirmed = null;
     if (diff.length > 2) await this.post('update', diff);
+    this.dirty = false;
+    this.retry = 0;
+    this.refusals = 0;
+    this.wasOnline = true;
+    this.setStatus('online');
+    if (this.closed) return;
+    if (this.quiet) {
+      this.skippedPresence = true;
+      return;
+    }
     if (answer.compact === true && typeof answer.seq === 'number' && Number.isInteger(answer.seq)) {
       await this.compact(answer.seq);
     }
-    this.dirty = false;
-    this.retry = 0;
-    this.setStatus('online');
     await this.post('awareness', encodeAwarenessUpdate(this.awareness, [this.doc.clientID]));
+  }
+
+  /** The error of a refused request. A 429 also sets how long the next attempt waits. */
+  private httpError(what: string, res: Response): Error {
+    const message = `${what} ${res.status}`;
+    if ([401, 403, 404].includes(res.status)) return new CollabRefused(message);
+    if (res.status === 429) this.retryHint = retryAfter(res.headers.get('Retry-After'), 0);
+    return new Error(message);
+  }
+
+  /** In the session now: presence starts, and what was skipped while quiet is sent. */
+  join(): void {
+    this.quiet = false;
+    if (this.skippedPresence) this.scheduleAwareness();
+    this.skippedPresence = false;
   }
 
   private scheduleReconnect(): void {
     if (this.closed) return;
-    const delay = Math.min(5000, 250 * 2 ** this.retry++);
+    const delay = Math.max(this.retryHint, Math.min(5000, 250 * 2 ** this.retry++));
+    this.retryHint = 0;
     window.setTimeout(() => void this.connect().catch(() => undefined), delay);
   }
 
@@ -320,9 +402,10 @@ export class MercureProvider {
    * the log and publishes a reset — or refuses (capped) and nothing loops.
    */
   private async reportCorrupt(): Promise<void> {
-    this.setStatus('offline');
-    if (this.reported) return;
+    const first = !this.reported;
     this.reported = true;
+    this.setStatus('offline');
+    if (!first) return;
     try {
       await fetch(`${this.base}/corrupt`, {
         method: 'POST',
@@ -393,6 +476,7 @@ export class MercureProvider {
 
   /** Trailing-edge throttle of presence: at most one POST per `awarenessDelay`. */
   private scheduleAwareness(): void {
+    if (this.quiet) return;
     this.awarenessDue = true;
     if (this.awarenessTimer || this.closed) return;
     const wait = Math.max(this.awarenessDelay, this.blockedUntil.awareness - Date.now());
@@ -410,7 +494,7 @@ export class MercureProvider {
     { added, updated, removed }: { added: number[]; updated: number[]; removed: number[] },
     origin: unknown,
   ): void => {
-    if (origin === this || this.status !== 'online') return;
+    if (origin === this || this.status !== 'online' || this.quiet) return;
     const mine = [...added, ...updated, ...removed].filter((id) => id === this.doc.clientID);
     if (!mine.length) return;
     if (removed.includes(this.doc.clientID)) {

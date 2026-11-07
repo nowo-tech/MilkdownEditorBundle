@@ -1,0 +1,1118 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as Y from 'yjs';
+import { prosemirrorToYDoc } from 'y-prosemirror';
+import { editorViewCtx } from '@milkdown/kit/core';
+import { createEditor, type MilkdownEditorHandle } from '../src/editor';
+import { REFUSED_RETRY, fromBase64, toBase64 } from '../src/collab/mercure-provider';
+import { DEFAULT_CONNECT_TIMEOUT, MAX_CONNECT_TIMEOUT, SEED_RECHECK, isBlank, page as collabPage, startCollaboration, waitPlugin } from '../src/collab/index';
+import { editor, tick, widget } from './helpers';
+
+/**
+ * 1.10: nothing is lost around the bind. A small host: a Yjs log, one seed claim, a hub that relays what is posted and
+ * that the test opens by hand. The states are `waiting`, `bound` and `standalone`.
+ */
+type Answer = { status?: number; body?: string; json?: unknown };
+
+class Host {
+  log: string[] = [];
+  seedClaim: string | null = null;
+  /** `all`: answers `seed: true` to every client (a host without a claim); `none`: never seeds. */
+  seedPolicy: 'claim' | 'all' | 'none' = 'claim';
+  token: Answer = {};
+  state: Answer | null = null;
+  autoOpen = true;
+  hubs: FakeHub[] = [];
+  posts: { kind: string; c: number }[] = [];
+  requests: string[] = [];
+
+  broadcast(message: unknown): void {
+    this.hubs.forEach((hub) => hub.onmessage?.({ data: JSON.stringify(message) } as MessageEvent<string>));
+  }
+
+  fetch = async (url: string, init?: RequestInit): Promise<Response> => {
+    const kind = url.split('/').pop() as string;
+    this.requests.push(kind);
+    const client = String((init?.headers as Record<string, string> | undefined)?.['X-Nowo-Collab-Client'] ?? '');
+    if (kind === 'token') {
+      if (this.token.status) return new Response(this.token.body ?? '', { status: this.token.status });
+      if (!this.log.length) this.seedClaim ??= client;
+      return new Response(null, { status: 204 });
+    }
+    if (kind === 'state') {
+      if (this.state) return new Response(this.state.body ?? JSON.stringify(this.state.json), { status: this.state.status ?? 200 });
+      const seed = this.log.length === 0 && (this.seedPolicy === 'all' || (this.seedPolicy === 'claim' && this.seedClaim === client));
+      return new Response(JSON.stringify({ state: 'AAA=', updates: this.log, seq: this.log.length, seed }));
+    }
+    if (kind === 'update' || kind === 'awareness') {
+      const body = JSON.parse(String(init?.body)) as { c: number; d: string };
+      this.posts.push({ kind, c: body.c });
+      if (kind === 'update') {
+        this.log.push(body.d);
+        this.broadcast({ t: 'u', c: body.c, d: body.d });
+      }
+    }
+    return new Response(null, { status: 204 });
+  };
+
+  /** Stores a document, as if another client had seeded it. */
+  store(text: string): void {
+    const doc = new Y.Doc();
+    const paragraph = new Y.XmlElement('paragraph');
+    paragraph.insert(0, [new Y.XmlText(text)]);
+    doc.getXmlFragment('prosemirror').insert(0, [paragraph]);
+    this.log.push(toBase64(Y.encodeStateAsUpdate(doc)));
+    doc.destroy();
+  }
+}
+
+let host: Host;
+
+class FakeHub {
+  onopen: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  onmessage: ((e: MessageEvent<string>) => void) | null = null;
+  closed = false;
+  constructor() {
+    host.hubs.push(this);
+    if (host.autoOpen) setTimeout(() => this.open(), 0);
+  }
+  open(): void {
+    if (!this.closed) this.onopen?.();
+  }
+  close(): void {
+    this.closed = true;
+  }
+}
+
+const COLLAB = { url: '/c', hubUrl: '/hub', topic: 't', user: { name: 'Ada', color: '#123456' } };
+const collab = (extra: Record<string, unknown> = {}): Record<string, unknown> => ({ collaboration: { ...COLLAB, ...extra } });
+
+const handles: MilkdownEditorHandle[] = [];
+const keep = (handle: MilkdownEditorHandle): MilkdownEditorHandle => {
+  handles.push(handle);
+  return handle;
+};
+const editable = (root: HTMLElement): string | null | undefined => root.querySelector('.ProseMirror')?.getAttribute('contenteditable');
+const text = (root: HTMLElement): string => root.querySelector('.ProseMirror')?.textContent ?? '';
+const alertOf = (root: HTMLElement): string => root.querySelector('.nowo-milkdown__notice')?.textContent ?? '';
+const statusOf = (root: HTMLElement): string => root.querySelector('.nowo-milkdown__status')?.textContent ?? '';
+const session = (form: HTMLFormElement): string | null => form.querySelector<HTMLInputElement>('input[name="_nowo_milkdown_collab"]')?.value ?? null;
+
+async function until(check: () => boolean, ms = 2000): Promise<void> {
+  const start = Date.now();
+  while (!check()) {
+    if (Date.now() - start > ms) throw new Error('condition not met in time');
+    await tick(2);
+  }
+}
+
+/** Mounts an editor and waits until it shows, without waiting for the handle (which waits for the document). */
+async function mounted(markdown: string, extra: Record<string, unknown> = {}, more: Record<string, unknown> = {}): Promise<{ root: HTMLElement; form: HTMLFormElement; textarea: HTMLTextAreaElement; handle: Promise<MilkdownEditorHandle> }> {
+  const root = widget(markdown, { ...collab(extra), ...more });
+  const handle = createEditor(root).then(keep);
+  await until(() => root.dataset.collab !== undefined);
+  return { root, form: root.closest('form') as HTMLFormElement, textarea: root.querySelector('textarea') as HTMLTextAreaElement, handle };
+}
+
+/** What a browser does on Save: a cancelable submit, then the form data if nothing stopped it. */
+function submit(form: HTMLFormElement, submitter?: HTMLElement): SubmitEvent {
+  const event = new Event('submit', { cancelable: true, bubbles: true }) as SubmitEvent;
+  if (submitter) Object.defineProperty(event, 'submitter', { value: submitter });
+  form.dispatchEvent(event);
+  return event;
+}
+
+beforeEach(() => {
+  host = new Host();
+  vi.stubGlobal('EventSource', FakeHub);
+  vi.stubGlobal('fetch', vi.fn(host.fetch));
+});
+afterEach(async () => {
+  for (const handle of handles.splice(0)) await handle.destroy();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+  window.sessionStorage.clear();
+});
+
+describe('waiting for the document', () => {
+  it('is read-only on the field content, says it is loading, and the handle waits', async () => {
+    host.autoOpen = false;
+    const { root, textarea, handle } = await mounted('Original body', { connectTimeout: 60_000 });
+    let resolved = false;
+    void handle.then(() => (resolved = true));
+    await tick(20);
+    expect(root.dataset.collab).toBe('connecting');
+    expect(root.getAttribute('aria-busy')).toBe('true');
+    expect(editable(root)).toBe('false');
+    expect(text(root)).toBe('Original body');
+    expect(statusOf(root)).toBe('Connecting…');
+    expect(textarea.value).toBe('Original body');
+    expect(resolved).toBe(false);
+    host.hubs[0]!.open();
+    await handle;
+    expect(root.getAttribute('aria-busy')).toBeNull();
+    expect(editable(root)).toBe('true');
+    expect(root.dataset.collab).toBe('online');
+  });
+
+  it('a save waits, keeps the field and goes on by itself once bound, with the same button', async () => {
+    host.autoOpen = false;
+    const { root, form, textarea, handle } = await mounted('Original body', { connectTimeout: 60_000 });
+    const button = document.createElement('button');
+    form.append(button);
+    const passed: (HTMLElement | null)[] = [];
+    form.addEventListener('submit', (e) => {
+      passed.push((e as SubmitEvent).submitter);
+      e.preventDefault();
+    });
+    const event = submit(form, button);
+    expect(event.defaultPrevented).toBe(true);
+    expect(passed).toEqual([]);
+    expect(textarea.value).toBe('Original body');
+    expect(session(form)).toBeNull();
+    expect(statusOf(root)).toContain('Saving as soon as');
+    // A script reading the form while waiting gets the original too.
+    expect(new FormData(form).get('body')).toBe('Original body');
+    host.hubs[0]!.open();
+    await handle;
+    await until(() => passed.length === 1);
+    expect(passed).toEqual([button]);
+    expect(session(form)).toBe('t');
+    expect(textarea.value).toBe('Original body\n');
+  });
+
+  it('a save while the hub never opens goes on at the deadline with the original value and no session', async () => {
+    host.autoOpen = false;
+    const { form, textarea, handle } = await mounted('Original body', { connectTimeout: 30 });
+    const values: (string | null)[] = [];
+    form.addEventListener('submit', (e) => {
+      values.push(textarea.value);
+      values.push(session(form));
+      e.preventDefault();
+    });
+    expect(submit(form).defaultPrevented).toBe(true);
+    await handle;
+    await until(() => values.length === 2);
+    expect(values).toEqual(['Original body', null]);
+  });
+
+  it('keys stay in the surface: the host sees nothing and scrolling keys do nothing; Tab and Escape pass (HF-L2)', async () => {
+    host.autoOpen = false;
+    const { root, handle } = await mounted('Body', { connectTimeout: 60_000 });
+    const seen: string[] = [];
+    const listener = (e: Event): void => void seen.push(`${e.type}:${(e as KeyboardEvent).key}`);
+    for (const type of ['keydown', 'keypress', 'keyup']) document.addEventListener(type, listener);
+    const surface = root.querySelector<HTMLElement>('.nowo-milkdown__surface')!;
+    expect(surface.getAttribute('tabindex')).toBe('-1');
+    const press = (key: string, init: KeyboardEventInit = {}, type = 'keydown'): KeyboardEvent => {
+      const event = new KeyboardEvent(type, { key, bubbles: true, cancelable: true, ...init });
+      surface.dispatchEvent(event);
+      return event;
+    };
+    expect(press('g').defaultPrevented).toBe(true);
+    expect(press('g', {}, 'keypress').defaultPrevented).toBe(true);
+    expect(press('g', {}, 'keyup').defaultPrevented).toBe(true);
+    expect(press(' ').defaultPrevented).toBe(true);
+    expect(press('PageDown').defaultPrevented).toBe(true);
+    // Browser shortcuts keep working, without reaching the host.
+    expect(press('r', { ctrlKey: true }).defaultPrevented).toBe(false);
+    expect(press('F5').defaultPrevented).toBe(false);
+    expect(seen).toEqual([]);
+    expect(press('Tab').defaultPrevented).toBe(false);
+    expect(press('Escape').defaultPrevented).toBe(false);
+    expect(seen).toEqual(['keydown:Tab', 'keydown:Escape']);
+    host.hubs[0]!.open();
+    await handle;
+    await until(() => !surface.hasAttribute('tabindex'));
+    seen.length = 0;
+    press('g');
+    expect(seen).toEqual(['keydown:g']);
+    for (const type of ['keydown', 'keypress', 'keyup']) document.removeEventListener(type, listener);
+  });
+
+  it('a button disabled or removed during the hold still sends its name and value (HF-I2)', async () => {
+    host.autoOpen = false;
+    const { form, handle } = await mounted('Body', { connectTimeout: 60_000 });
+    const button = document.createElement('button');
+    button.name = 'action';
+    button.value = 'publish';
+    form.append(button);
+    const sent: (FormDataEntryValue | null)[] = [];
+    form.addEventListener('submit', (e) => {
+      sent.push(new FormData(form).get('action'));
+      e.preventDefault();
+    });
+    submit(form, button);
+    button.disabled = true;
+    host.hubs[0]!.open();
+    await handle;
+    await until(() => sent.length === 1);
+    expect(sent).toEqual(['publish']);
+    await tick(5);
+    expect(form.querySelector('input[name="action"]')).toBeNull();
+  });
+
+  it('a resubmit stopped by a host handler leaves no hidden field for a later save (HF-L5)', async () => {
+    host.autoOpen = false;
+    const { form, handle } = await mounted('Body', { connectTimeout: 60_000 });
+    const publish = document.createElement('button');
+    publish.name = 'action';
+    publish.value = 'publish';
+    form.append(publish);
+    let stopped = 0;
+    form.addEventListener('submit', (e) => {
+      stopped++;
+      e.preventDefault();
+    });
+    submit(form, publish);
+    publish.remove();
+    host.hubs[0]!.open();
+    await handle;
+    await until(() => stopped === 1);
+    const save = document.createElement('button');
+    save.name = 'action';
+    save.value = 'save';
+    form.append(save);
+    expect(new FormData(form, save).getAll('action')).toEqual(['save']);
+  });
+
+  describe('Shift+Tab (HF-I8)', () => {
+    const shiftTab = (surface: HTMLElement): KeyboardEvent => {
+      const event = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true });
+      surface.dispatchEvent(event);
+      return event;
+    };
+    const before = (...ids: string[]): HTMLInputElement[] =>
+      ids.map((id) => {
+        const input = document.createElement('input');
+        input.id = id;
+        document.body.prepend(input);
+        return input;
+      });
+
+    it('tries the next stop when one does not take the focus', async () => {
+      host.autoOpen = false;
+      vi.spyOn(Element.prototype, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
+      const { root, handle } = await mounted('Body', { connectTimeout: 60_000 });
+      const [nearest, earlier] = before('nearest', 'earlier');
+      nearest!.focus = () => undefined;
+      const surface = root.querySelector<HTMLElement>('.nowo-milkdown__surface')!;
+      surface.focus();
+      expect(shiftTab(surface).defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(earlier);
+      host.hubs[0]!.open();
+      await handle;
+    });
+
+    it('skips a stop that cannot take the focus by its style', async () => {
+      host.autoOpen = false;
+      vi.spyOn(Element.prototype, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
+      const { root, handle } = await mounted('Body', { connectTimeout: 60_000 });
+      const [nearest, earlier] = before('nearest', 'earlier');
+      nearest!.style.visibility = 'hidden';
+      const surface = root.querySelector<HTMLElement>('.nowo-milkdown__surface')!;
+      surface.focus();
+      shiftTab(surface);
+      expect(document.activeElement).toBe(earlier);
+      host.hubs[0]!.open();
+      await handle;
+    });
+
+    it('with nothing to move to it leaves the surface', async () => {
+      host.autoOpen = false;
+      const { root, handle } = await mounted('Body', { connectTimeout: 60_000 });
+      const surface = root.querySelector<HTMLElement>('.nowo-milkdown__surface')!;
+      surface.focus();
+      expect(document.activeElement).toBe(surface);
+      expect(shiftTab(surface).defaultPrevented).toBe(false);
+      expect(document.activeElement).toBe(document.body);
+      host.hubs[0]!.open();
+      await handle;
+    });
+  });
+
+  it('focus lost inside the surface at the bind (a code block is rebuilt) returns to the editor (HF-I12)', async () => {
+    host.autoOpen = false;
+    const focus = vi.spyOn(HTMLElement.prototype, 'focus');
+    const { root, handle } = await mounted('Body', { connectTimeout: 60_000 });
+    const surface = root.querySelector<HTMLElement>('.nowo-milkdown__surface')!;
+    const code = document.createElement('input');
+    surface.append(code);
+    surface.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    code.focus();
+    expect(document.activeElement).toBe(code);
+    const gone = new MutationObserver(() => code.remove());
+    gone.observe(root, { attributes: true, attributeFilter: ['data-collab'] });
+    focus.mockClear();
+    host.hubs[0]!.open();
+    await handle;
+    await tick(5);
+    gone.disconnect();
+    expect(focus.mock.contexts).toContain(root.querySelector('.ProseMirror'));
+  });
+
+  it('a focused code block that survives keeps the focus', async () => {
+    host.autoOpen = false;
+    const focus = vi.spyOn(HTMLElement.prototype, 'focus');
+    const { root, handle } = await mounted('Body', { connectTimeout: 60_000 });
+    const surface = root.querySelector<HTMLElement>('.nowo-milkdown__surface')!;
+    const code = document.createElement('input');
+    surface.append(code);
+    surface.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    code.focus();
+    focus.mockClear();
+    host.hubs[0]!.open();
+    await handle;
+    await tick(5);
+    expect(focus.mock.contexts).not.toContain(root.querySelector('.ProseMirror'));
+  });
+
+  it('a click while read-only gives the editor the focus after the wait; otherwise it never takes it', async () => {
+    host.autoOpen = false;
+    const focus = vi.spyOn(HTMLElement.prototype, 'focus');
+    const clicked = await mounted('Body', { connectTimeout: 60_000 });
+    clicked.root.querySelector('.nowo-milkdown__surface')!.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    host.hubs[0]!.open();
+    await clicked.handle;
+    await until(() => focus.mock.contexts.includes(clicked.root.querySelector('.ProseMirror') as never));
+    focus.mockClear();
+    const quiet = await mounted('Body', { connectTimeout: 60_000 });
+    host.hubs.at(-1)!.open();
+    await quiet.handle;
+    await tick(5);
+    expect(focus.mock.contexts).not.toContain(quiet.root.querySelector('.ProseMirror'));
+  });
+
+  it('the action buttons wait too', async () => {
+    host.autoOpen = false;
+    const { root, handle } = await mounted('Body', { connectTimeout: 60_000 }, { upload: { url: '/up' } });
+    const button = root.querySelector<HTMLButtonElement>('.nowo-milkdown__action')!;
+    expect(button.disabled).toBe(true);
+    host.hubs[0]!.open();
+    await handle;
+    expect(button.disabled).toBe(false);
+  });
+
+  it('refuses every document change, however it is marked (HF-I1)', () => {
+    let locked = true;
+    const filter = waitPlugin(() => locked).spec.filterTransaction as (tr: unknown) => boolean;
+    const tr = (docChanged: boolean, metas: Record<string, unknown> = {}): unknown => ({
+      docChanged,
+      getMeta: (key: unknown) => metas[typeof key === 'string' ? key : (key as { key: string }).key],
+    });
+    expect(filter(tr(true))).toBe(false);
+    expect(filter(tr(false))).toBe(true);
+    expect(filter(tr(true, { addToHistory: false }))).toBe(false);
+    locked = false;
+    expect(filter(tr(true))).toBe(true);
+  });
+
+  it('never reports online before the bind: a stuck presence post does not hold it', async () => {
+    host.store('Shared');
+    const hang = new Promise<Response>(() => undefined);
+    vi.stubGlobal('fetch', vi.fn((url: string, init?: RequestInit) => (url.endsWith('/awareness') ? hang : host.fetch(url, init))));
+    const handle = keep(await editor('Shared', collab()));
+    expect(handle.root.dataset.collab).toBe('online');
+    expect(editable(handle.root)).toBe('true');
+    expect(text(handle.root)).toBe('Shared');
+  });
+});
+
+describe('bound', () => {
+  it('shows the shared document, not the field; the field follows; a save carries the session', async () => {
+    host.store('Shared text');
+    const handle = keep(await editor('Stale field', collab()));
+    expect(text(handle.root)).toBe('Shared text');
+    expect(handle.getMarkdown()).toBe('Shared text\n');
+    const form = handle.textarea.form!;
+    submit(form);
+    expect(handle.textarea.value).toBe('Shared text\n');
+    expect(session(form)).toBe('t');
+  });
+
+  it('a person emptying a bound document can save that: it was their choice', async () => {
+    const handle = keep(await editor('Body', collab()));
+    handle.setMarkdown('');
+    await tick(5);
+    submit(handle.textarea.form!);
+    expect(handle.textarea.value.trim()).toBe('');
+  });
+
+  it('an empty field with an empty document binds at once', async () => {
+    host.seedPolicy = 'none';
+    const handle = keep(await editor('', collab({ connectTimeout: 60_000 })));
+    expect(handle.root.dataset.collab).toBe('online');
+  });
+
+  it('the seeding client writes the field to the document, once', async () => {
+    const handle = keep(await editor('# Seeded', collab({ updateDelay: 0 })));
+    await until(() => host.log.length > 0);
+    expect(handle.getMarkdown()).toBe('# Seeded\n');
+    const doc = new Y.Doc();
+    host.log.forEach((u) => Y.applyUpdate(doc, fromBase64(u)));
+    expect(doc.getXmlFragment('prosemirror').length).toBe(1);
+  });
+
+  it('an order to seed does not touch a document that has content', async () => {
+    host.store('Already here');
+    host.seedPolicy = 'all';
+    const handle = keep(await editor('Field', collab()));
+    await tick(20);
+    expect(text(handle.root)).toBe('Already here');
+  });
+
+  it('an order to seed does not replace a document without text (an image)', async () => {
+    const seedDoc = new Y.Doc();
+    seedDoc.getXmlFragment('prosemirror').insert(0, [new Y.XmlElement('hr')]);
+    host.log.push(toBase64(Y.encodeStateAsUpdate(seedDoc)));
+    host.seedPolicy = 'all';
+    const handle = keep(await editor('Field', collab()));
+    expect(text(handle.root)).not.toContain('Field');
+  });
+
+  it('isBlank tests the text: a paragraph whose text was deleted is blank, an image in one is not (HF-L1)', () => {
+    const deleted = new Y.Doc().getXmlFragment('prosemirror');
+    const paragraph = new Y.XmlElement('paragraph');
+    const content = new Y.XmlText('text');
+    paragraph.insert(0, [content]);
+    deleted.insert(0, [paragraph]);
+    expect(isBlank(deleted)).toBe(false);
+    content.delete(0, 4);
+    expect(paragraph.length).toBe(1);
+    expect(isBlank(deleted)).toBe(true);
+    const image = new Y.Doc().getXmlFragment('prosemirror');
+    const holder = new Y.XmlElement('paragraph');
+    holder.insert(0, [new Y.XmlElement('image')]);
+    image.insert(0, [holder]);
+    expect(isBlank(image)).toBe(false);
+  });
+
+  it('isBlank: nothing or empty paragraphs only', () => {
+    const fragment = new Y.Doc().getXmlFragment('prosemirror');
+    expect(isBlank(fragment)).toBe(true);
+    const paragraph = new Y.XmlElement('paragraph');
+    fragment.insert(0, [paragraph]);
+    expect(isBlank(fragment)).toBe(true);
+    paragraph.insert(0, [new Y.XmlText('x')]);
+    expect(isBlank(fragment)).toBe(false);
+    const other = new Y.Doc().getXmlFragment('prosemirror');
+    other.insert(0, [new Y.XmlElement('hr')]);
+    expect(isBlank(other)).toBe(false);
+  });
+});
+
+describe('an empty state and no order to seed', () => {
+  it('waits for the content: the seed of another client arrives, the field is never emptied', async () => {
+    host.seedClaim = 'someone else';
+    const { root, form, textarea, handle } = await mounted('Original body', { connectTimeout: 60_000 });
+    await until(() => host.requests.includes('state'));
+    await tick(10);
+    expect(root.dataset.collab).toBe('connecting');
+    expect(editable(root)).toBe('false');
+    submit(form);
+    expect(textarea.value).toBe('Original body');
+    const peer = prosemirrorToYDoc((await handleSchemaDoc('Original body')) as never);
+    host.broadcast({ t: 'u', c: 999, d: toBase64(Y.encodeStateAsUpdate(peer)) });
+    await handle;
+    expect(root.dataset.collab).toBe('online');
+    expect(text(root)).toBe('Original body');
+  });
+
+  it('a log holding only an empty paragraph counts as empty', async () => {
+    const doc = new Y.Doc();
+    doc.getXmlFragment('prosemirror').insert(0, [new Y.XmlElement('paragraph')]);
+    host.log.push(toBase64(Y.encodeStateAsUpdate(doc)));
+    const { root, textarea, handle } = await mounted('Original body', { connectTimeout: 30 });
+    const editorHandle = await handle;
+    expect(root.dataset.collab).toBe('standalone');
+    expect(editorHandle.getMarkdown()).toBe('Original body\n');
+    expect(textarea.value).toBe('Original body');
+  });
+
+  it('a peer deleted all the text: the next editor does not bind it, the field and a save keep the body (HF-L1)', async () => {
+    const doc = new Y.Doc();
+    const paragraph = new Y.XmlElement('paragraph');
+    const content = new Y.XmlText('Original body');
+    paragraph.insert(0, [content]);
+    doc.getXmlFragment('prosemirror').insert(0, [paragraph]);
+    content.delete(0, content.length);
+    host.log.push(toBase64(Y.encodeStateAsUpdate(doc)));
+    const handle = keep(await editor('Original body', collab({ connectTimeout: 30 })));
+    expect(handle.root.dataset.collab).toBe('standalone');
+    expect(text(handle.root)).toBe('Original body');
+    submit(handle.textarea.form!);
+    expect(handle.textarea.value).toBe('Original body');
+  });
+
+  it('nobody seeds: standalone at the deadline, content intact in the field and in getMarkdown()', async () => {
+    host.seedPolicy = 'none';
+    const handle = keep(await editor('Original body', collab({ connectTimeout: 30 })));
+    expect(handle.root.dataset.collab).toBe('standalone');
+    expect(handle.getMarkdown()).toBe('Original body\n');
+    submit(handle.textarea.form!);
+    expect(handle.textarea.value).toBe('Original body');
+    expect(session(handle.textarea.form!)).toBeNull();
+  });
+
+  it('two clients at once: one seeds, the other joins it, both show the body once', async () => {
+    const roots = [widget('Body text', collab({ updateDelay: 0 })), document.createElement('div')];
+    const form = document.createElement('form');
+    roots[1]!.dataset.nowoMilkdownOptions = roots[0]!.dataset.nowoMilkdownOptions!;
+    const area = document.createElement('textarea');
+    area.value = 'Body text';
+    roots[1]!.append(area);
+    form.append(roots[1]!);
+    document.body.append(form);
+    const [a, b] = await Promise.all(roots.map((root) => createEditor(root).then(keep)));
+    await until(() => text(a!.root) === 'Body text' && text(b!.root) === 'Body text');
+    expect(a!.root.dataset.collab).toBe('online');
+    expect(b!.root.dataset.collab).toBe('online');
+    expect(b!.textarea.value.trim()).toBe('Body text');
+    expect(a!.textarea.value.trim()).toBe('Body text');
+  });
+
+  it('a host that seeds everybody can duplicate the body, never lose it', async () => {
+    host.seedPolicy = 'all';
+    const roots = [widget('Body text', collab({ updateDelay: 0 })), document.createElement('div')];
+    const form = document.createElement('form');
+    roots[1]!.dataset.nowoMilkdownOptions = roots[0]!.dataset.nowoMilkdownOptions!;
+    const area = document.createElement('textarea');
+    area.value = 'Body text';
+    roots[1]!.append(area);
+    form.append(roots[1]!);
+    document.body.append(form);
+    const [a, b] = await Promise.all(roots.map((root) => createEditor(root).then(keep)));
+    await tick(30);
+    expect(a!.getMarkdown()).toContain('Body text');
+    expect(b!.getMarkdown()).toContain('Body text');
+  });
+});
+
+/** A ProseMirror document for `text`, built by a throw-away editor. */
+async function handleSchemaDoc(markdown: string): Promise<unknown> {
+  const root = document.createElement('div');
+  root.dataset.nowoMilkdownOptions = JSON.stringify({ features: [] });
+  root.append(document.createElement('textarea'));
+  root.querySelector('textarea')!.value = markdown;
+  const handle = await createEditor(root);
+  const doc = handle.builder.editor.action((ctx) => ctx.get(editorViewCtx).state.doc);
+  await handle.destroy();
+  return doc;
+}
+
+describe('standalone', () => {
+  it.each([
+    ['the token is refused (403)', () => (host.token = { status: 403 })],
+    ['the token is missing (404)', () => (host.token = { status: 404 })],
+    ['the token needs a login (401)', () => (host.token = { status: 401 })],
+    ['the state is refused (403)', () => (host.state = { status: 403, json: { error: 'denied' } })],
+    ['the state is a login page answered 200', () => (host.state = { body: '<html>login' })],
+    ['the state has no state', () => (host.state = { json: { seed: false } })],
+    ['the state is null', () => (host.state = { json: null })],
+  ])('%s: at once, told clearly, content intact, nothing more requested', async (_name, prepare) => {
+    prepare();
+    const handle = keep(await editor('Original body', collab({ connectTimeout: 60_000 })));
+    expect(handle.root.dataset.collab).toBe('standalone');
+    expect(handle.root.getAttribute('aria-busy')).toBeNull();
+    expect(editable(handle.root)).toBe('true');
+    expect(alertOf(handle.root)).toContain('without live co-editing');
+    expect(statusOf(handle.root)).toBe('');
+    expect(handle.getMarkdown()).toBe('Original body\n');
+    submit(handle.textarea.form!);
+    expect(handle.textarea.value).toBe('Original body');
+    const before = host.requests.length;
+    await tick(300);
+    expect(host.requests.length).toBe(before);
+  });
+
+  it.each([
+    ['a token 429', () => (host.token = { status: 429 }), () => (host.token = {})],
+    ['a token 503', () => (host.token = { status: 503 }), () => (host.token = {})],
+    ['a state 429 with a JSON body', () => (host.state = { status: 429, json: { error: 'rate_limited' } }), () => (host.state = null)],
+    ['a state 500', () => (host.state = { status: 500, body: '<html>' }), () => (host.state = null)],
+  ])('%s is retried: the editor keeps waiting and binds when it passes (HF-L3)', async (_name, breakIt, repair) => {
+    host.store('Shared');
+    breakIt();
+    const { root, handle } = await mounted('Shared', { connectTimeout: 60_000 });
+    const asked = (): number => host.requests.filter((r) => r === 'token').length;
+    await until(() => host.requests.includes(host.token.status ? 'token' : 'state'));
+    await tick(5);
+    expect(root.dataset.collab).toBe('connecting');
+    expect(editable(root)).toBe('false');
+    const before = asked();
+    await until(() => asked() > before, 4000);
+    repair();
+    await handle;
+    expect(root.dataset.collab).toBe('online');
+  });
+
+  it('errors past the deadline: standalone with the body, and a late recovery still joins an untouched editor (HF-L3)', async () => {
+    host.store('Shared');
+    host.state = { status: 503, body: '' };
+    const handle = keep(await editor('Original body', collab({ connectTimeout: 30 })));
+    expect(handle.root.dataset.collab).toBe('standalone');
+    expect(handle.getMarkdown()).toBe('Original body\n');
+    host.state = null;
+    await until(() => handle.root.dataset.collab === 'online', 6000);
+    expect(text(handle.root)).toBe('Shared');
+  });
+
+  it('a Retry-After on a 429 is honoured', async () => {
+    host.store('Shared');
+    const times: number[] = [];
+    let refused = 1;
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/token')) {
+        times.push(Date.now());
+        if (refused-- > 0) return new Response('', { status: 429, headers: { 'Retry-After': '2' } });
+      }
+      return host.fetch(url, init);
+    }));
+    const handle = keep(await editor('Shared', collab({ connectTimeout: 60_000 })));
+    expect(handle.root.dataset.collab).toBe('online');
+    expect(times[1]! - times[0]!).toBeGreaterThanOrEqual(1900);
+  });
+
+  it('a corrupt log: standalone, reported once, and the host reset reloads an untouched editor', async () => {
+    host.state = { json: { state: 'not-a-yjs-update!!', seq: 3 } };
+    const reload = vi.spyOn(collabPage, 'reload').mockImplementation(() => undefined);
+    const handle = keep(await editor('Original body', collab({ connectTimeout: 60_000 })));
+    expect(handle.root.dataset.collab).toBe('standalone');
+    expect(handle.getMarkdown()).toBe('Original body\n');
+    await until(() => host.requests.includes('corrupt'));
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    host.broadcast({ t: 'r', c: 0, d: '' });
+    vi.advanceTimersByTime(1500);
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('a hub that keeps failing is retried until the deadline', async () => {
+    host.autoOpen = false;
+    const { root, handle } = await mounted('Body', { connectTimeout: 400 });
+    host.hubs[0]!.onerror?.();
+    await until(() => host.hubs.length > 1);
+    expect(root.dataset.collab).toBe('connecting');
+    host.hubs.at(-1)!.onerror?.();
+    await handle;
+    expect(root.dataset.collab).toBe('standalone');
+  });
+
+  it('an untouched save keeps the bytes of the field, not a re-serialisation', async () => {
+    host.token = { status: 403 };
+    const source = '* one\n* two\n\n\n';
+    const handle = keep(await editor(source, collab()));
+    submit(handle.textarea.form!);
+    handle.textarea.form!.dispatchEvent(new Event('formdata'));
+    expect(handle.textarea.value).toBe(source);
+  });
+
+  it('edited: the text is saved, without a session; undoing it restores the bytes', async () => {
+    host.token = { status: 403 };
+    const handle = keep(await editor('* one\n', collab()));
+    const form = handle.textarea.form!;
+    handle.setMarkdown('Typed offline');
+    submit(form);
+    expect(handle.textarea.value).toBe('Typed offline\n');
+    expect(session(form)).toBeNull();
+    handle.setMarkdown('* one\n');
+    submit(form);
+    expect(handle.textarea.value).toBe('* one\n');
+  });
+
+  it('the hub comes late after typing: the text stays, nothing is sent, the session ends', async () => {
+    host.autoOpen = false;
+    host.store('Shared by others');
+    const { root, form, textarea, handle } = await mounted('Original body', { connectTimeout: 20 });
+    const opened = await handle;
+    expect(root.dataset.collab).toBe('standalone');
+    opened.setMarkdown('Typed offline');
+    host.hubs[0]!.open();
+    await until(() => opened.provider?.status === 'offline');
+    await tick(20);
+    expect(root.dataset.collab).toBe('standalone');
+    expect(text(root)).toBe('Typed offline');
+    expect(alertOf(root)).toContain('without live co-editing');
+    expect(host.posts.filter((p) => p.kind === 'update')).toEqual([]);
+    expect(host.hubs[0]!.closed).toBe(true);
+    submit(form);
+    expect(textarea.value).toBe('Typed offline\n');
+    expect(session(form)).toBeNull();
+  });
+
+  it('the hub comes late, nothing typed: joins the session and shows the shared document', async () => {
+    host.autoOpen = false;
+    host.store('Shared by others');
+    const { root, form, handle } = await mounted('Original body', { connectTimeout: 20 });
+    await handle;
+    expect(root.dataset.collab).toBe('standalone');
+    expect(text(root)).toBe('Original body');
+    host.hubs[0]!.open();
+    await until(() => root.dataset.collab === 'online');
+    expect(text(root)).toBe('Shared by others');
+    expect(alertOf(root)).toBe('');
+    expect(editable(root)).toBe('true');
+    submit(form);
+    expect(session(form)).toBe('t');
+  });
+
+  it('typed before the seed of another client arrives late: the bind never replaces it', async () => {
+    host.seedClaim = 'someone else';
+    const opened = keep(await editor('Original body', collab({ connectTimeout: 20 })));
+    expect(opened.root.dataset.collab).toBe('standalone');
+    opened.setMarkdown('Typed offline');
+    const peer = prosemirrorToYDoc((await handleSchemaDoc('From the seed')) as never);
+    host.broadcast({ t: 'u', c: 999, d: toBase64(Y.encodeStateAsUpdate(peer)) });
+    await tick(10);
+    expect(text(opened.root)).toBe('Typed offline');
+    expect(opened.provider?.status).toBe('offline');
+  });
+
+  it('text typed in the 1.5 s between a reset and the reload is not reloaded away (HF-L4)', async () => {
+    const reload = vi.spyOn(collabPage, 'reload').mockImplementation(() => undefined);
+    host.seedClaim = 'someone else';
+    const handle = keep(await editor('Original body', collab({ connectTimeout: 20 })));
+    expect(handle.root.dataset.collab).toBe('standalone');
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    host.broadcast({ t: 'r', c: 0, d: '' });
+    expect(handle.root.dataset.collab).toBe('reset');
+    handle.setMarkdown('Typed in the window');
+    vi.advanceTimersByTime(1500);
+    vi.useRealTimers();
+    expect(reload).not.toHaveBeenCalled();
+    expect(handle.root.dataset.collab).toBe('standalone');
+    expect(text(handle.root)).toBe('Typed in the window');
+    expect(alertOf(handle.root)).toContain('without live co-editing');
+  });
+
+  it('a later status does not clear the standalone warning (HF-I6)', async () => {
+    vi.spyOn(collabPage, 'reload').mockImplementation(() => undefined);
+    host.seedClaim = 'someone else';
+    const handle = keep(await editor('Original body', collab({ connectTimeout: 20 })));
+    expect(alertOf(handle.root)).toContain('without live co-editing');
+    host.broadcast({ t: 'r', c: 0, d: '' });
+    expect(statusOf(handle.root)).toContain('reloading');
+    expect(alertOf(handle.root)).toContain('without live co-editing');
+  });
+
+  it('not in the session: no presence and no compaction; joining starts presence (HF-I5)', async () => {
+    host.seedClaim = 'someone else';
+    host.state = { json: { state: 'AAA=', updates: [], seq: 5, compact: true, seed: false } };
+    const opened = keep(await editor('Original body', collab({ connectTimeout: 20, awarenessDelay: 0 })));
+    expect(opened.root.dataset.collab).toBe('standalone');
+    await tick(20);
+    const other = new Y.Doc();
+    const { Awareness, encodeAwarenessUpdate } = await import('y-protocols/awareness');
+    const peer = new Awareness(other);
+    peer.setLocalStateField('user', { name: 'Peer' });
+    host.broadcast({ t: 'a', c: other.clientID, d: toBase64(encodeAwarenessUpdate(peer, [other.clientID])) });
+    await tick(20);
+    expect(host.requests).not.toContain('awareness');
+    expect(host.requests).not.toContain('compact');
+    host.state = null;
+    host.store('Shared');
+    const content = new Y.Doc();
+    const paragraph = new Y.XmlElement('paragraph');
+    paragraph.insert(0, [new Y.XmlText('Shared')]);
+    content.getXmlFragment('prosemirror').insert(0, [paragraph]);
+    host.broadcast({ t: 'u', c: 999, d: toBase64(Y.encodeStateAsUpdate(content)) });
+    await until(() => opened.root.dataset.collab === 'online');
+    await until(() => host.requests.includes('awareness'));
+    peer.destroy();
+  });
+
+  it('the first edit ends a standalone session at once, before any later event (HF-I5, HF-I4)', async () => {
+    host.autoOpen = false;
+    const { root, handle } = await mounted('Original body', { connectTimeout: 20 });
+    const opened = await handle;
+    expect(root.dataset.collab).toBe('standalone');
+    opened.setMarkdown('Typed offline');
+    expect(opened.provider?.status).toBe('offline');
+    expect(host.hubs[0]!.closed).toBe(true);
+    const before = host.requests.length;
+    window.dispatchEvent(new Event('online'));
+    await tick(300);
+    expect(host.requests.length).toBe(before);
+  });
+
+  it('a host reset does not reload away text typed offline; an untouched editor reloads', async () => {
+    const reload = vi.spyOn(collabPage, 'reload').mockImplementation(() => undefined);
+    host.seedClaim = 'someone else';
+    const touched = keep(await editor('Original body', collab({ connectTimeout: 20 })));
+    touched.setMarkdown('Typed offline');
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    host.broadcast({ t: 'r', c: 0, d: '' });
+    vi.advanceTimersByTime(3000);
+    vi.useRealTimers();
+    expect(reload).not.toHaveBeenCalled();
+    expect(touched.root.dataset.collab).toBe('standalone');
+    expect(text(touched.root)).toBe('Typed offline');
+  });
+
+  it('over the reload cap while waiting: the person gets the content and a manual reload', async () => {
+    const reload = vi.spyOn(collabPage, 'reload').mockImplementation(() => undefined);
+    window.sessionStorage.setItem('nowo-milkdown-reloads:t', JSON.stringify([Date.now(), Date.now(), Date.now()]));
+    host.seedClaim = 'someone else';
+    const { root, handle } = await mounted('Original body', { connectTimeout: 60_000 });
+    await until(() => host.requests.includes('state'));
+    await tick(5);
+    host.broadcast({ t: 'r', c: 0, d: '' });
+    await handle;
+    expect(reload).not.toHaveBeenCalled();
+    expect(editable(root)).toBe('true');
+    expect(text(root)).toBe('Original body');
+    expect(root.querySelector('.nowo-milkdown__reload')).not.toBeNull();
+  });
+});
+
+describe('the wait is bounded', () => {
+  const fakeEditor = { action: vi.fn() } as never;
+  const hooks = () => ({ onStatus: vi.fn(), onReloadPaused: vi.fn(), onReady: vi.fn(), isUntouched: () => true });
+
+  it.each([
+    [undefined, DEFAULT_CONNECT_TIMEOUT],
+    [250, 250],
+    [0, 0],
+    [-5, 0],
+    [999_999, MAX_CONNECT_TIMEOUT],
+    [Number.NaN, DEFAULT_CONNECT_TIMEOUT],
+  ])('connectTimeout %s waits %s ms', async (connectTimeout, wait) => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    host.autoOpen = false;
+    const h = hooks();
+    const session = startCollaboration(fakeEditor, { ...COLLAB, connectTimeout }, 'x', h);
+    await vi.advanceTimersByTimeAsync(Math.max(0, wait - 1));
+    if (wait > 0) expect(h.onReady).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(h.onStatus).toHaveBeenCalledWith('standalone');
+    expect(h.onReady).toHaveBeenCalledTimes(1);
+    await session.ready;
+    session.stop();
+  });
+
+  it('a client waiting on a seed asks again, and takes over a stale claim (HF-I4)', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    host.seedClaim = 'someone else';
+    const h = hooks();
+    const action = vi.fn();
+    const session = startCollaboration({ action } as never, { ...COLLAB, connectTimeout: 100 }, 'x', h);
+    await vi.advanceTimersByTimeAsync(150);
+    expect(h.onStatus).toHaveBeenCalledWith('standalone');
+    expect(action).not.toHaveBeenCalled();
+    host.seedClaim = null;
+    await vi.advanceTimersByTimeAsync(SEED_RECHECK);
+    expect(host.requests.filter((r) => r === 'token').length).toBeGreaterThan(1);
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(session.bound()).toBe(true);
+    session.stop();
+  });
+
+  it('a hidden tab does not ask again; it does once visible (HF-I9)', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    host.seedClaim = 'someone else';
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+    const session = startCollaboration(fakeEditor, { ...COLLAB, connectTimeout: 100 }, 'x', hooks());
+    await vi.advanceTimersByTimeAsync(150);
+    const before = host.requests.length;
+    await vi.advanceTimersByTimeAsync(SEED_RECHECK * 3);
+    expect(host.requests.length).toBe(before);
+    hidden.mockReturnValue(false);
+    await vi.advanceTimersByTimeAsync(SEED_RECHECK);
+    expect(host.requests.length).toBeGreaterThan(before);
+    session.stop();
+  });
+
+  it('a recheck answered 401 ends the session instead of asking every 5 s (HF-I9)', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    host.seedClaim = 'someone else';
+    const session = startCollaboration(fakeEditor, { ...COLLAB, connectTimeout: 100 }, 'x', hooks());
+    await vi.advanceTimersByTimeAsync(150);
+    host.token = { status: 401 };
+    await vi.advanceTimersByTimeAsync(SEED_RECHECK);
+    const before = host.requests.length;
+    await vi.advanceTimersByTimeAsync(SEED_RECHECK * 2);
+    expect(host.requests.length).toBe(before);
+    expect(session.provider.failed).toBe(true);
+    session.stop();
+  });
+
+  it('a touched client asks nothing more (HF-I4)', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    host.seedClaim = 'someone else';
+    const h = { ...hooks(), isUntouched: () => false };
+    const session = startCollaboration(fakeEditor, { ...COLLAB, connectTimeout: 100 }, 'x', h);
+    await vi.advanceTimersByTimeAsync(150);
+    session.edited();
+    const before = host.requests.length;
+    await vi.advanceTimersByTimeAsync(SEED_RECHECK * 2);
+    expect(host.requests.length).toBe(before);
+    session.stop();
+  });
+
+  it('a bind that throws falls back instead of leaving the editor locked', async () => {
+    const h = hooks();
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const broken = { action: () => { throw new Error('no view'); } } as never;
+    host.store('Shared');
+    const session = startCollaboration(broken, { ...COLLAB, connectTimeout: 60_000 }, 'x', h);
+    await session.ready;
+    expect(h.onStatus).toHaveBeenCalledWith('standalone');
+    expect(session.bound()).toBe(false);
+    session.stop();
+  });
+
+  it('stop before the end ends the wait', async () => {
+    host.autoOpen = false;
+    const session = startCollaboration(fakeEditor, { ...COLLAB, connectTimeout: 60_000 }, 'x', hooks());
+    session.stop();
+    await session.ready;
+    expect(session.provider.status).toBe('offline');
+  });
+});
+
+describe('after the bind, the connection comes and goes', () => {
+  const dropped = (): void => host.hubs.at(-1)!.onerror?.();
+
+  it('a reconnect whose state is empty (the host lost its log) changes nothing and re-sends the document', async () => {
+    host.store('Shared');
+    const handle = keep(await editor('Shared', collab({ updateDelay: 0 })));
+    host.log = [];
+    host.seedClaim = null;
+    dropped();
+    await until(() => handle.root.dataset.collab === 'online' && host.hubs.length > 1);
+    expect(text(handle.root)).toBe('Shared');
+    submit(handle.textarea.form!);
+    expect(handle.textarea.value).toBe('Shared\n');
+    await until(() => host.log.length > 0);
+  });
+
+  it.each([
+    ['a 429 on the state', () => (host.state = { status: 429, json: { error: 'rate_limited' } }), () => (host.state = null)],
+    ['a 503 on the token', () => (host.token = { status: 503 }), () => (host.token = {})],
+  ])('%s on reconnect: stays bound and offline, keeps the text, saves it, retries', async (_name, breakIt, repair) => {
+    host.store('Shared');
+    const handle = keep(await editor('Shared', collab({ updateDelay: 0 })));
+    breakIt();
+    const requests = host.requests.length;
+    dropped();
+    await until(() => host.requests.length > requests);
+    await until(() => handle.root.dataset.collab === 'offline');
+    expect(text(handle.root)).toBe('Shared');
+    expect(editable(handle.root)).toBe('true');
+    handle.setMarkdown('Typed while out');
+    const form = handle.textarea.form!;
+    submit(form);
+    expect(handle.textarea.value).toBe('Typed while out\n');
+    expect(session(form)).toBeNull();
+    repair();
+    await until(() => handle.root.dataset.collab === 'online', 8000);
+    expect(text(handle.root)).toBe('Typed while out');
+    expect(host.log.length).toBeGreaterThan(1);
+  });
+
+  const logText = (): string => {
+    const doc = new Y.Doc();
+    host.log.forEach((update) => Y.applyUpdate(doc, fromBase64(update)));
+    return doc.getXmlFragment('prosemirror').toString();
+  };
+
+  it.each([
+    ['a token 401', (): unknown => (host.token = { status: 401 }), (): unknown => (host.token = {})],
+    ['a token 403', (): unknown => (host.token = { status: 403 }), (): unknown => (host.token = {})],
+    ['a token 404', (): unknown => (host.token = { status: 404 }), (): unknown => (host.token = {})],
+    ['a state answering a login page', (): unknown => (host.state = { body: '<html>login' }), (): unknown => (host.state = null)],
+    ['a state 403', (): unknown => (host.state = { status: 403, json: {} }), (): unknown => (host.state = null)],
+  ])('%s on a bound editor, lifted after about 1 s: offline, keeps the text, rejoins in about 2 s, with a session (HF-M2, HF-L6)', async (_name, breakIt, repair) => {
+    host.store('Shared');
+    const handle = keep(await editor('Shared', collab({ updateDelay: 0 })));
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const form = handle.textarea.form!;
+    breakIt();
+    dropped();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(handle.root.dataset.collab).toBe('offline');
+    handle.setMarkdown('Typed while refused');
+    await vi.advanceTimersByTimeAsync(10);
+    expect(editable(handle.root)).toBe('true');
+    expect(alertOf(handle.root)).toBe('');
+    submit(form);
+    expect(handle.textarea.value).toBe('Typed while refused\n');
+    expect(session(form)).toBeNull();
+    repair();
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(handle.root.dataset.collab).toBe('online');
+    await vi.advanceTimersByTimeAsync(10);
+    expect(text(handle.root)).toBe('Typed while refused');
+    expect(logText()).toContain('Typed while refused');
+    submit(form);
+    expect(session(form)).toBe('t');
+    expect(handle.textarea.value).toBe('Typed while refused\n');
+    vi.useRealTimers();
+  });
+
+  it('a lasting refusal backs off to 30 s, about 2 requests a minute; it still rejoins, and the next one starts over (HF-L6)', async () => {
+    host.store('Shared');
+    const handle = keep(await editor('Shared', collab({ updateDelay: 0 })));
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const tokens = (): number => host.requests.filter((r) => r === 'token').length;
+    host.token = { status: 401 };
+    dropped();
+    // 1, 2, 4, 8, 16, then 30 s.
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(handle.root.dataset.collab).toBe('offline');
+    const settled = tokens();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(tokens() - settled).toBe(2);
+    expect(handle.root.dataset.collab).toBe('offline');
+    host.token = {};
+    await vi.advanceTimersByTimeAsync(REFUSED_RETRY);
+    expect(handle.root.dataset.collab).toBe('online');
+    host.token = { status: 401 };
+    dropped();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(handle.root.dataset.collab).toBe('offline');
+    host.token = {};
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(handle.root.dataset.collab).toBe('online');
+    vi.useRealTimers();
+  });
+
+  it('getMarkdown() is the document in every state, never an empty unbound editor', async () => {
+    host.autoOpen = false;
+    const { root, handle } = await mounted('Original body', { connectTimeout: 20 });
+    const opened = await handle;
+    expect(root.dataset.collab).toBe('standalone');
+    expect(opened.getMarkdown()).toBe('Original body\n');
+    host.store('Shared');
+    host.hubs[0]!.open();
+    await until(() => root.dataset.collab === 'online');
+    expect(opened.getMarkdown()).toBe('Shared\n');
+    host.hubs[0]!.onerror?.();
+    expect(opened.getMarkdown()).toBe('Shared\n');
+  });
+});
+
+describe('without collaboration', () => {
+  it('nothing changes: editable at once, no state attributes, the submit writes the editor', async () => {
+    const handle = keep(await editor('* one\n'));
+    expect(handle.root.dataset.collab).toBeUndefined();
+    expect(handle.root.getAttribute('aria-busy')).toBeNull();
+    expect(editable(handle.root)).toBe('true');
+    expect(handle.provider).toBeNull();
+    const event = submit(handle.textarea.form!);
+    expect(event.defaultPrevented).toBe(false);
+    expect(handle.textarea.value).toBe(handle.getMarkdown());
+    expect(session(handle.textarea.form!)).toBeNull();
+  });
+
+  it('a read-only field stays read-only', async () => {
+    const handle = keep(await editor('Body', { readonly: true }));
+    expect(editable(handle.root)).toBe('false');
+  });
+
+  it('a read-only field with collaboration stays read-only after the bind', async () => {
+    host.store('Shared');
+    const handle = keep(await editor('Shared', { ...collab(), readonly: true }));
+    expect(handle.root.dataset.collab).toBe('online');
+    expect(editable(handle.root)).toBe('false');
+  });
+});

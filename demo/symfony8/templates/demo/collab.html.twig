@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'demo.collab.heading'|trans }}{% endblock %}
+
+{% block body %}
+    <h1>{{ 'demo.collab.heading'|trans }}</h1>
+    <p class="demo-lead">{{ 'demo.collab.lead'|trans }}</p>
+
+    {{ form_start(form) }}
+        {{ form_rest(form) }}
+    {{ form_end(form) }}
+
+    {% if saved %}
+        <section class="demo-preview">
+            <h2>{{ 'demo.markdown'|trans }}</h2>
+            <pre class="demo-source" data-testid="saved">{{ saved.body }}</pre>
+        </section>
+    {% endif %}
+{% endblock %}
