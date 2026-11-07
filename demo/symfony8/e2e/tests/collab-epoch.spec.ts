@@ -81,6 +81,8 @@ test('offline, not typing, the log replaced: posts nothing, and the tab reloads 
   await context.setOffline(false);
   await reloaded;
   await expect(surface(page)).toContainText(NEW, { timeout: 15000 });
+  // It does not hold the seed against itself: it joins at once, not at the next recheck.
+  await expect(widget(page)).toHaveAttribute('data-collab', 'online', { timeout: 4000 });
   const after = await info(request, doc);
   expect(after.body).toBe(NEW);
   await expect(surface(page)).not.toContainText('Original');

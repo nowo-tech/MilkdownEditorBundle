@@ -5310,7 +5310,7 @@ async function Ou(e, t = {}) {
 		previewSandbox: r.previewSandbox,
 		maxPreviews: r.maxPreviews
 	};
-	e.classList.add("nowo-milkdown"), e.dataset.theme = r.theme, e.style.setProperty("--nowo-milkdown-min-height", r.minHeight), n.hidden = !0, n.value = Su(n.value);
+	e.classList.add("nowo-milkdown"), e.dataset.theme = r.theme, e.style.setProperty("--nowo-milkdown-min-height", r.minHeight), n.hidden = !0, r.collaboration && n.defaultValue !== "" && (n.value = n.defaultValue), n.value = Su(n.value);
 	let { bar: s, surface: c, status: l, announce: u } = Eu(e, o);
 	r.version && e.insertBefore((await import("./chunks/version-C18ZpIc4.js")).versionBanner(e, r.version, o), s);
 	let d = Tu(n), f = n.value;
@@ -5334,7 +5334,7 @@ async function Ou(e, t = {}) {
 	let g = new Qn({
 		root: c,
 		defaultValue: f
-	}), _ = g.editor, v = r.collaboration ? await import("./chunks/collab-Cz84iITK.js") : null, y = r.features.includes("context_menu") ? await import("./chunks/context-menu-DB0F7ZAO.js") : null, b = r.features.includes("block_actions") ? await import("./chunks/block-actions-CBjaulfY.js") : null, x = r.features.includes("colors") ? await import("./chunks/colors-CxE4grbu.js") : null, S = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-Ca-J8dwo.js") : null, C = r.comments ? await import("./chunks/comments-Dmn8Mh65.js") : null, w = null, T = null, E = r.comments ? {
+	}), _ = g.editor, v = r.collaboration ? await import("./chunks/collab-CmiWBy31.js") : null, y = r.features.includes("context_menu") ? await import("./chunks/context-menu-DB0F7ZAO.js") : null, b = r.features.includes("block_actions") ? await import("./chunks/block-actions-CBjaulfY.js") : null, x = r.features.includes("colors") ? await import("./chunks/colors-CxE4grbu.js") : null, S = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-Ca-J8dwo.js") : null, C = r.comments ? await import("./chunks/comments-Dmn8Mh65.js") : null, w = null, T = null, E = r.comments ? {
 		root: e,
 		announce: (e, t) => u(e, t),
 		yjs: () => w,

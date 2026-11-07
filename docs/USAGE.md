@@ -362,6 +362,7 @@ document into the new one on reconnect, and the next session save makes that tex
 | Where | Format | Host's rule |
 | --- | --- | --- |
 | `GET state` | `{"epoch": "ab12…", …}` | Names the current log |
+| `POST token`, `GET state`, from a client already on a log | Header `X-Nowo-Collab-Epoch: ab12…` | Different from the current one: **do not give this client the seed**. It is about to find out it is on an old log, and would hold the seed for nobody |
 | `POST update`, `POST compact`, `POST corrupt` | `{"e": "ab12…", …}` | Different from the current one: answer 409 `{"error": "log_epoch"}`, under the same lock as the write. Missing: as before |
 | Hub `u` messages, `r` messages | `"e": "ab12…"` | Optional. The epoch of that update; of the new log for `r` |
 | The page form, from an editor that was bound | `_nowo_milkdown_collab_epoch` | Different from the current one: **ask**, whatever the log holds (answer the conflict, write nothing). Missing: as before |

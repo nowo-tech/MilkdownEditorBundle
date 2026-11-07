@@ -370,7 +370,8 @@ export class MercureProvider {
   private async doConnect(): Promise<void> {
     this.setStatus('connecting');
     this.es?.close();
-    const client = { 'X-Nowo-Collab-Client': String(this.doc.clientID) };
+    // 1.12: the epoch too, so that a client that turns out to be on an old log does not claim the seed of the new one.
+    const client = { 'X-Nowo-Collab-Client': String(this.doc.clientID), ...(this.epoch === null ? {} : { 'X-Nowo-Collab-Epoch': this.epoch }) };
     const token = await this.bounded('token', (signal) => fetch(`${this.base}/token`, { method: 'POST', credentials: 'same-origin', headers: client, signal }));
     if (!token.ok) throw this.httpError('token', token);
     const url = new URL(this.hubUrl, location.href);

@@ -119,6 +119,33 @@ describe('the provider', () => {
     provider.disconnect();
   });
 
+  it('a client on a log says so when it asks: the first connection does not, a reconnect does', async () => {
+    const fetchMock = vi.mocked(fetch);
+    const provider = await connected();
+    const header = (index: number): string | undefined => ((fetchMock.mock.calls[index]![1] as RequestInit).headers as Record<string, string>)['X-Nowo-Collab-Epoch'];
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/token');
+    expect(header(0)).toBeUndefined();
+    fetchMock.mockClear();
+    state = { ...state, epoch: 'two' };
+    hub().onerror?.();
+    await tick(600);
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/token');
+    expect(header(0)).toBe('one');
+    provider.disconnect();
+  });
+
+  it('a host that names no logs never gets the header', async () => {
+    delete state.epoch;
+    const fetchMock = vi.mocked(fetch);
+    const provider = await connected();
+    fetchMock.mockClear();
+    hub().onerror?.();
+    await tick(600);
+    const init = fetchMock.mock.calls.find((c) => String(c[0]).endsWith('/token'))![1] as RequestInit;
+    expect(init.headers).not.toHaveProperty('X-Nowo-Collab-Epoch');
+    provider.disconnect();
+  });
+
   it('the same log after a reconnect: the offline edits go, with the epoch', async () => {
     const provider = await connected();
     window.dispatchEvent(new Event('offline'));
@@ -218,6 +245,26 @@ describe('the editor', () => {
     hub().onerror?.();
     await tick(600);
   };
+
+  it('a field the browser restored on reload is not used: the server\'s text is (Firefox)', async () => {
+    state = { state: 'AAA=', updates: [], seq: 0, seed: true, epoch: 'one' };
+    const root = widget('Old text from before the reload', COLLAB);
+    root.querySelector('textarea')!.defaultValue = 'New text from the server';
+    root.querySelector('textarea')!.value = 'Old text from before the reload';
+    const handle = await createEditor(root);
+    handles.push(handle);
+    expect(handle.getMarkdown()).toContain('New text from the server');
+    expect(handle.getMarkdown()).not.toContain('Old text');
+  });
+
+  it('without collaboration a restored field stays what it was', async () => {
+    const root = widget('Typed before the reload');
+    root.querySelector('textarea')!.defaultValue = 'From the server';
+    root.querySelector('textarea')!.value = 'Typed before the reload';
+    const handle = await createEditor(root);
+    handles.push(handle);
+    expect(handle.getMarkdown()).toContain('Typed before the reload');
+  });
 
   it('a save carries the epoch, online or offline', async () => {
     const handle = await open();

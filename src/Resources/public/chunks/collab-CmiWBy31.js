@@ -4691,7 +4691,10 @@ var hl = class {
 	}
 	async doConnect() {
 		this.setStatus("connecting"), this.es?.close();
-		let e = { "X-Nowo-Collab-Client": String(this.doc.clientID) }, t = await this.bounded("token", (t) => fetch(`${this.base}/token`, {
+		let e = {
+			"X-Nowo-Collab-Client": String(this.doc.clientID),
+			...this.epoch === null ? {} : { "X-Nowo-Collab-Epoch": this.epoch }
+		}, t = await this.bounded("token", (t) => fetch(`${this.base}/token`, {
 			method: "POST",
 			credentials: "same-origin",
 			headers: e,

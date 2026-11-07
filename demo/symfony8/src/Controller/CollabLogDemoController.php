@@ -101,8 +101,9 @@ final class CollabLogDemoController extends AbstractController
     public function token(Request $request, string $doc): Response
     {
         $client = (string) $request->headers->get('X-Nowo-Collab-Client');
-        $this->locked($doc, static function (array $log) use ($client): array {
-            if ($log['updates'] === []) {
+        $sent = $request->headers->get('X-Nowo-Collab-Epoch');
+        $this->locked($doc, static function (array $log) use ($client, $sent): array {
+            if ($log['updates'] === [] && ($sent === null || $sent === $log['epoch'])) {
                 $log['claim'] ??= $client;
             }
 
