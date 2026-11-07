@@ -40,6 +40,8 @@ import type { CommentsApi, CommentsHost, ThreadUi, YjsAnchors } from './comments
 
 /** Hidden field a save from a live collaborative session carries (the topic): the host keeps the shared log (1.2). */
 export const SESSION_FIELD = '_nowo_milkdown_collab';
+/** Hidden field next to it (1.11): the sequence number of the host's log that this save's text includes. */
+export const SESSION_SEQ_FIELD = '_nowo_milkdown_collab_seq';
 export type MilkdownEditorHandle = {
   root: HTMLElement;
   textarea: HTMLTextAreaElement;
@@ -497,20 +499,27 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     if (commentsModule) yjs = collabModule.yjsAnchors(() => editor.action((ctx) => ctx.get(editorViewCtx).state));
     // 1.2: a save from the live session tells the host so (it keeps the shared log instead of resetting it).
     const live = provider;
-    const markSession = (): void => {
-      live.flush(true);
-      let input = form?.querySelector<HTMLInputElement>(`input[name="${SESSION_FIELD}"]`) ?? null;
-      if (live.status !== 'online' || !collaboration.bound()) {
+    const hidden = (name: string, value: string | null): void => {
+      let input = form?.querySelector<HTMLInputElement>(`input[name="${name}"]`) ?? null;
+      if (value === null) {
         input?.remove();
         return;
       }
       if (!input) {
         input = document.createElement('input');
         input.type = 'hidden';
-        input.name = SESSION_FIELD;
+        input.name = name;
         form?.append(input);
       }
-      input.value = topic;
+      input.value = value;
+    };
+    const markSession = (): void => {
+      live.flush(true);
+      const inSession = live.status === 'online' && collaboration.bound();
+      hidden(SESSION_FIELD, inSession ? topic : null);
+      // Read in the same task as the text the form sends, so the number and the text agree.
+      const seq = inSession ? live.includedSeq : null;
+      hidden(SESSION_SEQ_FIELD, seq === null ? null : String(seq));
     };
     form?.addEventListener('submit', markSession, true);
     // 1.5.1: edits waiting in the send window go out when the editor loses focus.

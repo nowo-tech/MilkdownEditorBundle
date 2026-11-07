@@ -4515,8 +4515,8 @@ var $c = (e) => {
 	let t = "";
 	for (let n = 0; n < e.length; n += 32768) t += String.fromCharCode(...e.subarray(n, n + 32768));
 	return btoa(t);
-}, el = (e) => Uint8Array.from(atob(e), (e) => e.charCodeAt(0)), tl = 262144, nl = 3e4, rl = 1e3, il = 6e4, al = 3e4, ol = 6e4, sl = (e, t, n) => typeof e == "number" && Number.isFinite(e) ? Math.min(n, Math.max(0, Math.round(e))) : t;
-function cl(e, t, n = Date.now()) {
+}, el = (e) => Uint8Array.from(atob(e), (e) => e.charCodeAt(0)), tl = 262144, nl = 3e4, rl = 1e3, il = 6e4, al = 2e4, ol = 1024, sl = 3e4, cl = 6e4, ll = (e, t, n) => typeof e == "number" && Number.isFinite(e) ? Math.min(n, Math.max(0, Math.round(e))) : t;
+function ul(e, t, n = Date.now()) {
 	let r = Math.min(nl, 1e3 * 2 ** t);
 	if (!e) return r;
 	let i = e.trim(), a;
@@ -4528,19 +4528,19 @@ function cl(e, t, n = Date.now()) {
 	}
 	return Math.max(r, Math.min(il, Math.max(rl, a)));
 }
-var ll = class extends Error {}, ul = (e) => [e.state, ...Array.isArray(e.updates) ? e.updates : []].filter((e) => typeof e == "string" && e !== "");
-async function dl(e) {
+var dl = class extends Error {}, fl = (e) => [e.state, ...Array.isArray(e.updates) ? e.updates : []].filter((e) => typeof e == "string" && e !== "");
+async function pl(e) {
 	let t;
 	try {
 		t = await e.json();
 	} catch {
-		throw new ll("state: not JSON");
+		throw new dl("state: not JSON");
 	}
 	let { state: n, updates: r } = t ?? {};
-	if (typeof n != "string" && !Array.isArray(r)) throw new ll("state: no state");
+	if (typeof n != "string" && !Array.isArray(r)) throw new dl("state: no state");
 	return t;
 }
-var fl = class {
+var ml = class {
 	doc;
 	base;
 	hubUrl;
@@ -4552,6 +4552,8 @@ var fl = class {
 	quiet = !1;
 	skippedPresence = !1;
 	retryHint = 0;
+	applied = null;
+	following = /* @__PURE__ */ new Map();
 	refusals = 0;
 	wasOnline = !1;
 	es = null;
@@ -4591,10 +4593,36 @@ var fl = class {
 	awarenessDelay;
 	maxUpdateBytes;
 	constructor(e, t, n, r, i = {}) {
-		this.doc = e, this.base = t, this.hubUrl = n, this.topic = r, this.updateDelay = sl(i.updateDelay, 200, 2e3), this.awarenessDelay = sl(i.awarenessDelay, 750, 5e3), this.maxUpdateBytes = Math.max(1024, sl(i.maxUpdateBytes, tl, 67108864)), this.awareness = new js(e), e.on("update", this.onDocUpdate), this.awareness.on("update", this.onAwarenessUpdate), window.addEventListener("online", this.onOnline), window.addEventListener("offline", this.onOffline), window.addEventListener("beforeunload", this.onUnload), window.addEventListener("pagehide", this.onPageHide), document.addEventListener("visibilitychange", this.onVisibility);
+		this.doc = e, this.base = t, this.hubUrl = n, this.topic = r, this.updateDelay = ll(i.updateDelay, 200, 2e3), this.awarenessDelay = ll(i.awarenessDelay, 750, 5e3), this.maxUpdateBytes = Math.max(1024, ll(i.maxUpdateBytes, tl, 67108864)), this.awareness = new js(e), e.on("update", this.onDocUpdate), this.awareness.on("update", this.onAwarenessUpdate), window.addEventListener("online", this.onOnline), window.addEventListener("offline", this.onOffline), window.addEventListener("beforeunload", this.onUnload), window.addEventListener("pagehide", this.onPageHide), document.addEventListener("visibilitychange", this.onVisibility);
 	}
 	onStatus(e) {
 		this.listeners.add(e);
+	}
+	get includedSeq() {
+		return this.applied;
+	}
+	noteStored(e, t) {
+		if (!Number.isSafeInteger(e) || !Number.isSafeInteger(t)) return;
+		let [n, r] = [e, t];
+		r < 0 || n <= r || (this.following.size >= ol && this.following.clear(), this.following.set(r, n), this.advanceApplied());
+	}
+	advanceApplied() {
+		for (; this.applied !== null && this.following.has(this.applied);) {
+			let e = this.following.get(this.applied);
+			this.following.delete(this.applied), this.applied = e;
+		}
+	}
+	async bounded(e, t) {
+		let n = new AbortController(), r, i = new Promise((t, i) => {
+			r = setTimeout(() => {
+				i(/* @__PURE__ */ Error(`${e} timed out`)), n.abort();
+			}, al);
+		});
+		try {
+			return await Promise.race([t(n.signal), i]);
+		} finally {
+			clearTimeout(r);
+		}
 	}
 	get corrupt() {
 		return this.reported;
@@ -4619,7 +4647,7 @@ var fl = class {
 			credentials: "same-origin",
 			headers: { "Content-Type": "application/json" },
 			body: n,
-			keepalive: n.length <= ol
+			keepalive: n.length <= cl
 		}).then((e) => {
 			e.ok && this.unconfirmed === t && (this.unconfirmed = null, this.pending[0] === t && this.pending.shift(), this.dirty = !1);
 		}).catch(() => void 0);
@@ -4638,29 +4666,30 @@ var fl = class {
 		this.status = e, this.listeners.forEach((t) => t(e));
 	}
 	connectFailed(e) {
-		if (e instanceof ll) {
+		if (e instanceof dl) {
 			if (!this.wasOnline || this.quiet) {
 				this.failed = !0, this.setStatus("offline");
 				return;
 			}
-			this.retryHint = Math.min(al, 1e3 * 2 ** this.refusals++);
+			this.retryHint = Math.min(sl, 1e3 * 2 ** this.refusals++);
 		}
 		this.wasOnline && this.setStatus("offline"), this.scheduleReconnect();
 	}
 	async doConnect() {
 		this.setStatus("connecting"), this.es?.close();
-		let e = { "X-Nowo-Collab-Client": String(this.doc.clientID) }, t = await fetch(`${this.base}/token`, {
+		let e = { "X-Nowo-Collab-Client": String(this.doc.clientID) }, t = await this.bounded("token", (t) => fetch(`${this.base}/token`, {
 			method: "POST",
 			credentials: "same-origin",
-			headers: e
-		});
+			headers: e,
+			signal: t
+		}));
 		if (!t.ok) throw this.httpError("token", t);
 		let n = new URL(this.hubUrl, location.href);
 		n.searchParams.append("topic", this.topic);
 		let r = new EventSource(n, { withCredentials: !0 });
-		if (this.es = r, await new Promise((e, t) => {
+		if (this.es = r, await this.bounded("hub", () => new Promise((e, t) => {
 			r.onopen = () => e(), r.onerror = () => t(/* @__PURE__ */ Error("eventsource"));
-		}), this.closed) return;
+		})), this.closed) return;
 		r.onerror = () => {
 			this.setStatus("offline"), r.close(), this.scheduleReconnect();
 		}, r.onmessage = (e) => {
@@ -4668,23 +4697,27 @@ var fl = class {
 				this.onMessage(JSON.parse(e.data));
 			} catch {}
 		};
-		let i = await fetch(`${this.base}/state`, {
-			credentials: "same-origin",
-			headers: e
+		let i = await this.bounded("state", async (t) => {
+			let n = await fetch(`${this.base}/state`, {
+				credentials: "same-origin",
+				headers: e,
+				signal: t
+			});
+			if (!n.ok) throw this.httpError("state", n);
+			return pl(n);
 		});
-		if (!i.ok) throw this.httpError("state", i);
-		let a = await dl(i);
 		if (this.closed) return;
-		this.seed = a.seed === !0, this.seq = typeof a.seq == "number" && Number.isInteger(a.seq) ? a.seq : 0;
-		let o = new ii();
+		this.seed = i.seed === !0, this.seq = typeof i.seq == "number" && Number.isInteger(i.seq) ? i.seq : 0, this.applied = null;
+		let a = new ii();
 		try {
-			for (let e of ul(a)) bi(o, el(e)), bi(this.doc, el(e), this);
+			for (let e of fl(i)) bi(a, el(e)), bi(this.doc, el(e), this);
 		} catch {
-			o.destroy(), await this.reportCorrupt();
+			a.destroy(), await this.reportCorrupt();
 			return;
 		}
-		let s = Ci(this.doc, ki(o));
-		o.destroy(), this.pending = [], this.unconfirmed = null, s.length > 2 && await this.post("update", s), this.dirty = !1, this.retry = 0, this.refusals = 0, this.wasOnline = !0, this.setStatus("online"), this.closed || (this.quiet ? this.skippedPresence = !0 : (a.compact === !0 && typeof a.seq == "number" && Number.isInteger(a.seq) && await this.compact(a.seq), await this.post("awareness", Ns(this.awareness, [this.doc.clientID]))));
+		typeof i.seq == "number" && Number.isInteger(i.seq) && (this.applied = i.seq, this.advanceApplied());
+		let o = Ci(this.doc, ki(a));
+		a.destroy(), this.pending = [], this.unconfirmed = null, o.length > 2 && await this.post("update", o), this.dirty = !1, this.retry = 0, this.refusals = 0, this.wasOnline = !0, this.setStatus("online"), this.closed || (this.quiet ? this.skippedPresence = !0 : (i.compact === !0 && typeof i.seq == "number" && Number.isInteger(i.seq) && await this.compact(i.seq), await this.post("awareness", Ns(this.awareness, [this.doc.clientID]))));
 	}
 	httpError(e, t) {
 		let n = `${e} ${t.status}`;
@@ -4692,7 +4725,7 @@ var fl = class {
 			401,
 			403,
 			404
-		].includes(t.status) ? new ll(n) : (t.status === 429 && (this.retryHint = cl(t.headers.get("Retry-After"), 0)), Error(n));
+		].includes(t.status) ? new dl(n) : (t.status === 429 && (this.retryHint = ul(t.headers.get("Retry-After"), 0)), Error(n));
 	}
 	join() {
 		this.quiet = !1, this.skippedPresence && this.scheduleAwareness(), this.skippedPresence = !1;
@@ -4707,10 +4740,13 @@ var fl = class {
 			this.closed = !0, this.es?.close(), this.setStatus("reset");
 			return;
 		}
-		if (e.c === this.doc.clientID) return;
+		if (e.c === this.doc.clientID) {
+			e.t === "u" && this.noteStored(e.s, e.p);
+			return;
+		}
 		if (e.t === "u") {
 			try {
-				bi(this.doc, el(e.d), this);
+				bi(this.doc, el(e.d), this), this.noteStored(e.s, e.p);
 			} catch {
 				this.reportCorrupt();
 			}
@@ -4804,6 +4840,12 @@ var fl = class {
 			});
 		} catch {}
 	}
+	async readStored(e) {
+		if (e.headers.get("Content-Type")?.includes("json")) try {
+			let t = await e.json();
+			this.noteStored(t?.s, t?.p);
+		} catch {}
+	}
 	async post(e, t) {
 		try {
 			let n = await fetch(`${this.base}/${e}`, {
@@ -4815,25 +4857,25 @@ var fl = class {
 					d: $c(t)
 				})
 			});
-			if (n.status === 429) return this.blockedUntil[e] = Date.now() + cl(n.headers.get("Retry-After"), this.throttled[e]++), "throttled";
+			if (n.status === 429) return this.blockedUntil[e] = Date.now() + ul(n.headers.get("Retry-After"), this.throttled[e]++), "throttled";
 			if (!n.ok) throw Error(String(n.status));
-			return this.throttled[e] = 0, "sent";
+			return this.throttled[e] = 0, e === "update" && await this.readStored(n), "sent";
 		} catch {
 			return e === "update" && (this.dirty = !0), this.setStatus("offline"), "failed";
 		}
 	}
-}, pl = (e) => typeof e == "string" && /^#[0-9a-f]{6}$/i.test(e) ? e : "#6b7280";
-function ml(e) {
+}, hl = (e) => typeof e == "string" && /^#[0-9a-f]{6}$/i.test(e) ? e : "#6b7280";
+function gl(e) {
 	let t = document.createElement("span");
-	t.className = "ProseMirror-yjs-cursor", t.style.borderColor = pl(e.color);
+	t.className = "ProseMirror-yjs-cursor", t.style.borderColor = hl(e.color);
 	let n = document.createElement("div");
-	return n.style.backgroundColor = pl(e.color), n.textContent = typeof e.name == "string" ? e.name.slice(0, 40) : "", t.append(document.createTextNode("⁠"), n, document.createTextNode("⁠")), t;
+	return n.style.backgroundColor = hl(e.color), n.textContent = typeof e.name == "string" ? e.name.slice(0, 40) : "", t.append(document.createTextNode("⁠"), n, document.createTextNode("⁠")), t;
 }
-var hl = (e) => ({
-	style: `background-color: ${pl(e.color)}70`,
+var _l = (e) => ({
+	style: `background-color: ${hl(e.color)}70`,
 	class: "ProseMirror-yjs-selection"
 });
-function gl(e) {
+function vl(e) {
 	let t = () => Q.getState(e());
 	return {
 		encode: (e) => {
@@ -4856,14 +4898,14 @@ function gl(e) {
 		}
 	};
 }
-var _l = 1500, vl = { reload: () => window.location.reload() }, yl = 3, bl = 3e5, xl = () => {
+var yl = 1500, bl = { reload: () => window.location.reload() }, xl = 3, Sl = 3e5, Cl = () => {
 	try {
 		return window.sessionStorage;
 	} catch {
 		return null;
 	}
 };
-function Sl(e, t = xl(), n = Date.now()) {
+function wl(e, t = Cl(), n = Date.now()) {
 	let r = `nowo-milkdown-reloads:${e}`, i;
 	try {
 		i = JSON.parse(t?.getItem(r) ?? "[]");
@@ -4877,18 +4919,18 @@ function Sl(e, t = xl(), n = Date.now()) {
 	} catch {}
 	return !0;
 }
-var Cl = 5e3, wl = 6e4, Tl = 31e3, El = (e) => e instanceof G && e.nodeName === "paragraph" && e.toArray().every((e) => e instanceof K && e.toString().trim() === "");
-function Dl(e) {
-	return e.toArray().every(El);
+var Tl = 5e3, El = 6e4, Dl = 31e3, Ol = (e) => e instanceof G && e.nodeName === "paragraph" && e.toArray().every((e) => e instanceof K && e.toString().trim() === "");
+function kl(e) {
+	return e.toArray().every(Ol);
 }
-var Ol = (e, t = () => void 0) => new p({
+var Al = (e, t = () => void 0) => new p({
 	filterTransaction: (t) => !t.docChanged || !e(),
 	view: () => ({ update: (e, n) => {
 		e.state.doc.eq(n.doc) || t();
 	} })
 });
-function kl(e, t, n, r) {
-	let i = new ii(), a = i.getXmlFragment("prosemirror"), o = new fl(i, t.url, t.hubUrl, t.topic, {
+function jl(e, t, n, r) {
+	let i = new ii(), a = i.getXmlFragment("prosemirror"), o = new ml(i, t.url, t.hubUrl, t.topic, {
 		updateDelay: t.updateDelay,
 		awarenessDelay: t.awarenessDelay,
 		maxUpdateBytes: t.maxUpdateBytes
@@ -4900,10 +4942,10 @@ function kl(e, t, n, r) {
 		c || (c = !0, window.clearTimeout(u), i.off("update", ie), o.disconnect());
 	}, m = () => {
 		s === "waiting" && (s = "standalone", window.clearTimeout(ae), r.onReady(), r.onStatus("standalone"), f());
-	}, te = () => !o.seed && Dl(a) && n.trim() !== "", ne = () => {
+	}, te = () => !o.seed && kl(a) && n.trim() !== "", ne = () => {
 		window.clearTimeout(u), u = window.setTimeout(() => {
 			s === "bound" || c || (o.status === "online" && te() && !document.hidden && o.connect().catch(() => void 0), ne());
-		}, Tl);
+		}, Dl);
 	}, re = () => {
 		if (!(s === "bound" || c || o.status !== "online")) {
 			if (te()) u || ne();
@@ -4914,9 +4956,9 @@ function kl(e, t, n, r) {
 					e.action((e) => {
 						let t = e.get(Xc);
 						t.setOptions({ yCursorOpts: {
-							cursorBuilder: ml,
-							selectionBuilder: hl
-						} }), t.bindDoc(i).setAwareness(o.awareness), o.seed && t.applyTemplate(n, () => Dl(a)), t.connect();
+							cursorBuilder: gl,
+							selectionBuilder: _l
+						} }), t.bindDoc(i).setAwareness(o.awareness), o.seed && t.applyTemplate(n, () => kl(a)), t.connect();
 					});
 				} catch (e) {
 					console.error("nowo-milkdown", e), l = !1, m(), p();
@@ -4932,12 +4974,12 @@ function kl(e, t, n, r) {
 				p();
 				return;
 			}
-			r.onStatus(e), Sl(t.topic) ? d = window.setTimeout(() => {
-				s === "standalone" && !r.isUntouched() ? (p(), r.onStatus("standalone")) : vl.reload();
-			}, _l) : (m(), r.onReloadPaused());
+			r.onStatus(e), wl(t.topic) ? d = window.setTimeout(() => {
+				s === "standalone" && !r.isUntouched() ? (p(), r.onStatus("standalone")) : bl.reload();
+			}, yl) : (m(), r.onReloadPaused());
 		} else s === "bound" ? r.onStatus(e) : o.failed ? (m(), p()) : o.corrupt ? m() : e === "online" ? re() : s === "waiting" && r.onStatus("connecting");
 	});
-	let h = typeof t.connectTimeout == "number" && Number.isFinite(t.connectTimeout) ? Math.min(wl, Math.max(0, Math.round(t.connectTimeout))) : Cl, ae = window.setTimeout(m, h);
+	let h = typeof t.connectTimeout == "number" && Number.isFinite(t.connectTimeout) ? Math.min(El, Math.max(0, Math.round(t.connectTimeout))) : Tl, ae = window.setTimeout(m, h);
 	return o.connect().catch(() => void 0), {
 		provider: o,
 		ready: ee,
@@ -4950,4 +4992,4 @@ function kl(e, t, n, r) {
 		}
 	};
 }
-export { Cl as DEFAULT_CONNECT_TIMEOUT, wl as MAX_CONNECT_TIMEOUT, yl as RELOAD_CAP, bl as RELOAD_WINDOW, _l as RESET_RELOAD_DELAY, Tl as SEED_RECHECK, Sl as allowReload, Qc as collab, ml as cursorBuilder, Dl as isBlank, vl as page, pl as safeColor, hl as selectionBuilder, kl as startCollaboration, Ol as waitPlugin, gl as yjsAnchors };
+export { Tl as DEFAULT_CONNECT_TIMEOUT, El as MAX_CONNECT_TIMEOUT, xl as RELOAD_CAP, Sl as RELOAD_WINDOW, yl as RESET_RELOAD_DELAY, Dl as SEED_RECHECK, wl as allowReload, Qc as collab, gl as cursorBuilder, kl as isBlank, bl as page, hl as safeColor, _l as selectionBuilder, jl as startCollaboration, Al as waitPlugin, vl as yjsAnchors };

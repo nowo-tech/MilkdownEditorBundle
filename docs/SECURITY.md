@@ -169,6 +169,10 @@ stale document to the shared log. The hold on
 submit is bounded by a clamped timer (at most 60 s) and cannot block a form for good. The option is an integer validated
 in PHP and clamped again in the browser; the new messages are text (`textContent`).
 
+The number in `_nowo_milkdown_collab_seq` (1.11) comes from the client and is not proof: a host clamps it to its last number.
+It only decides whether a later save outside the session asks first, and an editor can replace the document anyway. A missing
+hub message cannot raise it: an update counts only once the one before it does. **Audit: re-verification pending.**
+
 Still the host's: a save without `_nowo_milkdown_collab` can replace a shared log, so check the base revision, and keep
 revisions. A save while `offline` is one: it goes without a session and with no warning, as it has since 1.2, and the same
 path applies (WikiBundle: `replaced()`). A peer with edit rights can still post an update that empties the shared document; that is an edit. The next

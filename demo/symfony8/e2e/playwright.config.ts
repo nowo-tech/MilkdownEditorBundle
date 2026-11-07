@@ -43,12 +43,12 @@ export default defineConfig({
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
-      testMatch: /collab-bind\.spec\.ts/,
+      testMatch: /collab-(bind|seq)\.spec\.ts/,
     },
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
-      testMatch: /collab-bind\.spec\.ts/,
+      testMatch: /collab-(bind|seq)\.spec\.ts/,
     },
     {
       name: 'screenshots',

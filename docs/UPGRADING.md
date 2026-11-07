@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
+- [To 1.11.0](#to-1110)
 - [To 1.10.0](#to-1100)
 - [To 1.9.0](#to-190)
 - [To 1.8.0](#to-180)
@@ -30,6 +31,17 @@
 Public API covered by Semantic Versioning: the configuration tree, profile keys, form options, Twig filter / function
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
+
+## To 1.11.0
+
+From **1.10.0**: `composer update nowo-tech/milkdown-editor-bundle`, then run `assets:install`. Fields without `collaboration`
+do not change. With it:
+
+- **A session save has one more POST key**, `_nowo_milkdown_collab_seq`, at the top level like `_nowo_milkdown_collab`. A form
+  with a name ignores it. A form with an **empty name** and no `allow_extra_fields` would refuse it, as it already refuses the
+  session field.
+- **To use it** see [USAGE](USAGE.md#collaboration). Nothing changes for a host that does not read it.
+- **Connection steps give up after 20 s** and are retried. An endpoint that needs longer than that to answer never connects.
 
 ## To 1.10.0
 

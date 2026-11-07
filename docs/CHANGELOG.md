@@ -24,6 +24,20 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Added
+
+- **A session save says what its text includes** (audit HO-L1, window 2). The form now sends
+  `_nowo_milkdown_collab_seq` next to `_nowo_milkdown_collab`, so a host can stop counting as saved an update stored while
+  that save was in flight. Optional numbers on stored updates keep it close: `s` and `p` on the hub, `{"s", "p"}` as the
+  answer to `POST update`. Hosts that change nothing work as before ([USAGE](USAGE.md#collaboration)).
+- Demo page `/collab/log/{doc}`, a host with a stored log, and a Playwright race against it.
+
+### Fixed
+
+- **A connection step that never answers no longer holds the connection for good** (audit HO-I6). The token, opening the
+  hub and the state each get 20 s, then are aborted and retried. The person was already safe (standalone with a notice), but
+  never rejoined until a reload.
+
 ## [1.10.0] - 2026-11-07
 
 **Upgrade if you use `collaboration`: every version since 1.0.0 can save an empty page.** Saving right after opening an
