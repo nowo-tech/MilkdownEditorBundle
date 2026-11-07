@@ -42,6 +42,13 @@ export const MAX_BACKOFF = 30_000;
 /** A `Retry-After` is honoured within [MIN_RETRY_AFTER, MAX_RETRY_AFTER] ms (audit DS-L1: 0 or a past date looped). */
 export const MIN_RETRY_AFTER = 1000;
 export const MAX_RETRY_AFTER = 60_000;
+/**
+ * The longest one step of a connection may take: the token, opening the hub, the state (ms, 1.11). A request that never
+ * answers would otherwise hold the connection for good, and it would never try again.
+ */
+export const CONNECT_STEP_TIMEOUT = 20_000;
+/** Stored updates that arrived before the one they follow, kept until it does (a longer gap gives up, see {@link MercureProvider.includedSeq}). */
+const MAX_WAITING_SEQ = 1024;
 /** The longest a bound editor waits to ask again after refusals in a row: 1 s, doubled each time (ms, 1.10). */
 export const REFUSED_RETRY = 30_000;
 /** `keepalive` bodies are limited to 64 KiB by browsers; larger flushes on page hide are sent normally. */
@@ -73,7 +80,8 @@ export function retryAfter(header: string | null, attempt: number, now: number =
   }
   return Math.max(backoff, Math.min(MAX_RETRY_AFTER, Math.max(MIN_RETRY_AFTER, asked)));
 }
-type Message = { t: 'u' | 'a' | 'r'; c: number; d: string };
+/** `s` and `p` (1.11, optional): this update's sequence number in the host's log, and the one before it. */
+type Message = { t: 'u' | 'a' | 'r'; c: number; d: string; s?: unknown; p?: unknown };
 /** `GET <url>/state` answer: `state` (1.0), plus the optional update log of 1.2. */
 export type StateAnswer = { state: string; seed?: boolean; updates?: unknown; seq?: unknown; compact?: unknown };
 
@@ -116,6 +124,10 @@ export class MercureProvider {
   quiet = false;
   private skippedPresence = false;
   private retryHint = 0;
+  /** 1.11: every update of the host's log up to here is in the document; null until a state gave a number. */
+  private applied: number | null = null;
+  /** Stored updates not reached yet: the sequence number before them → theirs. */
+  private readonly following = new Map<number, number>();
   /** Refusals in a row of a bound editor (back-off exponent); 0 once online again. */
   private refusals = 0;
   private wasOnline = false;
@@ -178,6 +190,53 @@ export class MercureProvider {
 
   onStatus(fn: (s: Status) => void): void {
     this.listeners.add(fn);
+  }
+
+  /**
+   * The sequence number a save's text includes (1.11): every update of the host's log up to it is in this document. It can
+   * be lower than the truth, never higher: a host's numbers need not be consecutive, so an update counts only once the one
+   * before it does. Null when the host's state gives no number.
+   */
+  get includedSeq(): number | null {
+    return this.applied;
+  }
+
+  /** Records that an update is in the document, from the numbers the host gave for it. */
+  private noteStored(seq: unknown, previous: unknown): void {
+    if (!Number.isSafeInteger(seq) || !Number.isSafeInteger(previous)) return;
+    const [s, p] = [seq as number, previous as number];
+    if (p < 0 || s <= p) return;
+    if (this.following.size >= MAX_WAITING_SEQ) this.following.clear();
+    this.following.set(p, s);
+    this.advanceApplied();
+  }
+
+  private advanceApplied(): void {
+    while (this.applied !== null && this.following.has(this.applied)) {
+      const next = this.following.get(this.applied) as number;
+      this.following.delete(this.applied);
+      this.applied = next;
+    }
+  }
+
+  /**
+   * Runs one step of a connection, bounded by {@link CONNECT_STEP_TIMEOUT}. On time-out the step is aborted and fails as an
+   * outage, so it is retried.
+   */
+  private async bounded<T>(what: string, step: (signal: AbortSignal) => Promise<T>): Promise<T> {
+    const abort = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const late = new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(() => {
+        reject(new Error(`${what} timed out`));
+        abort.abort();
+      }, CONNECT_STEP_TIMEOUT);
+    });
+    try {
+      return await Promise.race([step(abort.signal), late]);
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   /** 1.10: the host's log could not be applied (reported once; the host may publish a reset). */
@@ -286,16 +345,20 @@ export class MercureProvider {
     this.setStatus('connecting');
     this.es?.close();
     const client = { 'X-Nowo-Collab-Client': String(this.doc.clientID) };
-    const token = await fetch(`${this.base}/token`, { method: 'POST', credentials: 'same-origin', headers: client });
+    const token = await this.bounded('token', (signal) => fetch(`${this.base}/token`, { method: 'POST', credentials: 'same-origin', headers: client, signal }));
     if (!token.ok) throw this.httpError('token', token);
     const url = new URL(this.hubUrl, location.href);
     url.searchParams.append('topic', this.topic);
     const es = new EventSource(url, { withCredentials: true });
     this.es = es;
-    await new Promise<void>((resolve, reject) => {
-      es.onopen = () => resolve();
-      es.onerror = () => reject(new Error('eventsource'));
-    });
+    await this.bounded(
+      'hub',
+      () =>
+        new Promise<void>((resolve, reject) => {
+          es.onopen = () => resolve();
+          es.onerror = () => reject(new Error('eventsource'));
+        }),
+    );
     if (this.closed) return;
     es.onerror = () => {
       this.setStatus('offline');
@@ -311,12 +374,15 @@ export class MercureProvider {
       }
     };
 
-    const res = await fetch(`${this.base}/state`, { credentials: 'same-origin', headers: client });
-    if (!res.ok) throw this.httpError('state', res);
-    const answer = await readState(res);
+    const answer = await this.bounded('state', async (signal) => {
+      const res = await fetch(`${this.base}/state`, { credentials: 'same-origin', headers: client, signal });
+      if (!res.ok) throw this.httpError('state', res);
+      return readState(res);
+    });
     if (this.closed) return;
     this.seed = answer.seed === true;
     this.seq = typeof answer.seq === 'number' && Number.isInteger(answer.seq) ? answer.seq : 0;
+    this.applied = null;
     const server = new Y.Doc();
     try {
       for (const update of stateUpdates(answer)) {
@@ -327,6 +393,10 @@ export class MercureProvider {
       server.destroy();
       await this.reportCorrupt();
       return;
+    }
+    if (typeof answer.seq === 'number' && Number.isInteger(answer.seq)) {
+      this.applied = answer.seq;
+      this.advanceApplied();
     }
     const diff = Y.encodeStateAsUpdate(this.doc, Y.encodeStateVector(server));
     server.destroy();
@@ -379,10 +449,15 @@ export class MercureProvider {
       this.setStatus('reset');
       return;
     }
-    if (m.c === this.doc.clientID) return;
+    if (m.c === this.doc.clientID) {
+      // Our own update, stored: it is in the document already.
+      if (m.t === 'u') this.noteStored(m.s, m.p);
+      return;
+    }
     if (m.t === 'u') {
       try {
         Y.applyUpdate(this.doc, fromBase64(m.d), this);
+        this.noteStored(m.s, m.p);
       } catch {
         void this.reportCorrupt();
       }
@@ -525,6 +600,17 @@ export class MercureProvider {
     }
   }
 
+  /** A host may answer a stored update with its numbers: `{"s": n, "p": m}` (1.11). Any other answer means nothing here. */
+  private async readStored(response: Response): Promise<void> {
+    if (!response.headers.get('Content-Type')?.includes('json')) return;
+    try {
+      const answer = (await response.json()) as { s?: unknown; p?: unknown } | null;
+      this.noteStored(answer?.s, answer?.p);
+    } catch {
+      // The update is stored; only its number is unknown.
+    }
+  }
+
   /**
    * Posts one update or presence message.
    *
@@ -544,6 +630,7 @@ export class MercureProvider {
       }
       if (!r.ok) throw new Error(String(r.status));
       this.throttled[kind] = 0;
+      if (kind === 'update') await this.readStored(r);
       return 'sent';
     } catch {
       if (kind === 'update') this.dirty = true;

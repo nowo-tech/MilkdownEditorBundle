@@ -337,6 +337,27 @@ snapshot (the client has applied all of them). The endpoint follows the same rul
 `_nowo_milkdown_collab` field (the topic) to the form on submit; an offline editor does not. A host can keep its log for
 such saves and reset it for any other save.
 
+**What a session save's text includes (1.11).** Next to it, when the state gave a `seq`, the client adds
+`_nowo_milkdown_collab_seq`: every update of the log up to that number is in the text it sends. An update stored while the
+save is in flight is not. A host that counts updates as saved should record `max(saved, min(field, last))`, and fall back to
+what it did before when the field is missing or is not a whole number. A forged number gains nothing: lower only asks more,
+and the `min` stops higher.
+
+The number is a lower bound. To keep it close, a host may give each stored update's number and the one before it, in the log
+of that document: `{"t": "u", "c": …, "d": …, "s": 41, "p": 37}` on the hub (the client's own echo counts too), and
+`{"s": 41, "p": 37}` as a JSON answer to `POST <url>/update`. The numbers must grow; they need not be consecutive. An update
+counts only once the one named by `p` does, so one that arrives late or never holds the number back. A host that sends neither
+gets the number of the last state read: the client's later typing then reads as unsaved, which errs towards asking.
+
+| Client | Host | Result |
+| --- | --- | --- |
+| ≥ 1.11 | Reads the field | Only what the text includes counts as saved |
+| ≥ 1.11 | Ignores the field | As before: the field is one more POST key, outside the form's name |
+| < 1.11 | Reads the field | No field: as before. Clients ignore `s`, `p` and the answer's body |
+
+**Time limits (1.11).** The token, opening the hub and the state each get 20 s. A step that takes longer is aborted and retried
+like an outage, so a request that never answers no longer holds the connection for good.
+
 **One seeding tab (1.2).** Token and state requests carry `X-Nowo-Collab-Client` (the tab's Yjs client id) so the
 host can tell two tabs of the same user apart when it decides who seeds.
 
