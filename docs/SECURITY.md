@@ -174,10 +174,7 @@ revisions. A save while `offline` is one: it goes without a session and with no 
 path applies (WikiBundle: `replaced()`). A peer with edit rights can still post an update that empties the shared document; that is an edit. The next
 editor of a non-empty field does not bind it: it goes standalone at the deadline, and the field keeps its content.
 
-**Audit:** Appendix HF, **Pass (conditional) / Medium** at `<final>`, no Critical or High. Accepted residual, fixed next on
-WikiBundle's side: a save outside the session makes a host with a shared log drop it, which loses peers' unsaved work (see
-above); a host can answer a conflict instead. While waiting, keys in the editor do not reach the page's bubble-phase
-listeners.
+**Audit:** Appendix HF, **Pass (conditional) / Medium** at `4d2cc37`, no Critical or High. Accepted residual, closed next by a conflict answer on WikiBundle's side: a save outside the session makes a host with a shared log drop it, which loses peers' unsaved work (see above). That covers a standalone save, where the person is warned, and an `offline` save, where they are not. While waiting, keys in the editor do not reach the page's bubble-phase listeners.
 
 ### Host references and previews
 
