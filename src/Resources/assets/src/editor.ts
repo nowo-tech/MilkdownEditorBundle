@@ -192,9 +192,6 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   root.dataset.theme = options.theme;
   root.style.setProperty('--nowo-milkdown-min-height', options.minHeight);
   textarea.hidden = true;
-  // 1.12: Firefox restores a textarea on reload, so a tab reloaded onto a replaced page would show, and seed, its old text. With
-  // collaboration the field is what the server sent. Without it nothing changes.
-  if (options.collaboration && textarea.defaultValue !== '') textarea.value = textarea.defaultValue;
   textarea.value = normaliseNewlines(textarea.value);
   const { bar, surface, status, announce } = chrome(root, runtime);
   if (options.version) root.insertBefore((await import('./version')).versionBanner(root, options.version, runtime), bar);
@@ -464,7 +461,10 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
       status.after(reload);
     };
 
-    const collaboration = collabModule.startCollaboration(editor, options.collaboration, initial, {
+    // 1.12: Firefox restores a textarea on reload, so a tab reloaded onto a replaced page would seed its old text into the new
+    // log: the seed is what the server sent. A tab that never binds keeps the restored text, as it always did.
+    const seed = textarea.defaultValue === '' ? initial : normaliseNewlines(textarea.defaultValue);
+    const collaboration = collabModule.startCollaboration(editor, options.collaboration, seed, {
       onStatus: (s) => {
         root.dataset.collab = s;
         if (s === 'online') {

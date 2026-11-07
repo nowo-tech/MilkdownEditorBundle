@@ -684,7 +684,8 @@ export class MercureProvider {
       if (kind === 'update') this.dirty = true;
       this.setStatus('offline');
       // An answer that never came: nothing will wake this up, so reconnect, which sends what is missing.
-      if (kind === 'update' && error instanceof Error && error.name === 'TimeoutError') this.scheduleReconnect();
+      // The name differs by browser: TimeoutError in Chromium and Firefox, AbortError in WebKit.
+      if (kind === 'update' && error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) this.scheduleReconnect();
       return 'failed';
     }
   }

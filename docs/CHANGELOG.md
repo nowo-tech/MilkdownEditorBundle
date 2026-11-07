@@ -34,8 +34,8 @@ All notable changes to this project are documented in this file. The format foll
   Also covers a hub drop without going offline, a client that never heard the reset, and a live editor on the new log. Hosts and
   clients without it behave as before ([USAGE](USAGE.md#collaboration)).
 - **`POST update` and `POST compact` have a time limit** of 20 s (audit HV-L3). A hung update held every later one.
-- **With collaboration the field is what the server sent.** Firefox restores a textarea on reload, so a tab reloaded onto a
-  replaced page showed its old text, and could seed it into the new log.
+- **The seed is what the server sent.** Firefox restores a textarea on reload, so a tab reloaded onto a replaced page could
+  seed its old text into the new log. A tab that never binds keeps the restored text, as before.
 - A client on an old log no longer holds the seed of the new one for 30 s (`X-Nowo-Collab-Epoch`).
 
 ## [1.11.0] - 2026-11-07

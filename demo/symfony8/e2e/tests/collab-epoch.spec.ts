@@ -167,6 +167,36 @@ test('never heard the reset: its session save asks, and the replaced text stays 
   expect((await info(request, doc)).body).toBe(NEW);
 });
 
+test('a POST update that never answers: the tab reconnects and the text reaches the log (HV-L5)', async ({ page, request }) => {
+  test.setTimeout(70000);
+  const doc = newDoc();
+  await online(page, doc);
+  const seq = (await info(request, doc)).seq;
+  let held = false;
+  await page.route('**/api/update', async (route) => {
+    if (held) return route.continue();
+    held = true;
+    // Never answered, until the page gives up.
+  });
+  await type(page, OWN);
+  await expect.poll(() => held, { timeout: 5000 }).toBe(true);
+  await expect.poll(async () => (await info(request, doc)).seq, { timeout: 40000 }).toBeGreaterThan(seq);
+  await expect(widget(page)).toHaveAttribute('data-collab', 'online', { timeout: 10000 });
+});
+
+test('standalone, typed, F5: Firefox keeps the text, as it always did (HV-L6)', async ({ page, browserName }) => {
+  test.skip(browserName !== 'firefox', 'only Firefox restores a textarea on reload');
+  const doc = newDoc();
+  await page.route('**/collab/hub**', (route) => route.abort());
+  await page.goto(`/collab/log/${doc}?devtools=0&connect_timeout=200`);
+  await expect(widget(page)).toHaveAttribute('data-collab', 'standalone', { timeout: 10000 });
+  await type(page, OFFLINE);
+  await page.waitForTimeout(500);
+  await page.reload();
+  await expect(widget(page)).toHaveAttribute('data-collab', 'standalone', { timeout: 10000 });
+  await expect(surface(page)).toContainText(OFFLINE);
+});
+
 test('a host that names no logs: today\'s behaviour, the client posts on reconnect', async ({ page, request, browser, context }) => {
   const doc = newDoc();
   await online(page, doc, '&legacy=1');

@@ -4896,7 +4896,7 @@ var hl = class {
 			if (!n.ok) throw Error(String(n.status));
 			return this.throttled[e] = 0, e === "update" && await this.readStored(n), "sent";
 		} catch (t) {
-			return e === "update" && (this.dirty = !0), this.setStatus("offline"), e === "update" && t instanceof Error && t.name === "TimeoutError" && this.scheduleReconnect(), "failed";
+			return e === "update" && (this.dirty = !0), this.setStatus("offline"), e === "update" && t instanceof Error && (t.name === "TimeoutError" || t.name === "AbortError") && this.scheduleReconnect(), "failed";
 		}
 	}
 }, gl = (e) => typeof e == "string" && /^#[0-9a-f]{6}$/i.test(e) ? e : "#6b7280";

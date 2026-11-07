@@ -257,6 +257,19 @@ describe('the editor', () => {
     expect(handle.getMarkdown()).not.toContain('Old text');
   });
 
+  it('a tab that does not bind keeps the restored field: what was typed before F5 is not lost (HV-L6)', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 403 })));
+    const root = widget('Typed while standalone', COLLAB);
+    root.querySelector('textarea')!.defaultValue = 'From the server';
+    root.querySelector('textarea')!.value = 'Typed while standalone';
+    const handle = await createEditor(root);
+    handles.push(handle);
+    expect(handle.root.dataset.collab).toBe('standalone');
+    expect(handle.getMarkdown()).toContain('Typed while standalone');
+    save(handle);
+    expect(handle.textarea.value).toContain('Typed while standalone');
+  });
+
   it('without collaboration a restored field stays what it was', async () => {
     const root = widget('Typed before the reload');
     root.querySelector('textarea')!.defaultValue = 'From the server';
@@ -352,7 +365,7 @@ describe('the editor', () => {
 describe('time limits on posts (HV-L3)', () => {
   const never = new Promise<Response>(() => undefined);
   /** A signal this test fires, instead of waiting for the real time-out. */
-  const controlled = (): { fire: () => void; lengths: number[] } => {
+  const controlled = (name = 'TimeoutError'): { fire: () => void; lengths: number[] } => {
     const controllers: AbortController[] = [];
     const lengths: number[] = [];
     vi.spyOn(AbortSignal, 'timeout').mockImplementation((ms: number) => {
@@ -361,11 +374,11 @@ describe('time limits on posts (HV-L3)', () => {
       controllers.push(controller);
       return controller.signal;
     });
-    return { fire: () => controllers.forEach((c) => c.abort(Object.assign(new Error('timed out'), { name: 'TimeoutError' }))), lengths };
+    return { fire: () => controllers.forEach((c) => c.abort(Object.assign(new Error('timed out'), { name }))), lengths };
   };
 
-  it('a POST update that never answers gives up, frees the queue, and a reconnect sends the text', async () => {
-    const timeouts = controlled();
+  it.each(['TimeoutError', 'AbortError'])('a POST update that never answers gives up (%s, by browser), frees the queue, and a reconnect sends the text', async (name) => {
+    const timeouts = controlled(name);
     const provider = await connected();
     posted = [];
     vi.stubGlobal('fetch', vi.fn((url: string, init?: RequestInit) => {

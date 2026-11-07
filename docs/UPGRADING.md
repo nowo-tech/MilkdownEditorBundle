@@ -42,8 +42,9 @@ not change. With it, and a host that answers `epoch` in `state` (WikiBundle need
   `data-collab="standalone"`, the alert `collab.replaced` and a **Reload** button. Before, it reloaded after 1.5 s and the text was gone.
 - **A save has one more POST key**, `_nowo_milkdown_collab_epoch`, also while offline. A form with an empty name and no
   `allow_extra_fields` would refuse it, as it refuses the others.
-- **The field is what the server rendered** (`defaultValue`), when that is not empty: a script that sets the textarea before
-  the editor mounts, on a field with collaboration, should render the value instead.
+- **The seed is what the server rendered** (`defaultValue`), when that is not empty: a script that sets the textarea before
+  the editor mounts, on a field with collaboration, should render the value instead. A tab that never binds keeps what the
+  browser restored, as before.
 - **To name your logs** see [USAGE](USAGE.md#collaboration). A host that does not gets today's behaviour, including HV-M1.
 
 ## To 1.11.0

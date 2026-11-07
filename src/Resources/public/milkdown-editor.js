@@ -1,5 +1,5 @@
 import { C as e, S as t, _ as n, a as r, b as i, c as a, d as o, f as s, g as c, h as l, i as u, m as d, n as f, o as p, p as m, r as h, s as g, t as _, u as v, v as y, x as b, y as x } from "./chunks/link-tooltip-CrklcZfC.js";
-import { $t as S, A as C, Bt as w, C as T, Ct as E, Gt as D, I as ee, It as te, Jt as ne, Kt as re, M as O, Nt as k, O as A, Ot as j, P as ie, Qt as ae, St as M, T as oe, U as se, W as ce, Wt as N, a as le, at as ue, bt as de, c as fe, ct as pe, d as me, et as he, f as ge, h as _e, i as ve, j as ye, k as be, l as P, m as F, mt as xe, n as Se, nn as Ce, nt as we, on as Te, ot as I, qt as Ee, r as De, rt as Oe, st as L, tn as ke, ut as R, xt as Ae, z as je } from "./chunks/lib-9QpRoHAM.js";
+import { $t as S, A as C, Bt as w, C as T, Ct as E, Gt as D, I as ee, It as te, Jt as ne, Kt as re, M as O, Nt as ie, O as k, Ot as A, P as ae, Qt as oe, St as j, T as se, U as ce, W as le, Wt as M, a as ue, at as N, bt as de, c as fe, ct as pe, d as me, et as he, f as ge, h as _e, i as ve, j as ye, k as be, l as P, m as F, mt as xe, n as Se, nn as Ce, nt as we, on as Te, ot as I, qt as Ee, r as De, rt as Oe, st as L, tn as ke, ut as R, xt as Ae, z as je } from "./chunks/lib-9QpRoHAM.js";
 import { a as Me, c as Ne, d as Pe, f as Fe, g as Ie, h as Le, m as Re, n as z, p as ze, t as B, u as V } from "./chunks/lib-DaU_YkmU.js";
 import { n as Be, r as Ve, t as He } from "./chunks/dist-DiZPwpkv.js";
 import { a as Ue, i as We, n as Ge, r as Ke, t as qe } from "./chunks/lib-B0HMIP_r.js";
@@ -32,7 +32,7 @@ function _n(e, t) {
 	} }), e;
 }
 function vn(e, t) {
-	let n = ce(t);
+	let n = le(t);
 	if (n) return e.dispatch(e.state.tr.replaceSelectionWith(n, !0)), !0;
 	try {
 		return e.dispatch(e.state.tr.replaceSelection(t)), !0;
@@ -61,7 +61,7 @@ var yn = V((e) => {
 				if (l) {
 					let e = JSON.parse(l)?.mode;
 					if (c && e) {
-						let { tr: r } = n.state, i = se("code_block", t);
+						let { tr: r } = n.state, i = ce("code_block", t);
 						return r.replaceSelectionWith(i.create({ language: e })).setSelection(R.near(r.doc.resolve(Math.max(0, r.selection.from - 2)))).insertText(c.replace(/\r\n?/g, "\n")), n.dispatch(r), !0;
 					}
 				}
@@ -183,7 +183,7 @@ var An = [On, kn], jn = class {
 		return this.selectionUpdatedListeners.push(e), this;
 	}
 }, Mn = S(new jn(), "listener"), Nn = new L("MILKDOWN_LISTENER"), Pn = (e) => (e.inject(Mn, new jn()), async () => {
-	await e.wait(le);
+	await e.wait(ue);
 	let { listeners: t } = e.get(Mn);
 	t.beforeMount.forEach((t) => t(e)), await e.wait(fe);
 	let n = e.get(C), r = null, i = null, a = null, o = null, s = Ue(() => {
@@ -219,7 +219,7 @@ var An = [On, kn], jn = class {
 			}
 		}
 	});
-	e.update(oe, (e) => e.concat(c)), await e.wait(ve), t.mounted.forEach((t) => t(e));
+	e.update(se, (e) => e.concat(c)), await e.wait(ve), t.mounted.forEach((t) => t(e));
 });
 Pn.meta = {
 	package: "@milkdown/plugin-listener",
@@ -371,7 +371,7 @@ var Kn = (e) => {
 		}), this), Yn(this, Xn, (typeof t == "string" ? document.querySelector(t) : t) ?? document.body), Yn(this, q, Se.make().config((e) => {
 			e.inject(Wn, this), e.inject(Un, []);
 		}).config((t) => {
-			t.set(A, K(this, Xn)), t.set(me, n), t.set(_e, { editable: () => K(this, Zn) }), t.update(On.key, (e) => ({
+			t.set(k, K(this, Xn)), t.set(me, n), t.set(_e, { editable: () => K(this, Zn) }), t.update(On.key, (e) => ({
 				...e,
 				size: 4
 			})), t.update(zn.key, (t) => ({
@@ -471,7 +471,7 @@ function or(e, t) {
 	let { move: r } = n;
 	if (!r) return;
 	let i = e.state.selection;
-	if (!(i instanceof ue)) return;
+	if (!(i instanceof N)) return;
 	let { from: a, to: o } = i;
 	return a <= t && t <= o;
 }
@@ -493,7 +493,7 @@ function sr(e) {
 			let c = s.mapping.map(o), l = r.openStart == 0 && r.openEnd == 0 && r.content.childCount == 1, u = s.doc;
 			if (l ? s.replaceRangeWith(c, c, r.content.firstChild) : s.replaceRange(c, c, r), s.doc.eq(u)) return !0;
 			let d = s.doc.resolve(c);
-			if (l && ue.isSelectable(r.content.firstChild) && d.nodeAfter && d.nodeAfter.sameMarkup(r.content.firstChild)) s.setSelection(new ue(d));
+			if (l && N.isSelectable(r.content.firstChild) && d.nodeAfter && d.nodeAfter.sameMarkup(r.content.firstChild)) s.setSelection(new N(d));
 			else {
 				let t = s.mapping.map(o);
 				s.mapping.maps[s.mapping.maps.length - 1].forEach((e, n, r, i) => t = i), s.setSelection(cr(e, d, s.doc.resolve(t)));
@@ -551,7 +551,7 @@ var J = class e extends pe {
 		return e.valid(r) ? new e(r) : pe.near(r);
 	}
 	content() {
-		return j.empty;
+		return A.empty;
 	}
 	eq(t) {
 		return t instanceof e && t.head == this.head;
@@ -595,7 +595,7 @@ var J = class e extends pe {
 			for (;;) {
 				let o = n > 0 ? a.firstChild : a.lastChild;
 				if (!o) {
-					if (a.isAtom && !a.isText && !ue.isSelectable(a)) {
+					if (a.isAtom && !a.isText && !N.isSelectable(a)) {
 						t = t.doc.resolve(i + a.nodeSize * n), r = !1;
 						continue search;
 					}
@@ -660,7 +660,7 @@ function mr() {
 		handleDOMEvents: { beforeinput: vr }
 	} });
 }
-var hr = ie({
+var hr = ae({
 	ArrowLeft: gr("horiz", -1),
 	ArrowRight: gr("horiz", 1),
 	ArrowUp: gr("vert", -1),
@@ -686,15 +686,15 @@ function _r(e, t, n) {
 		left: n.clientX,
 		top: n.clientY
 	});
-	return i && i.inside > -1 && ue.isSelectable(e.state.doc.nodeAt(i.inside)) ? !1 : (e.dispatch(e.state.tr.setSelection(new J(r))), !0);
+	return i && i.inside > -1 && N.isSelectable(e.state.doc.nodeAt(i.inside)) ? !1 : (e.dispatch(e.state.tr.setSelection(new J(r))), !0);
 }
 function vr(e, t) {
 	if (t.inputType != "insertCompositionText" || !(e.state.selection instanceof J)) return !1;
 	let { $from: n } = e.state.selection, r = n.parent.contentMatchAt(n.index()).findWrapping(e.state.schema.nodes.text);
 	if (!r) return !1;
-	let i = M.empty;
-	for (let e = r.length - 1; e >= 0; e--) i = M.from(r[e].createAndFill(null, i));
-	let a = e.state.tr.replace(n.pos, n.pos, new j(i, 0, 0));
+	let i = j.empty;
+	for (let e = r.length - 1; e >= 0; e--) i = j.from(r[e].createAndFill(null, i));
+	let a = e.state.tr.replace(n.pos, n.pos, new A(i, 0, 0));
 	return a.setSelection(R.near(a.doc.resolve(n.pos + 1))), e.dispatch(a), !1;
 }
 function yr(e) {
@@ -1628,7 +1628,7 @@ Ji = /* @__PURE__ */ new WeakSet(), Yi = function(e) {
 	if (!i) return !1;
 	let a = n.doc.resolve(i.inside), o = je((e) => e.type.name === "table_cell" || e.type.name === "table_header")(a);
 	if (!o || n.selection instanceof R && je((e) => e.type.name === "table_cell" || e.type.name === "table_header")(n.selection.$from)?.node === o.node) return !1;
-	let { from: s } = o, c = ue.create(n.doc, s + 1);
+	let { from: s } = o, c = N.create(n.doc, s + 1);
 	return !n.selection.eq(c) && (n.selection instanceof ut ? setTimeout(() => {
 		r(n.tr.setSelection(c).scrollIntoView());
 	}, 20) : requestAnimationFrame(() => {
@@ -2013,7 +2013,7 @@ function ja(e, t, n) {
 	});
 }
 function Ma(e, t, n) {
-	let r = e.parent.copy(M.from(e.node)), i = t.parent.copy(M.from(t.node)), a = new xe(0, r.content.size, new j(i.content, 0, 0));
+	let r = e.parent.copy(j.from(e.node)), i = t.parent.copy(j.from(t.node)), a = new xe(0, r.content.size, new A(i.content, 0, 0));
 	return va.create(r, void 0, n.encoder).addSteps(i, [a.getMap()], null).changes.map((n) => ja(n, e.abs, t.abs));
 }
 function Na(e, t) {
@@ -2052,7 +2052,7 @@ function Fa(e, t, n) {
 	});
 }
 function Ia(e, t, n, r, i) {
-	let a = new xe(0, e.content.size, new j(t.content, 0, 0));
+	let a = new xe(0, e.content.size, new A(t.content, 0, 0));
 	return va.create(e, void 0, i.encoder).addSteps(t, [a.getMap()], null).changes.map((e) => ja(e, n, r));
 }
 function La(e, t, n, r, i) {
@@ -2395,14 +2395,14 @@ function oo(e, t) {
 	}
 }
 function so(e, t, n) {
-	if (!n) return M.empty;
-	if (!ao(t, n)) return M.from(t.text(n));
+	if (!n) return j.empty;
+	if (!ao(t, n)) return j.from(t.text(n));
 	let r = oo(e.get(T), n)?.firstChild;
-	if (r?.type.name !== "paragraph" || r.content.size === 0) return M.from(t.text(n));
+	if (r?.type.name !== "paragraph" || r.content.size === 0) return j.from(t.text(n));
 	let i = r.content, a = /^[ \t]+/.exec(n)?.[0];
-	a && (i = M.from(t.text(a)).append(i));
+	a && (i = j.from(t.text(a)).append(i));
 	let o = /[ \t]+$/.exec(n)?.[0];
-	return o && (i = i.append(M.from(t.text(o)))), i;
+	return o && (i = i.append(j.from(t.text(o)))), i;
 }
 function co({ ctx: e, tr: t, buffer: n, from: r, to: i, resolved: a }) {
 	let o = t.doc.type.schema, s = n.indexOf("\n");
@@ -2414,7 +2414,7 @@ function co({ ctx: e, tr: t, buffer: n, from: r, to: i, resolved: a }) {
 			insertEndPos: r + a.size
 		};
 	}
-	let c = n.substring(0, s), l = n.substring(s + 1), u = e.get(T), d = l.trim() ? oo(u, l) : null, f = d ? $a(d.content) : M.empty;
+	let c = n.substring(0, s), l = n.substring(s + 1), u = e.get(T), d = l.trim() ? oo(u, l) : null, f = d ? $a(d.content) : j.empty;
 	if (f.childCount === 0) {
 		let a = so(e, o, n.replace(/\n/g, " "));
 		return t = t.replaceWith(r, i, a), {
@@ -2424,8 +2424,8 @@ function co({ ctx: e, tr: t, buffer: n, from: r, to: i, resolved: a }) {
 		};
 	}
 	let p = a.depth, m = so(e, o, c);
-	for (let e = p; e > 0; e--) m = M.from(a.node(e).copy(m));
-	let h = m.append(f), g = new j(h, p, 0), _ = t.doc.content.size, v = t.doc.resolve(Math.min(i, _)), y = i;
+	for (let e = p; e > 0; e--) m = j.from(a.node(e).copy(m));
+	let h = m.append(f), g = new A(h, p, 0), _ = t.doc.content.size, v = t.doc.resolve(Math.min(i, _)), y = i;
 	p > 0 && v.depth === p && v.parentOffset === v.parent.content.size && (y = v.after(p)), t = t.replace(r, y, g);
 	let b = h.size - p;
 	return {
@@ -2446,7 +2446,7 @@ function lo({ ctx: e, tr: t, buffer: n, from: r, to: i }) {
 		tr: t,
 		applied: !1,
 		insertEndPos: i
-	} : (t = t.replace(r, i, new j(o, 0, 0)), {
+	} : (t = t.replace(r, i, new A(o, 0, 0)), {
 		tr: t,
 		applied: !0,
 		insertEndPos: r + o.size
@@ -2592,7 +2592,7 @@ var go = B("EndStreaming", (e) => (t) => (n, r) => {
 		let a = e.get(Xa.key), o = t?.diffReview ?? a.diffReviewOnEnd, s = uo(e, n.tr, i), c = s.tr;
 		if (c = c.setMeta(Z, { type: "end" }), o && s.newDoc) {
 			let t = c.doc;
-			c = c.replace(0, c.doc.content.size, new j(i.originalDoc.content, 0, 0)), r(c);
+			c = c.replace(0, c.doc.content.size, new A(i.originalDoc.content, 0, 0)), r(c);
 			try {
 				e.get(P).call(Ja.key, t);
 			} catch (e) {
@@ -2613,7 +2613,7 @@ var _o = B("AbortStreaming", (e) => (t) => (n, r) => {
 	if (!i?.active) return !1;
 	if (r) {
 		let a = t?.keep ?? !1, o = n.tr;
-		o = a ? uo(e, o, i).tr : o.replace(0, n.doc.content.size, new j(i.originalDoc.content, 0, 0)), o = o.setMeta(Z, { type: "abort" }), r(o);
+		o = a ? uo(e, o, i).tr : o.replace(0, n.doc.content.size, new A(i.originalDoc.content, 0, 0)), o = o.setMeta(Z, { type: "abort" }), r(o);
 	}
 	return !0;
 });
@@ -3847,7 +3847,7 @@ function oc(e, t, n, r, i, a, o, s, c, l, u, d, f, p, m) {
 		return e.enter(r), e.enter(i), e.consume(t), e.exit(i), v;
 	}
 	function v(t) {
-		return t === 35 ? (h = o, y(t)) : t === 46 ? (h = s, y(t)) : m && re(t) ? w(e, v, "whitespace")(t) : !m && D(t) ? te(e, v)(t) : t === null || N(t) || ne(t) || Ee(t) && t !== 45 && t !== 95 ? j(t) : (e.enter(a), e.enter(c), e.consume(t), S);
+		return t === 35 ? (h = o, y(t)) : t === 46 ? (h = s, y(t)) : m && re(t) ? w(e, v, "whitespace")(t) : !m && D(t) ? te(e, v)(t) : t === null || M(t) || ne(t) || Ee(t) && t !== 45 && t !== 95 ? A(t) : (e.enter(a), e.enter(c), e.consume(t), S);
 	}
 	function y(t) {
 		let n = h + "Marker";
@@ -3867,30 +3867,30 @@ function oc(e, t, n, r, i, a, o, s, c, l, u, d, f, p, m) {
 		return e.consume(t), x;
 	}
 	function S(t) {
-		return t === null || N(t) || ne(t) || Ee(t) && t !== 45 && t !== 46 && t !== 58 && t !== 95 ? (e.exit(c), m && re(t) ? w(e, C, "whitespace")(t) : !m && D(t) ? te(e, C)(t) : C(t)) : (e.consume(t), S);
+		return t === null || M(t) || ne(t) || Ee(t) && t !== 45 && t !== 46 && t !== 58 && t !== 95 ? (e.exit(c), m && re(t) ? w(e, C, "whitespace")(t) : !m && D(t) ? te(e, C)(t) : C(t)) : (e.consume(t), S);
 	}
 	function C(t) {
 		return t === 61 ? (e.enter(l), e.consume(t), e.exit(l), T) : (e.exit(a), v(t));
 	}
 	function T(t) {
-		return t === null || t === 60 || t === 61 || t === 62 || t === 96 || t === 125 || m && N(t) ? n(t) : t === 34 || t === 39 ? (e.enter(u), e.enter(f), e.consume(t), e.exit(f), g = t, ee) : m && re(t) ? w(e, T, "whitespace")(t) : !m && D(t) ? te(e, T)(t) : (e.enter(d), e.enter(p), e.consume(t), g = void 0, E);
+		return t === null || t === 60 || t === 61 || t === 62 || t === 96 || t === 125 || m && M(t) ? n(t) : t === 34 || t === 39 ? (e.enter(u), e.enter(f), e.consume(t), e.exit(f), g = t, ee) : m && re(t) ? w(e, T, "whitespace")(t) : !m && D(t) ? te(e, T)(t) : (e.enter(d), e.enter(p), e.consume(t), g = void 0, E);
 	}
 	function E(t) {
 		return t === null || t === 34 || t === 39 || t === 60 || t === 61 || t === 62 || t === 96 ? n(t) : t === 125 || D(t) ? (e.exit(p), e.exit(d), e.exit(a), v(t)) : (e.consume(t), E);
 	}
 	function ee(t) {
-		return t === g ? (e.enter(f), e.consume(t), e.exit(f), e.exit(u), e.exit(a), A) : (e.enter(d), O(t));
+		return t === g ? (e.enter(f), e.consume(t), e.exit(f), e.exit(u), e.exit(a), k) : (e.enter(d), O(t));
 	}
 	function O(t) {
-		return t === g ? (e.exit(d), ee(t)) : t === null ? n(t) : N(t) ? m ? n(t) : te(e, O)(t) : (e.enter(p), e.consume(t), k);
+		return t === g ? (e.exit(d), ee(t)) : t === null ? n(t) : M(t) ? m ? n(t) : te(e, O)(t) : (e.enter(p), e.consume(t), ie);
 	}
-	function k(t) {
-		return t === g || t === null || N(t) ? (e.exit(p), O(t)) : (e.consume(t), k);
+	function ie(t) {
+		return t === g || t === null || M(t) ? (e.exit(p), O(t)) : (e.consume(t), ie);
 	}
-	function A(e) {
-		return e === 125 || D(e) ? v(e) : j(e);
+	function k(e) {
+		return e === 125 || D(e) ? v(e) : A(e);
 	}
-	function j(a) {
+	function A(a) {
 		return a === 125 ? (e.enter(i), e.consume(a), e.exit(i), e.exit(r), t) : n(a);
 	}
 }
@@ -3914,7 +3914,7 @@ function sc(e, t, n, r, i, a, o) {
 		return l && (l.next = n), l = n, p(t);
 	}
 	function p(t) {
-		return t === null || s > 999 || t === 91 && ++c > 32 ? n(t) : t === 93 && !c-- ? (e.exit("chunkText"), h(t)) : N(t) ? o ? n(t) : (e.consume(t), e.exit("chunkText"), f) : (e.consume(t), t === 92 ? m : p);
+		return t === null || s > 999 || t === 91 && ++c > 32 ? n(t) : t === 93 && !c-- ? (e.exit("chunkText"), h(t)) : M(t) ? o ? n(t) : (e.consume(t), e.exit("chunkText"), f) : (e.consume(t), t === 92 ? m : p);
 	}
 	function m(t) {
 		return t === 91 || t === 92 || t === 93 ? (e.consume(t), s++, p) : p(t);
@@ -3928,10 +3928,10 @@ function cc(e, t, n, r) {
 	let i = this;
 	return a;
 	function a(t) {
-		return t === null || N(t) || Ee(t) || ne(t) ? n(t) : (e.enter(r), e.consume(t), o);
+		return t === null || M(t) || Ee(t) || ne(t) ? n(t) : (e.enter(r), e.consume(t), o);
 	}
 	function o(a) {
-		return a === null || N(a) || ne(a) || Ee(a) && a !== 45 && a !== 95 ? (e.exit(r), i.previous === 45 || i.previous === 95 ? n(a) : t(a)) : (e.consume(a), o);
+		return a === null || M(a) || ne(a) || Ee(a) && a !== 45 && a !== 95 ? (e.exit(r), i.previous === 45 || i.previous === 95 ? n(a) : t(a)) : (e.consume(a), o);
 	}
 }
 // node_modules/.pnpm/micromark-extension-directive@4.0.0/node_modules/micromark-extension-directive/lib/directive-container.js
@@ -3967,10 +3967,10 @@ function pc(e, t, n) {
 		return w(e, p, "whitespace")(t);
 	}
 	function p(i) {
-		return e.exit("directiveContainerFence"), i === null ? C(i) : N(i) ? r.interrupt ? t(i) : e.attempt(fc, m, C)(i) : n(i);
+		return e.exit("directiveContainerFence"), i === null ? C(i) : M(i) ? r.interrupt ? t(i) : e.attempt(fc, m, C)(i) : n(i);
 	}
 	function m(t) {
-		return t === null ? C(t) : N(t) ? e.check(fc, y, C)(t) : (e.enter("directiveContainerContent"), h(t));
+		return t === null ? C(t) : M(t) ? e.check(fc, y, C)(t) : (e.enter("directiveContainerContent"), h(t));
 	}
 	function h(t) {
 		return e.attempt({
@@ -3979,14 +3979,14 @@ function pc(e, t, n) {
 		}, S, a ? w(e, g, "linePrefix", a + 1) : g)(t);
 	}
 	function g(t) {
-		return t === null ? S(t) : N(t) ? e.check(fc, v, S)(t) : v(t);
+		return t === null ? S(t) : M(t) ? e.check(fc, v, S)(t) : v(t);
 	}
 	function _(t) {
 		if (t === null) {
 			let n = e.exit("chunkDocument");
 			return r.parser.lazy[n.start.line] = !1, S(t);
 		}
-		return N(t) ? e.check(fc, b, x)(t) : (e.consume(t), _);
+		return M(t) ? e.check(fc, b, x)(t) : (e.consume(t), _);
 	}
 	function v(t) {
 		let n = e.enter("chunkDocument", {
@@ -4023,7 +4023,7 @@ function pc(e, t, n) {
 			return t === 58 ? (e.consume(t), i++, s) : i < o ? n(t) : (e.exit("directiveContainerSequence"), w(e, c, "whitespace")(t));
 		}
 		function c(r) {
-			return r === null || N(r) ? (e.exit("directiveContainerFence"), t(r)) : n(r);
+			return r === null || M(r) ? (e.exit("directiveContainerFence"), t(r)) : n(r);
 		}
 	}
 }
@@ -4070,7 +4070,7 @@ function bc(e, t, n) {
 		return w(e, l, "whitespace")(t);
 	}
 	function l(r) {
-		return r === null || N(r) ? (e.exit("directiveLeaf"), t(r)) : n(r);
+		return r === null || M(r) ? (e.exit("directiveLeaf"), t(r)) : n(r);
 	}
 }
 function xc(e, t, n) {
@@ -4203,12 +4203,12 @@ function Rc(e, t) {
 		for (l--; ++l <= e.length;) {
 			let t = e.charCodeAt(l);
 			if (!b(t)) break;
-			y += String.fromCharCode(t), u === "named" && jc.includes(y) && (_ = y, v = ae(y));
+			y += String.fromCharCode(t), u === "named" && jc.includes(y) && (_ = y, v = oe(y));
 		}
 		let x = e.charCodeAt(l) === 59;
 		if (x) {
 			l++;
-			let e = u === "named" && ae(y);
+			let e = u === "named" && oe(y);
 			e && (_ = y, v = e);
 		}
 		let S = 1 + l - o, C = "";
@@ -4486,7 +4486,7 @@ function vl(e) {
 }
 function yl(e) {
 	let t = 0;
-	return e.type === "containerDirective" ? (k(e, function(e, n) {
+	return e.type === "containerDirective" ? (ie(e, function(e, n) {
 		if (e.type === "containerDirective") {
 			let e = n.length, r = 0;
 			for (; e--;) n[e].type === "containerDirective" && r++;
@@ -5310,7 +5310,7 @@ async function Ou(e, t = {}) {
 		previewSandbox: r.previewSandbox,
 		maxPreviews: r.maxPreviews
 	};
-	e.classList.add("nowo-milkdown"), e.dataset.theme = r.theme, e.style.setProperty("--nowo-milkdown-min-height", r.minHeight), n.hidden = !0, r.collaboration && n.defaultValue !== "" && (n.value = n.defaultValue), n.value = Su(n.value);
+	e.classList.add("nowo-milkdown"), e.dataset.theme = r.theme, e.style.setProperty("--nowo-milkdown-min-height", r.minHeight), n.hidden = !0, n.value = Su(n.value);
 	let { bar: s, surface: c, status: l, announce: u } = Eu(e, o);
 	r.version && e.insertBefore((await import("./chunks/version-C18ZpIc4.js")).versionBanner(e, r.version, o), s);
 	let d = Tu(n), f = n.value;
@@ -5334,7 +5334,7 @@ async function Ou(e, t = {}) {
 	let g = new Qn({
 		root: c,
 		defaultValue: f
-	}), _ = g.editor, v = r.collaboration ? await import("./chunks/collab-CmiWBy31.js") : null, y = r.features.includes("context_menu") ? await import("./chunks/context-menu-DB0F7ZAO.js") : null, b = r.features.includes("block_actions") ? await import("./chunks/block-actions-CBjaulfY.js") : null, x = r.features.includes("colors") ? await import("./chunks/colors-CxE4grbu.js") : null, S = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-Ca-J8dwo.js") : null, C = r.comments ? await import("./chunks/comments-Dmn8Mh65.js") : null, w = null, T = null, E = r.comments ? {
+	}), _ = g.editor, v = r.collaboration ? await import("./chunks/collab-Cpbs3MxO.js") : null, y = r.features.includes("context_menu") ? await import("./chunks/context-menu-DB0F7ZAO.js") : null, b = r.features.includes("block_actions") ? await import("./chunks/block-actions-CBjaulfY.js") : null, x = r.features.includes("colors") ? await import("./chunks/colors-CxE4grbu.js") : null, S = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-Ca-J8dwo.js") : null, C = r.comments ? await import("./chunks/comments-Dmn8Mh65.js") : null, w = null, T = null, E = r.comments ? {
 		root: e,
 		announce: (e, t) => u(e, t),
 		yjs: () => w,
@@ -5380,126 +5380,126 @@ async function Ou(e, t = {}) {
 		let r = re(t);
 		r !== null && n.value !== r && (n.value = r, n.dispatchEvent(new Event("input", { bubbles: !0 })), n.dispatchEvent(new Event("change", { bubbles: !0 })));
 	})), (r.readonly || v) && g.setReadonly(!0), await g.create(), ee = v !== null;
-	let O = () => g.getMarkdown(), k = () => {
+	let O = () => g.getMarkdown(), ie = () => {
 		let e = re(O());
 		e !== null && (n.value = e);
-	}, A = n.form;
-	A?.addEventListener("submit", k, !0), A?.addEventListener("formdata", k, !0);
-	let j = () => {
+	}, k = n.form;
+	k?.addEventListener("submit", ie, !0), k?.addEventListener("formdata", ie, !0);
+	let A = () => {
 		ee ? (te = !0, c.focus({ preventScroll: !0 })) : _.action((e) => e.get(F).focus());
 	};
-	d?.addEventListener("click", j);
-	let ie = Hl(c, o), ae = (e) => {
+	d?.addEventListener("click", A);
+	let ae = Hl(c, o), oe = (e) => {
 		if (jt(o)) {
 			Js(e, o);
 			return;
 		}
 		let { $from: t } = e.state.selection, n = t.parent.textBetween(0, t.parentOffset, void 0, "￼");
 		e.dispatch(e.state.tr.insertText(n === "" || /\s$/.test(n) ? ":" : " :")), e.focus();
-	}, M = !!(r.suggestions[":"] || jt(o));
-	if (m && r.actionBarInsert.includes("file") && Du(s, W(o, "upload.button"), () => _.action((e) => h(e.get(F))), r.toolbarIcons ? "file-upload" : null), M && !r.readonly && r.actionBarInsert.includes("icon") && Du(s, W(o, "icon.button"), () => _.action((e) => ae(e.get(F))), r.toolbarIcons ? "icons" : null), r.features.includes("insert_menu") && !r.readonly) {
+	}, j = !!(r.suggestions[":"] || jt(o));
+	if (m && r.actionBarInsert.includes("file") && Du(s, W(o, "upload.button"), () => _.action((e) => h(e.get(F))), r.toolbarIcons ? "file-upload" : null), j && !r.readonly && r.actionBarInsert.includes("icon") && Du(s, W(o, "icon.button"), () => _.action((e) => oe(e.get(F))), r.toolbarIcons ? "icons" : null), r.features.includes("insert_menu") && !r.readonly) {
 		let e = [];
 		m && e.push({
 			id: "file",
 			label: W(o, "menu.insert_file"),
 			run: (e) => h(e)
-		}), M && e.push({
+		}), j && e.push({
 			id: "icon",
 			label: W(o, "slash.icon"),
-			run: ae,
+			run: oe,
 			inline: !0
 		}), _.action((t) => o.insert.push(...en(Zl(t, r, o), e)));
 	}
 	s.childElementCount || s.remove();
-	let oe = null, se = () => void 0, ce = null;
+	let se = null, ce = () => void 0, le = null;
 	if (v && r.collaboration) {
 		e.dataset.collab = "connecting", e.setAttribute("aria-busy", "true");
-		let t = r.collaboration.topic, n = v, i = [...s.querySelectorAll("button")];
-		i.forEach((e) => e.disabled = !0);
-		let a = O(), d = !1;
-		re = (e) => ee ? null : d && e === a ? f : e;
-		let p = null, m = (e) => {
+		let t = r.collaboration.topic, i = v, a = [...s.querySelectorAll("button")];
+		a.forEach((e) => e.disabled = !0);
+		let d = O(), p = !1;
+		re = (e) => ee ? null : p && e === d ? f : e;
+		let m = null, h = (e) => {
 			if (!ee) return;
 			e.preventDefault(), e.stopImmediatePropagation();
 			let t = e.submitter ?? null;
-			p = {
+			m = {
 				submitter: t,
 				name: t?.name ?? "",
 				value: t?.value ?? ""
 			}, u("collab.save_waiting", {});
-		}, h = () => {
-			let e = p;
-			if (p = null, !e || !A?.isConnected) return;
+		}, y = () => {
+			let e = m;
+			if (m = null, !e || !k?.isConnected) return;
 			let { submitter: t, name: n, value: r } = e;
-			if (t?.isConnected && !t.disabled && t.form === A) {
-				A.requestSubmit(t);
+			if (t?.isConnected && !t.disabled && t.form === k) {
+				k.requestSubmit(t);
 				return;
 			}
 			let i = null;
-			n && (i = document.createElement("input"), i.type = "hidden", i.name = n, i.value = r, A.append(i)), A.requestSubmit(), i?.remove();
+			n && (i = document.createElement("input"), i.type = "hidden", i.name = n, i.value = r, k.append(i)), k.requestSubmit(), i?.remove();
 		};
-		A?.addEventListener("submit", m, !0), c.setAttribute("tabindex", "-1");
-		let y = () => {
+		k?.addEventListener("submit", h, !0), c.setAttribute("tabindex", "-1");
+		let b = () => {
 			te = !0, c.focus({ preventScroll: !0 });
 		};
-		c.addEventListener("pointerdown", y);
-		let b = (e) => {
+		c.addEventListener("pointerdown", b);
+		let x = (e) => {
 			e.key === "Tab" && e.shiftKey && e.type === "keydown" ? wu(c) ? e.preventDefault() : c.blur() : e.key !== "Tab" && e.key !== "Escape" && (e.stopPropagation(), e.ctrlKey || e.metaKey || e.altKey || /^F\d+$/.test(e.key) || e.preventDefault());
-		}, x = [
+		}, S = [
 			"keydown",
 			"keypress",
 			"keyup"
 		];
-		x.forEach((e) => c.addEventListener(e, b, !0));
-		let S = () => {
-			c.removeEventListener("pointerdown", y), x.forEach((e) => c.removeEventListener(e, b, !0));
-		}, T = null, E = (e) => {
-			T || (T = document.createElement("div"), T.className = "nowo-milkdown__notice", T.setAttribute("role", "alert"), l.before(T)), T.textContent = W(o, e);
-		}, D = () => {
+		S.forEach((e) => c.addEventListener(e, x, !0));
+		let T = () => {
+			c.removeEventListener("pointerdown", b), S.forEach((e) => c.removeEventListener(e, x, !0));
+		}, E = null, D = (e) => {
+			E || (E = document.createElement("div"), E.className = "nowo-milkdown__notice", E.setAttribute("role", "alert"), l.before(E)), E.textContent = W(o, e);
+		}, ie = () => {
 			if (e.querySelector(".nowo-milkdown__reload")) return;
 			let t = document.createElement("button");
-			t.type = "button", t.className = "nowo-milkdown__reload", t.textContent = W(o, "collab.reload"), t.addEventListener("click", () => n.page.reload()), l.after(t);
-		}, k = v.startCollaboration(_, r.collaboration, f, {
+			t.type = "button", t.className = "nowo-milkdown__reload", t.textContent = W(o, "collab.reload"), t.addEventListener("click", () => i.page.reload()), l.after(t);
+		}, ae = n.defaultValue === "" ? f : Su(n.defaultValue), oe = v.startCollaboration(_, r.collaboration, ae, {
 			onStatus: (t) => {
-				e.dataset.collab = t, t === "online" && (d = !1, T?.remove(), T = null), t === "standalone" ? (d = !0, l.textContent = "", E("collab.standalone")) : u(`collab.${t}`, {});
+				e.dataset.collab = t, t === "online" && (p = !1, E?.remove(), E = null), t === "standalone" ? (p = !0, l.textContent = "", D("collab.standalone")) : u(`collab.${t}`, {});
 			},
 			onReloadPaused: () => {
-				u("collab.reset_paused", {}), D();
+				u("collab.reset_paused", {}), ie();
 			},
 			onReplaced: () => {
-				e.dataset.collab = "standalone", d = !0, l.textContent = "", E("collab.replaced"), D();
+				e.dataset.collab = "standalone", p = !0, l.textContent = "", D("collab.replaced"), ie();
 			},
 			onReady: () => {
-				ee = !1, g.setReadonly(r.readonly), e.removeAttribute("aria-busy"), i.forEach((e) => e.disabled = !1), S();
+				ee = !1, g.setReadonly(r.readonly), e.removeAttribute("aria-busy"), a.forEach((e) => e.disabled = !1), T();
 				let t = (e) => !e || e === document.body || e === c, n = te && (t(document.activeElement) || c.contains(document.activeElement));
 				te = !1, window.setTimeout(() => {
-					c.removeAttribute("tabindex"), n && t(document.activeElement) && j(), h();
+					c.removeAttribute("tabindex"), n && t(document.activeElement) && A(), y();
 				}, 0);
 			},
-			isUntouched: () => O() === a
+			isUntouched: () => O() === d
 		});
-		ne = k.edited, oe = k.provider, ce = k.ready, C && (w = v.yjsAnchors(() => _.action((e) => e.get(F).state)));
-		let ie = oe, ae = (e, t) => {
-			let n = A?.querySelector(`input[name="${e}"]`) ?? null;
-			t === null ? n?.remove() : (n || (n = document.createElement("input"), n.type = "hidden", n.name = e, A?.append(n)), n.value = t);
-		}, M = () => {
-			ie.flush(!0);
-			let e = ie.status === "online" && k.bound();
-			ae(_u, e ? t : null);
-			let n = e ? ie.includedSeq : null;
-			ae(vu, n === null ? null : String(n)), ae(yu, k.bound() ? ie.epoch : null);
+		ne = oe.edited, se = oe.provider, le = oe.ready, C && (w = v.yjsAnchors(() => _.action((e) => e.get(F).state)));
+		let j = se, M = (e, t) => {
+			let n = k?.querySelector(`input[name="${e}"]`) ?? null;
+			t === null ? n?.remove() : (n || (n = document.createElement("input"), n.type = "hidden", n.name = e, k?.append(n)), n.value = t);
+		}, ue = () => {
+			j.flush(!0);
+			let e = j.status === "online" && oe.bound();
+			M(_u, e ? t : null);
+			let n = e ? j.includedSeq : null;
+			M(vu, n === null ? null : String(n)), M(yu, oe.bound() ? j.epoch : null);
 		};
-		A?.addEventListener("submit", M, !0);
-		let N = () => ie.flush();
-		c.addEventListener("focusout", N), se = () => {
-			A?.removeEventListener("submit", m, !0), c.removeEventListener("pointerdown", y), A?.removeEventListener("submit", M, !0), c.removeEventListener("focusout", N), k.stop();
+		k?.addEventListener("submit", ue, !0);
+		let N = () => j.flush();
+		c.addEventListener("focusout", N), ce = () => {
+			k?.removeEventListener("submit", h, !0), c.removeEventListener("pointerdown", b), k?.removeEventListener("submit", ue, !0), c.removeEventListener("focusout", N), oe.stop();
 		};
 	}
-	ce && await ce;
-	let N = !1, le = C && E ? C.commentsApi(_, E, () => T, () => !N) : void 0;
-	le && E?.canCreate && (o.comment = le.start);
-	let ue = () => void 0, de = r.comments;
-	if (le && C && de?.url && de.panel !== "none") {
+	le && await le;
+	let M = !1, ue = C && E ? C.commentsApi(_, E, () => T, () => !M) : void 0;
+	ue && E?.canCreate && (o.comment = ue.start);
+	let N = () => void 0, de = r.comments;
+	if (ue && C && de?.url && de.panel !== "none") {
 		let t = de.url, { mountThreadPanel: n } = await import("./chunks/thread-ui-I5Fa-ZLI.js"), i = n({
 			root: e,
 			surface: c,
@@ -5508,7 +5508,7 @@ async function Ou(e, t = {}) {
 				url: t
 			},
 			runtime: o,
-			api: () => le,
+			api: () => ue,
 			announce: u,
 			tops: () => C.threadTops(_, c),
 			hubUrl: r.collaboration?.hubUrl ?? null
@@ -5518,20 +5518,20 @@ async function Ou(e, t = {}) {
 			open: (e) => i.open(e),
 			refresh: (e) => i.refresh(e),
 			mount: (e) => i.mount(e)
-		}, ue = () => i.destroy();
+		}, N = () => i.destroy();
 	}
 	return {
 		root: e,
 		textarea: n,
 		options: r,
 		builder: g,
-		provider: oe,
-		...le ? { comments: le } : {},
+		provider: se,
+		...ue ? { comments: ue } : {},
 		getMarkdown: O,
 		setMarkdown: (e) => _.action(Ie(Su(e))),
-		focus: j,
+		focus: A,
 		destroy: async () => {
-			N = !0, ue(), ie(), se(), A?.removeEventListener("submit", k, !0), A?.removeEventListener("formdata", k, !0), d?.removeEventListener("click", j), await g.destroy(), e.querySelectorAll(".nowo-milkdown__version, .nowo-milkdown__actions, .nowo-milkdown__surface, .nowo-milkdown__status, .nowo-milkdown__alert, .nowo-milkdown__notice, .nowo-milkdown__reload").forEach((e) => e.remove()), n.hidden = !1;
+			M = !0, N(), ae(), ce(), k?.removeEventListener("submit", ie, !0), k?.removeEventListener("formdata", ie, !0), d?.removeEventListener("click", A), await g.destroy(), e.querySelectorAll(".nowo-milkdown__version, .nowo-milkdown__actions, .nowo-milkdown__surface, .nowo-milkdown__status, .nowo-milkdown__alert, .nowo-milkdown__notice, .nowo-milkdown__reload").forEach((e) => e.remove()), n.hidden = !1;
 		}
 	};
 }
