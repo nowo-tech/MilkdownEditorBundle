@@ -94,15 +94,26 @@ export function literalPrefix(pattern: string): string {
 }
 
 /**
+ * 1.14.1 (audit IK2-L1): `value` as a browser reads it, like `DialectRenderer::cleanUrl()` and `safeUrl()`: leading and
+ * trailing C0 controls, spaces and DEL trimmed, every tab and newline inside removed.
+ */
+export function cleanUrl(value: string): string {
+  // eslint-disable-next-line no-control-regex
+  return value.replace(/^[\u0000-\u0020\u007f]+|[\u0000-\u0020\u007f]+$/g, '').replace(/[\t\n\r]/g, '');
+}
+
+/**
  * The string patterns are matched against (`HostSchemes::candidate()`, audit IJ-I3): no query or fragment, the path
  * percent-decoded once, uuids in lower case, and an absolute or protocol-relative URL of one of `hosts` (or of the page's
  * own host) read as its path.
  *
  * 1.14 (audit IJ-I10): hosts are compared without userinfo, trailing dot or the scheme's default port
  * ({@link normalizeAuthority}); a path has its repeated slashes collapsed and its dot segments removed after decoding.
+ *
+ * 1.14.1 (audit IK2-L1): cleaned first ({@link cleanUrl}), so a tab or newline inside the URL cannot split it for matching.
  */
 export function urlCandidate(value: string, hosts: string[] = []): string {
-  let url = value.trim();
+  let url = cleanUrl(value);
   url = url.slice(0, url.search(/[?#]/) === -1 ? url.length : url.search(/[?#]/));
   let path = url.startsWith('/') && !url.startsWith('//');
   const m = /^(?:(https?):)?\/\/([^/\\]*)(.*)$/is.exec(url);
@@ -140,11 +151,15 @@ export function removeDotSegments(path: string): string {
  */
 export function normalizeAuthority(authority: string, scheme = ''): string {
   const at = authority.lastIndexOf('@');
-  const rest = at === -1 ? authority : authority.slice(at + 1);
+  // 1.14.1 (audit IK-I7): ASCII percent-escapes decoded, as browsers do (`beacon%2Eexample.com`).
+  const rest = (at === -1 ? authority : authority.slice(at + 1))
+    .replace(/%([0-7][0-9a-f])/gi, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)))
+    .toLowerCase();
   const m = /^(\[[^\]]*\]|[^:]*)(?::(\d*))?$/.exec(rest);
   if (!m) return rest;
   const host = m[1]!.replace(/\.+$/, '');
-  const port = m[2] ?? '';
+  // 1.14.1 (audit IK-I7): `:0443` is port 443.
+  const port = m[2] ? m[2].replace(/^0+/, '') || '0' : '';
   const defaults = scheme === 'https' ? ['443'] : scheme === 'http' ? ['80'] : ['443', '80'];
   return port === '' || defaults.includes(port) ? host : `${host}:${port}`;
 }
@@ -152,6 +167,8 @@ export function normalizeAuthority(authority: string, scheme = ''): string {
 function isOwnHost(authority: string, scheme: string, hosts: string[]): boolean {
   const normalized = normalizeAuthority(authority, scheme);
   if (normalized === '' || normalized.startsWith(':')) return false;
+  // 1.14.1 (audit IK-I7): a decoded host with URL delimiters is no host a browser opens; read it as own (hidden).
+  if (/[@/\\?#]/.test(normalized)) return true;
   if (hosts.some((h) => h === normalized || normalizeAuthority(h, scheme) === normalized)) return true;
   if (typeof location === 'undefined') return false;
   return normalizeAuthority(location.host.toLowerCase(), location.protocol.replace(':', '')) === normalized;
@@ -185,7 +202,12 @@ export function matchHostUrl(value: unknown, schemes: HostSchemes): { reference:
   if (!config || typeof value !== 'string') return null;
   const url = urlCandidate(value, config.hosts);
   if (url === '') return null;
-  for (const entry of config.patterns) {
+  // 1.14.1 (audit IK-I8): one trailing slash is dropped when the URL as written matches no pattern.
+  return matchCandidate(url, config.patterns) ?? (url.length > 1 && url.endsWith('/') ? matchCandidate(url.slice(0, -1), config.patterns) : null);
+}
+
+function matchCandidate(url: string, patterns: HostUrlPattern[]): { reference: string | null; url: 'written' | 'resolved' } | null {
+  for (const entry of patterns) {
     // Audit IJ-L1: a URL over the bound that starts like a pattern is refused, never a plain link.
     if (url.length > MAX_URL_LENGTH) {
       if (url.startsWith(literalPrefix(entry.pattern.source))) return { reference: null, url: entry.url };
