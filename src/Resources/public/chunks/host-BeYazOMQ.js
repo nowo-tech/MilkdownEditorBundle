@@ -57,33 +57,36 @@ function d(e) {
 	}
 	return t;
 }
-function f(e, t = []) {
-	let n = e.trim();
+function f(e) {
+	return e.replace(/^[\u0000-\u0020\u007f]+|[\u0000-\u0020\u007f]+$/g, "").replace(/[\t\n\r]/g, "");
+}
+function p(e, t = []) {
+	let n = f(e);
 	n = n.slice(0, n.search(/[?#]/) === -1 ? n.length : n.search(/[?#]/));
 	let r = n.startsWith("/") && !n.startsWith("//"), i = /^(?:(https?):)?\/\/([^/\\]*)(.*)$/is.exec(n);
-	i && h(i[2].toLowerCase(), (i[1] ?? "").toLowerCase(), t) && (n = i[3] || "/", r = !0);
+	i && g(i[2].toLowerCase(), (i[1] ?? "").toLowerCase(), t) && (n = i[3] || "/", r = !0);
 	try {
 		n = decodeURIComponent(n);
 	} catch {}
-	return r && (n = p(n.replace(/\/{2,}/g, "/"))), n.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, (e) => e.toLowerCase());
+	return r && (n = m(n.replace(/\/{2,}/g, "/"))), n.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, (e) => e.toLowerCase());
 }
-function p(e) {
+function m(e) {
 	let t = e.split("/"), n = [];
 	return t.forEach((e, r) => {
 		e === "." || e === ".." ? (e === ".." && n.length > 1 && n.pop(), r === t.length - 1 && n.push("")) : n.push(e);
 	}), n.join("/");
 }
-function m(e, t = "") {
+function h(e, t = "") {
 	let n = e.lastIndexOf("@"), r = (n === -1 ? e : e.slice(n + 1)).replace(/%([0-7][0-9a-f])/gi, (e, t) => String.fromCharCode(parseInt(t, 16))).toLowerCase(), i = /^(\[[^\]]*\]|[^:]*)(?::(\d*))?$/.exec(r);
 	if (!i) return r;
 	let a = i[1].replace(/\.+$/, ""), o = i[2] ? i[2].replace(/^0+/, "") || "0" : "";
 	return o === "" || (t === "https" ? ["443"] : t === "http" ? ["80"] : ["443", "80"]).includes(o) ? a : `${a}:${o}`;
 }
-function h(e, t, n) {
-	let r = m(e, t);
-	return r === "" || r.startsWith(":") ? !1 : /[@/\\?#]/.test(r) || n.some((e) => e === r || m(e, t) === r) ? !0 : typeof location > "u" ? !1 : m(location.host.toLowerCase(), location.protocol.replace(":", "")) === r;
+function g(e, t, n) {
+	let r = h(e, t);
+	return r === "" || r.startsWith(":") ? !1 : /[@/\\?#]/.test(r) || n.some((e) => e === r || h(e, t) === r) ? !0 : typeof location > "u" ? !1 : h(location.host.toLowerCase(), location.protocol.replace(":", "")) === r;
 }
-function g(e, t, n = []) {
+function _(e, t, n = []) {
 	let r = [];
 	for (let n of Array.isArray(t) ? t : []) {
 		let t = n && typeof n == "object" ? n : {}, i = typeof t.scheme == "string" ? t.scheme.toLowerCase() : "";
@@ -100,13 +103,13 @@ function g(e, t, n = []) {
 		hosts: o
 	}), i;
 }
-function _(e, t) {
+function v(e, t) {
 	let n = a.get(t);
 	if (!n || typeof e != "string") return null;
-	let r = f(e, n.hosts);
-	return r === "" ? null : v(r, n.patterns) ?? (r.length > 1 && r.endsWith("/") ? v(r.slice(0, -1), n.patterns) : null);
+	let r = p(e, n.hosts);
+	return r === "" ? null : y(r, n.patterns) ?? (r.length > 1 && r.endsWith("/") ? y(r.slice(0, -1), n.patterns) : null);
 }
-function v(e, t) {
+function y(e, t) {
 	for (let n of t) {
 		if (e.length > s) {
 			if (e.startsWith(d(n.pattern.source))) return {
@@ -125,7 +128,7 @@ function v(e, t) {
 	}
 	return null;
 }
-function y(e) {
+function b(e) {
 	let t = {};
 	if (!e || typeof e != "object" || Array.isArray(e)) return t;
 	for (let [n, a] of Object.entries(e)) {
@@ -139,23 +142,23 @@ function y(e) {
 	}
 	return t;
 }
-function b(e, n) {
+function x(e, n) {
 	if (typeof e != "string") return !1;
 	let r = t.exec(e);
 	return !!r && Object.prototype.hasOwnProperty.call(n, r[1].toLowerCase());
 }
-function x(e, t) {
+function S(e, t) {
 	if (typeof e != "string") return null;
 	let r = n.exec(e);
 	if (!r) return null;
 	let i = r[1].toLowerCase();
 	return Object.prototype.hasOwnProperty.call(t, i) ? `${i}:${r[2]}` : null;
 }
-function S(t, n, r) {
+function C(t, n, r) {
 	let i;
-	if (b(t, r)) i = x(t, r);
+	if (x(t, r)) i = S(t, r);
 	else {
-		let e = _(t, r);
+		let e = v(t, r);
 		if (!e || e.url === "written") return;
 		i = e.reference;
 	}
@@ -163,8 +166,8 @@ function S(t, n, r) {
 	let [a, o] = i.split(/:(.*)/s), s = r[a], c = s[n] ?? (n === "image" ? s.file : null);
 	return c && e(c.split("{id}").join(encodeURIComponent(o))) || null;
 }
-function C(t, n, r) {
-	let i = S(t, n, r);
+function w(t, n, r) {
+	let i = C(t, n, r);
 	return i === void 0 ? e(t) : i ?? "";
 }
-export { y as a, b as i, x as n, C as o, S as r, g as s, r as t };
+export { b as a, x as i, S as n, w as o, C as r, _ as s, r as t };

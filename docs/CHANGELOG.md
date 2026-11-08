@@ -28,7 +28,7 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
-Two more URL forms that browsers normalise are read as host values (Delta IK, IK-I7 and IK-I8). Nothing to configure.
+Three more URL forms that browsers normalise are read as host values (Delta IK, IK-I7 and IK-I8; Delta IK2, IK2-L1). Nothing to configure.
 
 ### Security
 
@@ -41,6 +41,16 @@ Two more URL forms that browsers normalise are read as host values (Delta IK, IK
   matched again without that one slash, so `/files/<uuid>/original/` and `/files/<uuid>/original/.` (which Symfony's
   router redirects to the route without the slash) are host values. A pattern written with the slash still matches as
   written. Server (`HostSchemes::matchUrl()`) and editor (`matchHostUrl()`) apply the same rules.
+- **Tabs and newlines inside a URL (IK2-L1, since 1.13).** `HostSchemes::candidate()` and the editor's `urlCandidate()`
+  clean the URL as a browser reads it (`DialectRenderer::cleanUrl()` rules: leading and trailing C0 controls and spaces
+  trimmed, every tab, LF and CR inside removed) before matching. `::file{href="/fi<TAB>les/<uuid>/original"}` and
+  `https://bea<TAB>con.example/…` were classified as foreign but rendered as the own file link; they now go through the
+  resolver and are hidden when refused, like the plain form.
+
+### Documentation
+
+- `SECURITY.md`: non-ASCII host forms that browsers map to an own host (zero-width space, full-width dot, U+3002) are
+  not treated as own (IK2-I1); the 1.14.1 audit row cites Delta IK2 (Pass-Low).
 
 ## [1.14.0] - 2026-11-08
 

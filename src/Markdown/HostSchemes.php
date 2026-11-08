@@ -35,7 +35,6 @@ use function strpbrk;
 use function strrpos;
 use function strtolower;
 use function substr;
-use function trim;
 
 /**
  * Host URL schemes (1.9, ME-5): references such as `host-file:<id>` that a host stores instead of URLs
@@ -279,10 +278,14 @@ final readonly class HostSchemes
      * userinfo (`user@`) left out: such a URL is read as the host's path, so it goes through the resolver and is hidden
      * unless visible. A path (written as one, or an own host's) has its repeated slashes collapsed and its dot segments
      * (`.`, `..`, also percent-encoded) removed after the decoding (RFC 3986 §5.2.4).
+     *
+     * 1.14.1 (audit IK2-L1): the URL is first cleaned as a browser reads it ({@see DialectRenderer::cleanUrl()}: leading
+     * and trailing C0 controls and spaces trimmed, every tab and newline inside removed), the same cleaning the rendered
+     * link gets, so `/fi<TAB>les/…` is classified as `/files/…`.
      */
     public function candidate(string $url): string
     {
-        $url  = trim($url, " \t\n\r\f\v");
+        $url  = DialectRenderer::cleanUrl($url);
         $cut  = strcspn($url, '?#');
         $url  = substr($url, 0, $cut);
         $path = str_starts_with($url, '/') && !str_starts_with($url, '//');

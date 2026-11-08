@@ -163,6 +163,22 @@ describe('host URL patterns (1.13)', () => {
     expect(matchHostUrl('/dir/abc/', slash)).toEqual({ reference: 'app-file:abc', url: 'written' });
   });
 
+  it('removes tabs and newlines inside the URL before matching, as safeUrl() does (audit IK2-L1)', () => {
+    const s = withUrlPatterns(schemes, [{ pattern: FILES, scheme: 'app-file' }], ['beacon.example']);
+    const ref = { reference: `app-file:${UUID}`, url: 'written' };
+    const file = `/files/${UUID}/original`;
+    for (const url of [`/fi\tles/${UUID}/original`, `/files/${UUID}/orig\ninal`, `https://bea\tcon.example${file}`, `\x01${file}\r\n`, `//beacon.exa\rmple${file}`]) {
+      expect(matchHostUrl(url, s), JSON.stringify(url)).toEqual(ref);
+    }
+    expect(urlCandidate(` \t/fi\tles/${UUID.toUpperCase()}/original\x7f`)).toBe(file);
+    // A file card with the tab form is classified like the plain one: a resolved pattern gives the resolver's URL.
+    const resolved = withUrlPatterns(schemes, [{ pattern: FILES, scheme: 'app-file', url: 'resolved' }], ['beacon.example']);
+    for (const href of [`/fi\tles/${UUID}/original`, `https://bea\tcon.example${file}`]) {
+      const card = fileCard('a.pdf', { href }, { hostSchemes: resolved, previewSandbox: '' });
+      expect(card.querySelector('a')?.getAttribute('href'), JSON.stringify(href)).toBe(`/f/${UUID}`);
+    }
+  });
+
   it('reads forms a browser normalises as the own URL (audit IJ-I10)', () => {
     const s = withUrlPatterns(schemes, [{ pattern: FILES, scheme: 'app-file' }], ['beacon.example', 'alt.example:443', 'port.example:8080']);
     const ref = { reference: `app-file:${UUID}`, url: 'written' };
