@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format foll
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.14.0] - 2026-11-08](#1140---2026-11-08)
 - [[1.13.0] - 2026-11-08](#1130---2026-11-08)
 - [[1.12.0] - 2026-11-07](#1120---2026-11-07)
 - [[1.11.0] - 2026-11-07](#1110---2026-11-07)
@@ -26,6 +27,10 @@ All notable changes to this project are documented in this file. The format foll
 - [[1.0.0] - 2026-10-31](#100---2026-10-31)
 
 ## [Unreleased]
+
+## [1.14.0] - 2026-11-08
+
+`host_url_hosts` takes env placeholders, and own-host URLs are normalised further: default port, trailing dot, userinfo and dot segments (Beacon ME ask; audit IJ-I10). Audit: Appendix IK and Delta IK, Pass.
 
 `markdown.host_url_hosts` accepts env placeholders. Requested by Beacon on 2026-11-08, so the host names come from
 `DEFAULT_URI` instead of being repeated per environment.

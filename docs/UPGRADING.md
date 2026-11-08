@@ -4,6 +4,7 @@
 
 - [General procedure](#general-procedure)
 - [Unreleased](#unreleased)
+- [To 1.14.0](#to-1140)
 - [To 1.13.0](#to-1130)
 - [To 1.12.0](#to-1120)
 - [To 1.11.0](#to-1110)
@@ -36,6 +37,8 @@ names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialec
 interfaces and `window.NowoMilkdownEditor`.
 
 ## Unreleased
+
+## To 1.14.0
 
 From **1.13.0**: nothing to change. `markdown.host_url_hosts` may now take env placeholders, so the application's host
 can follow `DEFAULT_URI`:
