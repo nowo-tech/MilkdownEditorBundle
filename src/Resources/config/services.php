@@ -18,6 +18,7 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\IconResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\NullPageResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\NullUserResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\PageResolverInterface;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\RenderContextProviderInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TablerCatalog;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateFilePreviewResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateHostFileResolver;
@@ -60,7 +61,7 @@ return static function (ContainerConfigurator $container): void {
 
     // 1.9: host references (`markdown.host_schemes`) and file previews; point the interfaces at the host's resolvers
     // to check the viewer and give per-viewer URLs.
-    $services->set(HostSchemes::class)->args([[], []]);
+    $services->set(HostSchemes::class)->args([[], [], [], [], service('request_stack')->nullOnInvalid()]);
     $services->set(TemplateHostFileResolver::class)->args([service(HostSchemes::class)]);
     $services->alias(HostFileResolverInterface::class, TemplateHostFileResolver::class);
     $services->set(TemplateFilePreviewResolver::class)->args([service(HostSchemes::class)]);
@@ -79,6 +80,8 @@ return static function (ContainerConfigurator $container): void {
             '$hostSchemes'        => service(HostSchemes::class),
             '$sources'            => service(HostFileResolverInterface::class),
             '$previews'           => service(FilePreviewResolverInterface::class),
+            // 1.13: alias RenderContextProviderInterface to a host service to give contextual resolvers the render's context.
+            '$renderContext' => service(RenderContextProviderInterface::class)->nullOnInvalid(),
         ])
         ->tag('monolog.logger', ['channel' => 'nowo_milkdown_editor'])
         // 1.2.1: per-request footnote render counters (FootnoteSalt) are cleared between requests (worker mode).

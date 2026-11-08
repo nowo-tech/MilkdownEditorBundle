@@ -12,6 +12,9 @@ namespace Nowo\MilkdownEditorBundle\Markdown\Resolver;
  * templates and lets the host's file endpoint decide; implement this interface to check permissions here and to give
  * per-viewer (e.g. pre-signed) URLs and image sizes.
  *
+ * 1.13: plain URLs matching `markdown.host_url_patterns` reach the resolver as `scheme:id` too; implement
+ * {@see ContextualHostFileResolverInterface} to also get the render's context.
+ *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  */
 interface HostFileResolverInterface

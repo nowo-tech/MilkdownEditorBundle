@@ -8,6 +8,7 @@
 - [Page titles per viewer](#page-titles-per-viewer)
 - [Uploads](#uploads)
 - [Host references](#host-references)
+  - [Plain URLs and the render context (1.13)](#plain-urls-and-the-render-context-113)
 - [Images](#images)
 - [File views and previews](#file-views-and-previews)
   - [Previews](#previews)
@@ -209,6 +210,38 @@ without a target. Hosts mounting editors from JavaScript pass `hostSchemes` to `
 it only from the page's data block, never from a widget's `data-*` JSON. The resolver must be safe for worker mode like every other (no per-request state in properties
 without `ResetInterface`). In the editor, the browser requests the templates: an image that fails to load shows *Image
 not available*.
+
+### Plain URLs and the render context (1.13)
+
+Content written before a scheme existed can stay as it is: `host_url_patterns`
+([configuration](CONFIGURATION.md#plain-urls-as-host-references-113)) makes `/files/<uuid>/original` the reference
+`app-file:<uuid>`, so it is resolved in the same batch, and a file the resolver leaves out renders *Content not visible*
+without its URL, alt text or name (links included). With `url: written` the URL of a visible file is kept exactly as written.
+
+A resolver that must know what is being rendered (a wiki space, the reach of an API token) implements the sub-interface
+and gets the host's context object:
+
+```php
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\ContextualHostFileResolverInterface;
+
+final class AppFileResolver implements ContextualHostFileResolverInterface
+{
+    public function resolveFiles(array $references): array
+    {
+        return $this->resolveFilesInContext($references, null);
+    }
+
+    public function resolveFilesInContext(array $references, ?object $context): array
+    {
+        // e.g. drop files whose space the context does not reach
+    }
+}
+```
+
+```yaml
+# config/services.yaml: the render's context (reset between requests in worker mode)
+Nowo\MilkdownEditorBundle\Markdown\Resolver\RenderContextProviderInterface: '@App\Markdown\RenderContext'
+```
 
 ## Images
 
