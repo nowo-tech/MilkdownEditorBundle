@@ -168,6 +168,11 @@ final class ConfigurationTest extends TestCase
         yield 'not ascii' => ['^/é(?<id>a)$'];
         yield 'too long' => ['^/' . str_repeat('a', 300) . '(?<id>a)$'];
         yield 'invalid' => ['^/(?<id>[a)$'];
+        yield 'top-level alternation' => ['^/a$|^(?<id>.*)$'];
+        yield 'verb' => ['^/files/(?<id>\w+)(*ACCEPT)/x$'];
+        yield 'posix class' => ['^/files/(?<id>[[:alnum:]]+)$'];
+        yield 'class starting with ]' => ['^/files/(?<id>[]a]+)$'];
+        yield 'negated class starting with ]' => ['^/files/(?<id>[^]a]+)$'];
     }
 
     #[Test]
@@ -177,6 +182,21 @@ final class ConfigurationTest extends TestCase
         $this->expectException(InvalidConfigurationException::class);
         $this->expectExceptionMessage('Invalid host_url_patterns pattern');
         $this->process(['markdown' => ['host_schemes' => ['app-file' => ['file' => '/f/{id}']], 'host_url_patterns' => [['pattern' => $pattern, 'scheme' => 'app-file']]]]);
+    }
+
+    #[Test]
+    public function alternationInsideAGroupAndHostsAreAccepted(): void
+    {
+        $markdown = $this->process(['markdown' => [
+            'host_schemes'      => ['app-file' => ['file' => '/f/{id}']],
+            'host_url_patterns' => [['pattern' => '^/files/(?<id>[^|/]{36})/(?:original|preview|[|])$', 'scheme' => 'app-file']],
+            'host_url_hosts'    => ['Beacon.Example', 'beacon.example:8443'],
+        ]])['markdown'];
+        self::assertSame(['beacon.example', 'beacon.example:8443'], $markdown['host_url_hosts'] ?? null);
+        self::assertSame([], $this->process([])['markdown']['host_url_hosts'] ?? null);
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->process(['markdown' => ['host_url_hosts' => ['https://beacon.example/x']]]);
     }
 
     #[Test]

@@ -171,7 +171,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   if (!textarea) throw new Error('nowo-milkdown: the widget has no textarea');
   const options: EditorOptions = { ...parseOptions(root.dataset.nowoMilkdownOptions), ...pageHostConfig(root.ownerDocument), ...overrides };
   // 1.13: plain URLs of `host_url_patterns` are host references of these schemes.
-  options.hostSchemes = withUrlPatterns(options.hostSchemes, options.hostUrlPatterns);
+  options.hostSchemes = withUrlPatterns(options.hostSchemes, options.hostUrlPatterns, options.hostUrlHosts);
   const pages = createPageResolver(options.linkTitleUrl);
   const users = createUserResolver(options.mentionDisplay === 'name' ? options.userTitleUrl : null);
   const runtime: Runtime = {

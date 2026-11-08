@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { hostUrl, isHostUrlPattern, matchHostUrl, targetUrl, withUrlPatterns } from '../src/host';
+import { hostUrl, isHostUrlPattern, literalPrefix, matchHostUrl, targetUrl, urlCandidate, withUrlPatterns } from '../src/host';
 import { fileCard } from '../src/dialect/file-card';
 import { imageSource } from '../src/nodes/image';
 import { pageHostConfig } from '../src/options';
@@ -31,6 +31,11 @@ describe('host URL patterns (1.13)', () => {
       '^/é(?<id>a)$', // not ASCII
       `^/${'a'.repeat(300)}(?<id>a)$`, // too long
       '^/(?<id>[a)$', // not a regular expression
+      '^/a$|^(?<id>.*)$', // top-level alternation (audit IJ-I1)
+      '^/f/(?<id>\\w+)(*ACCEPT)/x$', // verb
+      '^/f/(?<id>[[:alnum:]]+)$', // POSIX class
+      '^/f/(?<id>[]a]+)$', // `[]` is an empty class in RegExp
+      '^/f/(?<id>[^]a]+)$',
     ]) {
       expect(isHostUrlPattern(bad), String(bad)).toBe(false);
     }
@@ -50,7 +55,7 @@ describe('host URL patterns (1.13)', () => {
     expect(matchHostUrl(` /files/${UUID}/original `, s)).toEqual({ reference: `app-file:${UUID}`, url: 'resolved' });
     expect(matchHostUrl('/files/.hidden/original', s)).toEqual({ reference: null, url: 'resolved' });
     expect(matchHostUrl(`/x/files/${UUID}/original`, s)).toBeNull();
-    expect(matchHostUrl(`/files/${'a'.repeat(2048)}/original`, s)).toBeNull();
+    expect(matchHostUrl(`/files/${'a'.repeat(2048)}/original`, s)).toEqual({ reference: null, url: 'resolved' });
     expect(matchHostUrl('', s)).toBeNull();
     expect(matchHostUrl(42, s)).toBeNull();
     expect(matchHostUrl(`/files/${UUID}/original`, schemes)).toBeNull();
@@ -87,6 +92,40 @@ describe('host URL patterns (1.13)', () => {
     expect(card.querySelector('.nowo-milkdown-file__open')?.getAttribute('href')).toBe(`/f/${UUID}`);
   });
 
+  it('alternation inside a group is fine', () => {
+    expect(isHostUrlPattern('^/f/(?<id>[^|/]+)/(?:a|b|[|])$')).toBe(true);
+  });
+
+  it('fails closed on long URLs that start like a pattern (audit IJ-L1)', () => {
+    const s = withUrlPatterns(schemes, [{ pattern: FILES, scheme: 'app-file' }]);
+    expect(matchHostUrl(`/files/${UUID}/${'x'.repeat(2100)}`, s)).toEqual({ reference: null, url: 'written' });
+    expect(matchHostUrl(`/elsewhere/${'x'.repeat(2100)}`, s)).toBeNull();
+    expect(literalPrefix(FILES)).toBe('/files/');
+    expect(literalPrefix('^https://cdn\\.example/f(?<id>\\w+)$')).toBe('https://cdn.example/f');
+    expect(literalPrefix('^/files?/(?<id>\\w+)$')).toBe('/file');
+    expect(literalPrefix('^/a+b(?<id>\\w+)$')).toBe('/a');
+  });
+
+  it('normalises query, fragment, encoding, case and own absolute URLs (audit IJ-I3)', () => {
+    const s = withUrlPatterns(schemes, [{ pattern: FILES, scheme: 'app-file' }], ['Beacon.Example', 3]);
+    const ref = { reference: `app-file:${UUID}`, url: 'written' };
+    for (const url of [
+      `/files/${UUID}/original?download=1`,
+      `/files/${UUID}/original#p`,
+      `/files/%30${UUID.slice(1)}/original`,
+      `/files/${UUID.toUpperCase()}/preview`,
+      `https://beacon.example/files/${UUID}/original`,
+      `//beacon.example/files/${UUID}/original`,
+      `${location.protocol}//${location.host}/files/${UUID}/original`,
+    ]) {
+      expect(matchHostUrl(url, s), url).toEqual(ref);
+    }
+    expect(matchHostUrl(`https://evil.example/files/${UUID}/original`, s)).toBeNull();
+    expect(matchHostUrl(`https://u@beacon.example/files/${UUID}/original`, s)).toBeNull();
+    expect(urlCandidate('https://beacon.example', ['beacon.example'])).toBe('/');
+    expect(urlCandidate('/files/%E0%A4%A/x')).toBe('/files/%E0%A4%A/x');
+  });
+
   describe('editor', () => {
     let handle: MilkdownEditorHandle | null = null;
     afterEach(async () => {
@@ -102,8 +141,11 @@ describe('host URL patterns (1.13)', () => {
       el.textContent = JSON.stringify({ hostSchemes: schemes, hostUrlPatterns: [{ pattern: FILES, scheme: 'app-file' }] });
       document.head.append(el);
       expect(pageHostConfig().hostUrlPatterns).toEqual([{ pattern: FILES, scheme: 'app-file' }]);
-      el.textContent = JSON.stringify({ hostSchemes: schemes, hostUrlPatterns: 'x' });
+      el.textContent = JSON.stringify({ hostSchemes: schemes, hostUrlPatterns: [{ pattern: FILES, scheme: 'app-file' }], hostUrlHosts: ['beacon.example'] });
+      expect(pageHostConfig().hostUrlHosts).toEqual(['beacon.example']);
+      el.textContent = JSON.stringify({ hostSchemes: schemes, hostUrlPatterns: 'x', hostUrlHosts: 'x' });
       expect(pageHostConfig().hostUrlPatterns).toEqual([]);
+      expect(pageHostConfig().hostUrlHosts).toEqual([]);
     });
 
     it('a resolved pattern image shows the template URL and keeps the written Markdown', async () => {

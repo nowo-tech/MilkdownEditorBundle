@@ -122,6 +122,7 @@ final class ExtensionTest extends TestCase
         self::assertSame(['app-file' => ['file' => '/f/{id}', 'image' => null, 'preview' => null]], $schemes->getArgument('$schemes'));
         self::assertSame(['https://cdn.example'], $schemes->getArgument('$imageOrigins'));
         self::assertSame([], $schemes->getArgument('$urlPatterns'));
+        self::assertSame([], $schemes->getArgument('$urlHosts'));
         self::assertSame('allow-downloads allow-popups', $container->getDefinition(MilkdownEditorTwig::class)->getArgument('$previewSandbox'));
         self::assertSame(500, $container->getDefinition(MilkdownEditorTwig::class)->getArgument('$maxPreviews'));
         self::assertSame(TemplateHostFileResolver::class, (string) $container->getAlias(HostFileResolverInterface::class));

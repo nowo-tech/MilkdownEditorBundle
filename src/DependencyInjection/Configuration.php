@@ -18,6 +18,7 @@ use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 
 use function array_filter;
 use function array_key_exists;
+use function array_map;
 use function implode;
 use function in_array;
 use function is_array;
@@ -237,6 +238,16 @@ final class Configuration implements ConfigurationInterface
                         })
                     ->end()
                 ->end()
+                ->arrayNode('host_url_hosts')
+                    ->info('1.13 (audit IJ-I3): hosts (host or host:port) whose absolute and protocol-relative URLs are matched by host_url_patterns as their path, e.g. [beacon.example.com]. The current request\'s host always counts.')
+                    ->scalarPrototype()->end()
+                    ->defaultValue([])
+                    ->beforeNormalization()->ifArray()->then(static fn (array $v): array => array_map(static fn (mixed $h): mixed => is_string($h) ? strtolower($h) : $h, $v))->end()
+                    ->validate()
+                        ->ifTrue(static fn (array $v): bool => array_filter($v, static fn (mixed $h): bool => !is_string($h) || preg_match('~^[a-z0-9]([a-z0-9.-]{0,252})(?::\d{1,5})?$~', $h) !== 1) !== [])
+                        ->thenInvalid('host_url_hosts accepts host names with an optional port, without scheme or path (%s).')
+                    ->end()
+                ->end()
                 ->enumNode('host_refused_links')
                     ->info('1.13: a link with a host scheme (app-file:<id>) the resolver refuses keeps its text without a target (text, default, as 1.9) or becomes *Content not visible* (hidden). Links matched by host_url_patterns are always hidden.')
                     ->values(['text', 'hidden'])
@@ -347,11 +358,44 @@ final class Configuration implements ConfigurationInterface
         if (preg_match('/\(\?(?!:|<id>)/', $bare) === 1) {
             return 'only (?: and (?<id> groups are accepted (no lookaround, flags or other named groups)';
         }
+        // Audit IJ-I1: no verbs, no POSIX classes, one top-level branch (so ^…$ anchors the whole pattern).
+        if (str_contains($bare, '(*') || str_contains($bare, '[:') || str_contains($bare, '[]') || str_contains($bare, '[^]')) {
+            return 'PCRE verbs (*…), POSIX classes [:…:] and classes starting with ] (read differently by RegExp) are not accepted';
+        }
+        if (self::hasTopLevelAlternation($bare)) {
+            return 'alternation (|) must be inside a group';
+        }
         if (@preg_match('#' . $pattern . '#D', '') === false) {
             return 'it is not a valid regular expression';
         }
 
         return null;
+    }
+
+    /**
+     * 1.13 (audit IJ-I1): whether a pattern without its escapes has a `|` outside every group and character class.
+     */
+    private static function hasTopLevelAlternation(string $bare): bool
+    {
+        $depth = 0;
+        $class = false;
+        $len   = strlen($bare);
+        for ($i = 0; $i < $len; ++$i) {
+            $char = $bare[$i];
+            if ($class) {
+                $class = $char !== ']';
+            } elseif ($char === '[') {
+                $class = true;
+            } elseif ($char === '(') {
+                ++$depth;
+            } elseif ($char === ')') {
+                --$depth;
+            } elseif ($char === '|' && $depth === 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

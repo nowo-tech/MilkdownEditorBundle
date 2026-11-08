@@ -10,11 +10,11 @@ import { t as Ct } from "./chunks/purify.es-CZ6K1J3y.js";
 import { t as wt } from "./chunks/mermaid-DJO1IgvH.js";
 import { a as W, c as Tt, d as Et, f as Dt, i as Ot, l as kt, n as At, r as jt, s as Mt, t as Nt, u as Pt } from "./chunks/runtime-DBQRQGPT.js";
 import { n as Ft, t as It } from "./chunks/link-titles-Cs1oogn7.js";
-import { a as Lt, n as Rt, s as zt } from "./chunks/host-WGoTQ-_v.js";
+import { a as Lt, n as Rt, s as zt } from "./chunks/host-L1lfHHpX.js";
 import { a as Bt, c as Vt, d as Ht, f as Ut, i as Wt, m as Gt, n as Kt, o as qt, p as Jt, s as Yt, t as Xt, u as G } from "./chunks/directives-Cjq-r_Gz.js";
 import { a as Zt, i as Qt } from "./chunks/layer-N-kUiX52.js";
 import { i as $t, n as en, r as tn } from "./chunks/context-menu-registry-Dw2l9wcD.js";
-import { a as nn, c as rn, f as an, i as on, l as sn, n as cn, o as ln, p as un } from "./chunks/keyboard-Bna7QsMv.js";
+import { a as nn, c as rn, f as an, i as on, l as sn, n as cn, o as ln, p as un } from "./chunks/keyboard-DXH1K7BX.js";
 import { i as dn } from "./chunks/dist-BmAqUYId.js";
 import { n as fn, r as pn, t as mn } from "./chunks/search-BYXNAND9.js";
 import { n as hn, t as gn } from "./chunks/heading-slug-DVQeGYqO.js";
@@ -3520,6 +3520,7 @@ function Gs(e = document) {
 		return {
 			hostSchemes: Lt(e.hostSchemes),
 			hostUrlPatterns: Array.isArray(e.hostUrlPatterns) ? e.hostUrlPatterns : [],
+			hostUrlHosts: Array.isArray(e.hostUrlHosts) ? e.hostUrlHosts : [],
 			previewSandbox: Rs(e.previewSandbox),
 			maxPreviews: typeof t == "number" && Number.isInteger(t) && t > 0 ? t : 500
 		};
@@ -3527,6 +3528,7 @@ function Gs(e = document) {
 	return {
 		hostSchemes: {},
 		hostUrlPatterns: [],
+		hostUrlHosts: [],
 		previewSandbox: "",
 		maxPreviews: 500
 	};
@@ -5296,7 +5298,7 @@ async function ku(e, t = {}) {
 		...Gs(e.ownerDocument),
 		...t
 	};
-	r.hostSchemes = zt(r.hostSchemes, r.hostUrlPatterns);
+	r.hostSchemes = zt(r.hostSchemes, r.hostUrlPatterns, r.hostUrlHosts);
 	let i = It(r.linkTitleUrl), a = As(r.mentionDisplay === "name" ? r.userTitleUrl : null), o = {
 		...Nt(),
 		messages: r.messages,
@@ -5338,7 +5340,7 @@ async function ku(e, t = {}) {
 	let g = new $n({
 		root: c,
 		defaultValue: f
-	}), _ = g.editor, v = r.collaboration ? await import("./chunks/collab-Cpbs3MxO.js") : null, y = r.features.includes("context_menu") ? await import("./chunks/context-menu-DTa-etxE.js") : null, b = r.features.includes("block_actions") ? await import("./chunks/block-actions-KwX72_dL.js") : null, x = r.features.includes("colors") ? await import("./chunks/colors-CxE4grbu.js") : null, S = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-Cu035FzW.js") : null, C = r.comments ? await import("./chunks/comments-Dmn8Mh65.js") : null, w = null, T = null, E = r.comments ? {
+	}), _ = g.editor, v = r.collaboration ? await import("./chunks/collab-Cpbs3MxO.js") : null, y = r.features.includes("context_menu") ? await import("./chunks/context-menu-vQOvqb8l.js") : null, b = r.features.includes("block_actions") ? await import("./chunks/block-actions-DVg2pGvr.js") : null, x = r.features.includes("colors") ? await import("./chunks/colors-CxE4grbu.js") : null, S = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-BYweEQKH.js") : null, C = r.comments ? await import("./chunks/comments-Dmn8Mh65.js") : null, w = null, T = null, E = r.comments ? {
 		root: e,
 		announce: (e, t) => u(e, t),
 		yjs: () => w,

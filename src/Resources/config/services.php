@@ -61,7 +61,7 @@ return static function (ContainerConfigurator $container): void {
 
     // 1.9: host references (`markdown.host_schemes`) and file previews; point the interfaces at the host's resolvers
     // to check the viewer and give per-viewer URLs.
-    $services->set(HostSchemes::class)->args([[], [], []]);
+    $services->set(HostSchemes::class)->args([[], [], [], [], service('request_stack')->nullOnInvalid()]);
     $services->set(TemplateHostFileResolver::class)->args([service(HostSchemes::class)]);
     $services->alias(HostFileResolverInterface::class, TemplateHostFileResolver::class);
     $services->set(TemplateFilePreviewResolver::class)->args([service(HostSchemes::class)]);

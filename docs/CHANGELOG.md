@@ -38,10 +38,14 @@ for hosts that leave the new keys empty. **Audit: re-verification pending.**
   link `href` or file card `href` goes through the same `HostFileResolverInterface` batch as `app-file:<id>`. With
   `url: written` (default) a file the viewer may see keeps the author's URL and the output is unchanged; with
   `url: resolved` the resolver's URL (and a card's real name, type and preview) replaces it, as for scheme values. Patterns
-  are checked at container build: anchored `^…$`, exactly one `(?<id>…)`, no other `(?` group, a fixed set of escapes,
-  printable ASCII without `#`, at most 300 characters, the scheme declared in `host_schemes`. URLs over 2,048 characters are
-  never matched. The editor reads the same patterns from the page's configuration block (`hostUrlPatterns`, only when set),
+  are checked at container build: anchored `^…$` with no top-level `|`, exactly one `(?<id>…)`, no other `(?` group, no
+  `(*` verb, no POSIX `[:…:]` class, no class starting with `]`, a fixed set of escapes, printable ASCII without `#`, at most
+  300 characters, the scheme declared in `host_schemes`. The editor reads the same patterns from the page's configuration block (`hostUrlPatterns`, only when set),
   never from a widget's JSON; `resolved` patterns show the scheme's templates there.
+- **Normalisation before matching** (audit IJ-I3): the query and fragment are dropped, the path is percent-decoded once,
+  uuids are lower-cased, and `https://<host>/…` / `//<host>/…` read as their path when the host is the current request's
+  or one of the new **`markdown.host_url_hosts`** (`[beacon.example.com]`). Each distinct URL is classified once per
+  document (IJ-I2).
 - **`ContextualHostFileResolverInterface`** (extends `HostFileResolverInterface`):
   `resolveFilesInContext(list<string> $references, ?object $context)`. The renderer calls it with the value of the
   **`RenderContextProviderInterface`** (`renderContext(): ?object`) service, when the host aliases one, or one passed to
@@ -55,6 +59,9 @@ for hosts that leave the new keys empty. **Audit: re-verification pending.**
 - A refused reference matched by a URL pattern (image, link, file card, also nested) renders *Content not visible*: no
   URL, no id, no alt text, no link text, no name. A matched URL whose id is not a valid id is refused without asking the
   resolver.
+- A matching URL that cannot be checked is refused, never left as a plain link (audit IJ-L1): a pattern that fails to run
+  (PCRE backtrack or JIT limit) and a URL over 2,048 characters that starts with a pattern's literal prefix both render
+  *Content not visible*.
 
 ## [1.12.0] - 2026-11-07
 

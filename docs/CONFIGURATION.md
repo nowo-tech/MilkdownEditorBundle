@@ -54,6 +54,7 @@ nowo_milkdown_editor:
         host_schemes: {}                # 1.9: scheme => {image, file, preview} URL templates with {id} (see below)
         host_image_origins: []          # 1.9: origins host images may load from while allow_remote_images is off
         host_url_patterns: []           # 1.13: plain URLs that are host references: [{pattern, scheme, url: written|resolved}]
+        host_url_hosts: []              # 1.13: hosts whose absolute URLs the patterns read as their path (the request's host always counts)
         host_refused_links: text        # 1.13: text | hidden — a refused scheme: link keeps its text or reads *Content not visible*
         image_block: false              # 1.9: images take {width=… align=…}; a standalone image renders as a figure
         file_preview_sandbox: []        # 1.9: tokens added to the sandbox attribute of preview frames
@@ -154,16 +155,24 @@ See [USAGE](USAGE.md#host-references).
 nowo_milkdown_editor:
     markdown:
         host_url_patterns:
-            - { pattern: '^/files/(?<id>[0-9a-f-]{36})/(?:original|preview)$', scheme: app-file }
+            - { pattern: '^/files/(?<id>[0-9a-f-]{36})/(?:original|preview|thumb|s128|s64)$', scheme: app-file }
             - { pattern: '^https://cdn\.example\.com/(?<id>[A-Za-z0-9_-]+)$', scheme: app-file, url: resolved }
+        host_url_hosts: [app.example.com]   # https://app.example.com/files/… and //app.example.com/files/… match the first pattern
         host_refused_links: hidden
 ```
 
-A URL (trimmed, at most 2,048 characters) that matches the first pattern that fits is the reference `scheme:<id>` and goes
-through the host resolver with the scheme's other references. `url: written` (default) keeps the author's URL when the
+Before matching, a URL is normalised: trimmed, its query and fragment dropped, its path percent-decoded once and its uuids
+lower-cased; an absolute or protocol-relative URL of `host_url_hosts` or of the current request's host is read as its path
+(other origins keep theirs, so a pattern can still name a CDN). The first pattern that matches makes it the reference
+`scheme:<id>`, resolved with the scheme's other references. **A pattern must cover every URL form your file route serves**
+(all variants such as `thumb` or `s128`, every path prefix): anything it does not match stays an ordinary link. A URL
+that matches but cannot be checked is refused: a pattern that fails to run (PCRE limits), and a normalised URL over 2,048
+characters that starts with a pattern's literal prefix. Avoid nested quantifiers (`(?:a+)+`): they only make matches fail
+closed, but cost CPU. `url: written` (default) keeps the author's URL when the
 viewer may see the file; `url: resolved` uses the resolver's URL. A refused one renders *Content not visible* without URL,
 alt text or name. A pattern is read by PCRE and by the browser, so only a common subset is accepted: anchored `^…$`,
-exactly one `(?<id>…)`, no other `(?` group (no lookaround, flags or other named groups), escapes only `\d \D \w \W \s \S`
+no top-level `|` (put alternatives in a group), exactly one `(?<id>…)`, no other `(?` group (no lookaround, flags or other
+named groups), no `(*` verbs, no POSIX `[:…:]` classes, no class starting with `]`, escapes only `\d \D \w \W \s \S`
 and punctuation, printable ASCII without `#`, at most 300 characters; its scheme must be in `host_schemes`. Anything else
 fails at container build. The patterns are in the page (`hostUrlPatterns`) like the templates.
 

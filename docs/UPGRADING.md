@@ -48,8 +48,12 @@ the new keys:
           host_schemes:
               app-file: { file: /files/{id}/original, image: /files/{id}/preview }
           host_url_patterns:
-              - { pattern: '^/files/(?<id>[0-9a-f-]{36})/(?:original|preview)$', scheme: app-file }   # url: written
+              - { pattern: '^/files/(?<id>[0-9a-f-]{36})/(?:original|preview|thumb|s128|s64)$', scheme: app-file }   # url: written
+          host_url_hosts: [app.example.com]   # absolute https://app.example.com/files/… URLs too
+          host_refused_links: hidden
   ```
+
+  Cover every variant your file route serves; a URL no pattern matches stays an ordinary link.
 
   With the default resolver (the templates) every match resolves, so the output does not change; give the scheme at least a
   `file` or `image` template, or every match is refused. With your own resolver, a file it leaves out renders

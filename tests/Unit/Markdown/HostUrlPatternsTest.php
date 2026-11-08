@@ -21,6 +21,8 @@ use stdClass;
 use Symfony\Component\Asset\Package;
 use Symfony\Component\Asset\Packages;
 use Symfony\Component\Asset\VersionStrategy\EmptyVersionStrategy;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 use function str_repeat;
 
@@ -122,7 +124,9 @@ final class HostUrlPatternsTest extends TestCase
         self::assertSame([], $files->calls);
         self::assertStringNotContainsString('secret', $html);
         self::assertStringNotContainsString('.env', $html);
-        self::assertStringContainsString('<a href="/files/aaa', $html);
+        // Audit IJ-L1: a matching URL over the length bound is refused too.
+        self::assertStringNotContainsString('aaaa', $html);
+        self::assertSame(2, substr_count($html, 'Content not visible'));
     }
 
     #[Test]
@@ -181,6 +185,61 @@ final class HostUrlPatternsTest extends TestCase
         self::assertTrue($schemes->keepsWrittenUrl('/other/abc'));
     }
 
+    /** Audit IJ-L1: a pattern that fails to run, or a long URL that starts like a pattern, is refused, never a plain link. */
+    #[Test]
+    public function errorsAndLengthFailClosed(): void
+    {
+        $redos = [['pattern' => '^/files/(?<id>[0-9a-f-]{36})/(?:a+)+$', 'scheme' => 'app-file']];
+        $files = new RecordingHostFileResolver(['app-file:' . self::UUID => new ResolvedFile('/f')]);
+        $html  = $this->render('[secret](/files/' . self::UUID . '/' . str_repeat('a', 1000) . 'b)', $redos, $files);
+        self::assertStringNotContainsString(self::UUID, $html);
+        self::assertStringNotContainsString('secret', $html);
+        self::assertStringContainsString('Content not visible', $html);
+
+        $long = '/files/' . self::UUID . '/' . str_repeat('x', 2100);
+        $html = $this->render('[secret](' . $long . ') [other](/elsewhere/' . str_repeat('y', 2100) . ')', $this->written(), $files);
+        self::assertStringNotContainsString('secret', $html);
+        self::assertStringContainsString('<a href="/elsewhere/yyy', $html);
+        self::assertSame([], $files->calls);
+    }
+
+    /** Audit IJ-I3: query, fragment, percent-encoding, upper case and this application's absolute URLs are normalised. */
+    #[Test]
+    public function urlsAreNormalisedBeforeMatching(): void
+    {
+        $requests = new RequestStack([Request::create('https://wiki.example:8443/x')]);
+        $schemes  = new HostSchemes(self::SCHEMES, [], $this->written(), ['beacon.example'], $requests);
+        $upper    = strtoupper(self::UUID);
+        foreach ([
+            '/files/' . self::UUID . '/original?download=1',
+            '/files/' . self::UUID . '/original#page=2',
+            '/files/%30' . substr(self::UUID, 1) . '/original',
+            '/files/' . $upper . '/preview',
+            'https://beacon.example/files/' . self::UUID . '/original',
+            'HTTP://BEACON.EXAMPLE/files/' . self::UUID . '/original',
+            '//beacon.example/files/' . self::UUID . '/original',
+            'https://wiki.example:8443/files/' . self::UUID . '/original',
+        ] as $url) {
+            self::assertSame(['app-file:' . self::UUID, 'written'], $schemes->matchUrl($url), $url);
+        }
+        foreach (['https://evil.example/files/' . self::UUID . '/original', 'https://user@beacon.example/files/' . self::UUID . '/original', 'https://beacon.example', '?x', ''] as $url) {
+            self::assertNull($schemes->matchUrl($url), $url);
+        }
+        self::assertSame('/', $schemes->candidate('https://beacon.example'));
+        self::assertSame(['beacon.example'], $schemes->urlHosts());
+        self::assertNull((new HostSchemes(self::SCHEMES, [], $this->written()))->matchUrl('https://beacon.example/files/' . self::UUID . '/original'));
+    }
+
+    #[Test]
+    public function literalPrefixes(): void
+    {
+        self::assertSame('/files/', HostSchemes::literalPrefix(self::FILES));
+        self::assertSame('https://cdn.example/f', HostSchemes::literalPrefix('^https://cdn\.example/f(?<id>\w+)$'));
+        self::assertSame('/file', HostSchemes::literalPrefix('^/files?/(?<id>\w+)$'));
+        self::assertSame('/a', HostSchemes::literalPrefix('^/a+b(?<id>\w+)$'));
+        self::assertSame('', HostSchemes::literalPrefix('^(?<id>\w+)$'));
+    }
+
     #[Test]
     public function theAssetsCarryThePatternsOnlyWhenConfigured(): void
     {
@@ -194,6 +253,9 @@ final class HostUrlPatternsTest extends TestCase
         $data = json_decode($m[1], true, 8, JSON_THROW_ON_ERROR);
         self::assertIsArray($data);
         self::assertSame([['pattern' => self::FILES, 'scheme' => 'app-file', 'url' => 'written']], $data['hostUrlPatterns'] ?? null);
+        self::assertArrayNotHasKey('hostUrlHosts', $data);
+        $assets = (new MilkdownEditorTwig($renderer, $packages, null, null, new HostSchemes(self::SCHEMES, [], $this->written(), ['beacon.example'])))->assets('');
+        self::assertStringContainsString('"hostUrlHosts":["beacon.example"]', $assets);
     }
 }
 

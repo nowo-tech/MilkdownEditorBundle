@@ -30,6 +30,7 @@ use Throwable;
 use function array_filter;
 use function array_flip;
 use function array_intersect_key;
+use function array_key_exists;
 use function array_keys;
 use function array_slice;
 use function array_values;
@@ -110,6 +111,8 @@ final readonly class DocumentProcessor
         $hosted = [];
         /** @var list<Paragraph> $paragraphs */
         $paragraphs = [];
+        /** @var array<string, HostValue|null> $values 1.13 (audit IJ-I2): each distinct URL is classified once per document */
+        $values = [];
         if ($this->imageBlock) {
             $this->readImageAttributes($event->getDocument());
         }
@@ -120,7 +123,7 @@ final readonly class DocumentProcessor
                 $mentions[$node->handle][] = $node;
             } elseif ($node instanceof LeafDirective) {
                 $leaves[] = $node;
-            } elseif (($node instanceof Image || $node instanceof Link) && $this->hostSchemes->isHostValue($node->getUrl())) {
+            } elseif (($node instanceof Image || $node instanceof Link) && $this->value($values, $node->getUrl()) instanceof HostValue) {
                 $hosted[] = $node;
             } elseif ($node instanceof Image && !$this->allowRemoteImages && self::isRemote($node->getUrl())) {
                 $images[] = $node;
@@ -164,7 +167,21 @@ final readonly class DocumentProcessor
             }
         }
         $cards = $fileCardsOwned ? [] : array_values(array_filter($leaves, static fn (LeafDirective $l): bool => $l->name === FileCard::NAME));
-        $this->resolveHosted($hosted, $cards);
+        $this->resolveHosted($hosted, $cards, $values);
+    }
+
+    /**
+     * 1.13: the host value of a URL, classified once per document.
+     *
+     * @param array<string, HostValue|null> $values
+     */
+    private function value(array &$values, string $url): ?HostValue
+    {
+        if (!array_key_exists($url, $values)) {
+            $values[$url] = $this->hostSchemes->classify($url);
+        }
+
+        return $values[$url];
     }
 
     /**
@@ -172,18 +189,19 @@ final readonly class DocumentProcessor
      *
      * @param list<Image|Link> $hosted
      * @param list<LeafDirective> $cards
+     * @param array<string, HostValue|null> $values
      */
-    private function resolveHosted(array $hosted, array $cards): void
+    private function resolveHosted(array $hosted, array $cards, array $values): void
     {
         $references = [];
         foreach ($hosted as $node) {
-            $reference = $this->hostSchemes->hostReference($node->getUrl());
+            $reference = $this->value($values, $node->getUrl())?->reference;
             if ($reference !== null) {
                 $references[$reference] = true;
             }
         }
         foreach ($cards as $card) {
-            $reference = $this->hostSchemes->hostReference($card->attributes['href'] ?? '');
+            $reference = $this->value($values, $card->attributes['href'] ?? '')?->reference;
             if ($reference !== null) {
                 $references[$reference] = true;
             }
@@ -195,15 +213,16 @@ final readonly class DocumentProcessor
 
         foreach ($hosted as $node) {
             $written   = $node->getUrl();
-            $reference = $this->hostSchemes->hostReference($written);
+            $value     = $this->value($values, $written);
+            $reference = $value?->reference;
             $source    = $reference !== null ? ($resolved[$reference] ?? null) : null;
-            $keep      = $this->hostSchemes->keepsWrittenUrl($written);
+            $keep      = $value->keepsWrittenUrl ?? false;
             $url       = $source instanceof ResolvedFile ? DialectRenderer::safeUrl($keep ? $written : ($node instanceof Image ? ($source->imageUrl ?? $source->url) : $source->url)) : '';
             if ($node instanceof Link) {
                 if ($url !== '') {
                     // 1.13 `url: written`: the link as the author wrote it.
                     $node->setUrl($keep ? $written : $url);
-                } elseif ($this->hideRefusedLinks || !$this->hostSchemes->isHostUrl($written)) {
+                } elseif ($this->hideRefusedLinks || $value?->scheme !== true) {
                     // 1.13: neither the target nor the text (often the file name) of a reference the viewer may not see.
                     $node->replaceWith(new HiddenReference());
                 } else {
@@ -240,11 +259,12 @@ final readonly class DocumentProcessor
         /** @var array<string, list<LeafDirective>> $byHref */
         $byHref = [];
         foreach ($cards as $card) {
-            $href = $card->attributes['href'] ?? '';
-            $url  = DialectRenderer::safeUrl($href);
-            $keep = $this->hostSchemes->keepsWrittenUrl($href);
-            if ($this->hostSchemes->isHostValue($href)) {
-                $reference = $this->hostSchemes->hostReference($href);
+            $href  = $card->attributes['href'] ?? '';
+            $url   = DialectRenderer::safeUrl($href);
+            $value = $this->value($values, $href);
+            $keep  = $value->keepsWrittenUrl ?? false;
+            if ($value instanceof HostValue) {
+                $reference = $value->reference;
                 $source    = $reference !== null ? ($resolved[$reference] ?? null) : null;
                 $url       = $source instanceof ResolvedFile ? DialectRenderer::safeUrl($keep ? $href : $source->url) : '';
                 if ($url === '' || !$source instanceof ResolvedFile) {
@@ -262,7 +282,7 @@ final readonly class DocumentProcessor
             $card->data->set('nowo_file_url', $url);
             if ($url !== '' && FileCard::view($card->attributes) === 'preview') {
                 $byHref[$href][] = $card;
-                $wanted[$href]   = new FileReference($href, $url, FileCard::name($this->text($card->data->get('nowo_file_name', null)) ?? $card->label), $this->text($card->data->get('nowo_file_type', null)) ?? $card->attributes['type'] ?? '', $keep ? null : $this->hostSchemes->hostReference($href));
+                $wanted[$href]   = new FileReference($href, $url, FileCard::name($this->text($card->data->get('nowo_file_name', null)) ?? $card->label), $this->text($card->data->get('nowo_file_type', null)) ?? $card->attributes['type'] ?? '', $keep ? null : $value?->reference);
             }
         }
         if ($wanted === [] || !$this->previews instanceof FilePreviewResolverInterface) {

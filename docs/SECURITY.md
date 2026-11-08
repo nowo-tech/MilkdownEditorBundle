@@ -216,8 +216,12 @@ configuration, and a host resolver's answer is semi-trusted.
 - **Plain URLs (1.13, `host_url_patterns`).** Configuration, never author input. A matching image, link or card is a
   reference of its scheme: the resolver decides, and a refused one keeps no URL, id, alt text, link text or name. Patterns
   are anchored, need one `(?<id>…)` group, are limited to a subset PCRE and RegExp read alike (no lookaround, inline flags,
-  back references or Unicode escapes) and to 300 characters; URLs over 2,048 characters are not matched, and PCRE's
-  backtrack limit applies. Only patterns of the page's configuration block reach the editor. Text that merely contains a
+  back references, Unicode escapes, verbs, POSIX classes or top-level alternation) and to 300 characters. URLs are
+  normalised first (query and fragment dropped, path percent-decoded once, uuids lower-cased, absolute URLs of
+  `host_url_hosts` or the request's host read as their path). A match that cannot be checked fails closed: a PCRE error, or
+  a URL over 2,048 characters starting with a pattern's literal prefix, is refused (audit IJ-L1). What remains: a URL form a
+  pattern does not describe (another variant, another host not listed, double encoding) stays an ordinary link, so patterns
+  must cover the file route. Only patterns of the page's configuration block reach the editor. Text that merely contains a
   file URL (not a link or image), or raw HTML escaped as text, is not a reference.
 - **Context (1.13).** A `ContextualHostFileResolverInterface` gets the host's render context, so a host can refuse files
   outside it (e.g. an API token's reach). The bundle never reads or stores the context.
@@ -321,7 +325,8 @@ host's token in `X-CSRF-Token`; the host validates it.
 
 | Date | Change | Grade |
 |------|--------|-------|
-| 2026-11-08 | 1.13 (unreleased): `host_url_patterns`, `ContextualHostFileResolverInterface`, `host_refused_links` (Beacon request after WikiBundle Appendix IF) | **Re-verification pending** |
+| 2026-11-08 | 1.13 (unreleased): `host_url_patterns`, `ContextualHostFileResolverInterface`, `host_refused_links` (Beacon request after WikiBundle Appendix IF) | Appendix IJ at `a2560e7`: **Pass-Low** (IJ-L1; IJ-I1 to IJ-I3) |
+| 2026-11-08 | IJ fixes: fail closed on PCRE errors and long URLs (IJ-L1), stricter patterns (IJ-I1), one classification per URL and document (IJ-I2), URL normalisation and `host_url_hosts` (IJ-I3) | **Re-verification pending** |
 
 **2026-10-30 — Pass (good)** after remediation (REQ-SEC-004). Method: independent read-only review of `src/` (PHP
 renderer, form type, Twig, CSP) and the TypeScript editor, focused on stored XSS, URL schemes, ReDoS, information

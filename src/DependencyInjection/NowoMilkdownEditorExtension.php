@@ -59,7 +59,7 @@ final class NowoMilkdownEditorExtension extends Extension implements PrependExte
      */
     public function load(array $configs, ContainerBuilder $container): void
     {
-        /** @var array{default_profile: string, profiles: array<string, array<string, mixed>>, markdown: array<string, mixed>&array{icon_sprite_url: ?string, icons: list<string>, icon_catalog: bool, max_input_length: int, mark_colors: list<string>, max_references: int, host_schemes: array<string, array{image?: ?string, file?: ?string, preview?: ?string}>, host_image_origins: list<string>, host_url_patterns: list<array{pattern: string, scheme: string, url: string}>, file_preview_sandbox: list<string>}} $config */
+        /** @var array{default_profile: string, profiles: array<string, array<string, mixed>>, markdown: array<string, mixed>&array{icon_sprite_url: ?string, icons: list<string>, icon_catalog: bool, max_input_length: int, mark_colors: list<string>, max_references: int, host_schemes: array<string, array{image?: ?string, file?: ?string, preview?: ?string}>, host_image_origins: list<string>, host_url_patterns: list<array{pattern: string, scheme: string, url: string}>, host_url_hosts: list<string>, file_preview_sandbox: list<string>}} $config */
         $config = $this->processConfiguration(new Configuration(), $configs);
 
         $container->setParameter(Configuration::ALIAS . '.default_profile', $config['default_profile']);
@@ -71,7 +71,8 @@ final class NowoMilkdownEditorExtension extends Extension implements PrependExte
         $container->getDefinition(HostSchemes::class)
             ->setArgument('$schemes', $config['markdown']['host_schemes'])
             ->setArgument('$imageOrigins', $config['markdown']['host_image_origins'])
-            ->setArgument('$urlPatterns', $config['markdown']['host_url_patterns']);
+            ->setArgument('$urlPatterns', $config['markdown']['host_url_patterns'])
+            ->setArgument('$urlHosts', $config['markdown']['host_url_hosts']);
         $container->getDefinition(AllowlistIconResolver::class)
             ->setArgument('$spriteUrl', $config['markdown']['icon_sprite_url'])
             ->setArgument('$icons', $config['markdown']['icons'])

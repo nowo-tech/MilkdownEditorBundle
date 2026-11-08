@@ -4,7 +4,7 @@ import { n as o, t as s } from "./dist-BmAqUYId.js";
 import { d as c, g as l } from "./lib-Cs-8MFWq.js";
 import { f as u } from "./dist-DPp-l4A4.js";
 import { a as d, i as f, n as p } from "./runtime-DBQRQGPT.js";
-import { i as m, n as h, o as g, r as _ } from "./host-WGoTQ-_v.js";
+import { i as m, n as h, o as g, r as _ } from "./host-L1lfHHpX.js";
 import { i as v, n as ee, r as y, t as b } from "./layer-N-kUiX52.js";
 // src/Resources/assets/src/dialect/file-card.ts
 var x = /* @__PURE__ */ new WeakMap(), S = null, C = "400px";
