@@ -97,22 +97,64 @@ export function literalPrefix(pattern: string): string {
  * The string patterns are matched against (`HostSchemes::candidate()`, audit IJ-I3): no query or fragment, the path
  * percent-decoded once, uuids in lower case, and an absolute or protocol-relative URL of one of `hosts` (or of the page's
  * own host) read as its path.
+ *
+ * 1.14 (audit IJ-I10): hosts are compared without userinfo, trailing dot or the scheme's default port
+ * ({@link normalizeAuthority}); a path has its repeated slashes collapsed and its dot segments removed after decoding.
  */
 export function urlCandidate(value: string, hosts: string[] = []): string {
   let url = value.trim();
   url = url.slice(0, url.search(/[?#]/) === -1 ? url.length : url.search(/[?#]/));
-  const m = /^(?:https?:)?\/\/([^/\\]*)(.*)$/is.exec(url);
-  if (m) {
-    const authority = m[1]!.toLowerCase();
-    const own = typeof location !== 'undefined' ? location.host.toLowerCase() : '';
-    if (authority !== '' && !authority.includes('@') && (hosts.includes(authority) || authority === own)) url = m[2] || '/';
+  let path = url.startsWith('/') && !url.startsWith('//');
+  const m = /^(?:(https?):)?\/\/([^/\\]*)(.*)$/is.exec(url);
+  if (m && isOwnHost(m[2]!.toLowerCase(), (m[1] ?? '').toLowerCase(), hosts)) {
+    url = m[3] || '/';
+    path = true;
   }
   try {
     url = decodeURIComponent(url);
   } catch {
     // Not valid percent-encoding: kept as written, like PHP's rawurldecode() would mostly do.
   }
+  if (path) url = removeDotSegments(url.replace(/\/{2,}/g, '/'));
   return url.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, (u) => u.toLowerCase());
+}
+
+/** 1.14 (audit IJ-I10): RFC 3986 §5.2.4 `remove_dot_segments` for a path that starts with `/`. */
+export function removeDotSegments(path: string): string {
+  const segments = path.split('/');
+  const out: string[] = [];
+  segments.forEach((segment, index) => {
+    if (segment === '.' || segment === '..') {
+      if (segment === '..' && out.length > 1) out.pop();
+      if (index === segments.length - 1) out.push('');
+      return;
+    }
+    out.push(segment);
+  });
+  return out.join('/');
+}
+
+/**
+ * 1.14 (audit IJ-I10): an authority (lower case) as compared with the own hosts — without userinfo, without a trailing
+ * dot on the host and without the scheme's default port (`443` for https, `80` for http, either without scheme).
+ */
+export function normalizeAuthority(authority: string, scheme = ''): string {
+  const at = authority.lastIndexOf('@');
+  const rest = at === -1 ? authority : authority.slice(at + 1);
+  const m = /^(\[[^\]]*\]|[^:]*)(?::(\d*))?$/.exec(rest);
+  if (!m) return rest;
+  const host = m[1]!.replace(/\.+$/, '');
+  const port = m[2] ?? '';
+  const defaults = scheme === 'https' ? ['443'] : scheme === 'http' ? ['80'] : ['443', '80'];
+  return port === '' || defaults.includes(port) ? host : `${host}:${port}`;
+}
+
+function isOwnHost(authority: string, scheme: string, hosts: string[]): boolean {
+  const normalized = normalizeAuthority(authority, scheme);
+  if (normalized === '' || normalized.startsWith(':')) return false;
+  if (hosts.some((h) => h === normalized || normalizeAuthority(h, scheme) === normalized)) return true;
+  if (typeof location === 'undefined') return false;
+  return normalizeAuthority(location.host.toLowerCase(), location.protocol.replace(':', '')) === normalized;
 }
 
 /**

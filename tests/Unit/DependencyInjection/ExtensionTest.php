@@ -19,6 +19,7 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateHostFileResolver;
 use Nowo\MilkdownEditorBundle\Twig\MilkdownEditorTwig;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
@@ -141,5 +142,29 @@ final class ExtensionTest extends TestCase
         self::assertInstanceOf(Reference::class, $context);
         self::assertSame(RenderContextProviderInterface::class, (string) $context);
         self::assertSame(ContainerInterface::NULL_ON_INVALID_REFERENCE, $context->getInvalidBehavior());
+    }
+
+    /** 1.14: literal hosts are lower-cased and validated at compile time; env placeholders are left to HostSchemes. */
+    #[Test]
+    public function hostUrlHostsKeepEnvPlaceholdersAndCheckLiterals(): void
+    {
+        $container   = new ContainerBuilder();
+        $placeholder = $container->getParameterBag()->get('env(key:host:url:DEFAULT_URI)');
+        self::assertIsString($placeholder);
+        (new NowoMilkdownEditorExtension())->load([['markdown' => ['host_url_hosts' => ['Beacon.Example:8443', $placeholder]]]], $container);
+        self::assertSame(['beacon.example:8443', $placeholder], $container->getDefinition(HostSchemes::class)->getArgument('$urlHosts'));
+        $markdown = $container->getParameter('nowo_milkdown_editor.markdown');
+        self::assertIsArray($markdown);
+        self::assertSame(['beacon.example:8443', $placeholder], $markdown['host_url_hosts'] ?? null);
+
+        foreach (['https://beacon.example/x', '', 8443, ['beacon.example']] as $invalid) {
+            try {
+                (new NowoMilkdownEditorExtension())->load([['markdown' => ['host_url_hosts' => [$invalid]]]], new ContainerBuilder());
+                self::fail('Accepted ' . json_encode($invalid));
+            } catch (InvalidConfigurationException $e) {
+                self::assertStringContainsString('host_url_hosts accepts host names with an optional port', $e->getMessage());
+            }
+        }
+
     }
 }

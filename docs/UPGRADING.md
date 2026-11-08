@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
+- [Unreleased](#unreleased)
 - [To 1.13.0](#to-1130)
 - [To 1.12.0](#to-1120)
 - [To 1.11.0](#to-1110)
@@ -33,6 +34,28 @@
 Public API covered by Semantic Versioning: the configuration tree, profile keys, form options, Twig filter / function
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
+
+## Unreleased
+
+From **1.13.0**: nothing to change. `markdown.host_url_hosts` may now take env placeholders, so the application's host
+can follow `DEFAULT_URI`:
+
+```yaml
+nowo_milkdown_editor:
+    markdown:
+        host_url_hosts: ['%env(key:host:url:DEFAULT_URI)%']   # literal entries still work and can be mixed in
+```
+
+The resolved value must be `host` or `host:port` (`key:host:url:` drops the port; write a literal `host:port` entry if
+links use one). An invalid value makes building the renderer throw an `InvalidArgumentException` that names the entry
+(not its value); an empty or `null` one adds no host. Use one placeholder per entry: a placeholder for the whole list
+(`'%env(json:HOSTS)%'`) is refused when the container compiles.
+
+URL matching is stricter in your favour (audit IJ-I10): `https://host:443/files/…`, `https://host./files/…`,
+`https://user@host/files/…`, `/./files/…`, `/x/../files/…` and `/files//…` now match your `host_url_patterns` like
+the plain form, so the resolver decides about them too. If a host renderer of yours matched such forms itself only to
+hide them, Milkdown now covers them for the hosts in `host_url_hosts` and the request's host; list every host your links
+use.
 
 ## To 1.13.0
 

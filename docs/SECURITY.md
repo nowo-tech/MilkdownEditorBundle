@@ -223,6 +223,16 @@ configuration, and a host resolver's answer is semi-trusted.
   pattern does not describe (another variant, another host not listed, double encoding) stays an ordinary link, so patterns
   must cover the file route. Only patterns of the page's configuration block reach the editor. Text that merely contains a
   file URL (not a link or image), or raw HTML escaped as text, is not a reference.
+- **Hosts from env placeholders (1.14).** `host_url_hosts` entries may be `%env()%` placeholders. They are validated and
+  lower-cased when the container builds `HostSchemes`, and an invalid value throws instead of being matched. A host only
+  widens which absolute URLs are read as host values (more URLs go through the resolver and can be hidden), never what a
+  viewer sees, so a placeholder cannot weaken the checks. The error names the entry, never the resolved value (it could
+  be a DSN, audit IK-I1); `''` and `null` add no host; a whole-list placeholder is refused at compile time (IK-I2).
+- **Browser-normalised URL forms (1.14, audit IJ-I10).** Before matching, the host of an absolute URL loses a trailing
+  dot, the scheme's default port and any userinfo (an own host with `user@` counts as own, so the URL is hidden unless
+  visible), and a path loses repeated slashes and dot segments (`.`, `..`, `%2e`, RFC 3986 §5.2.4) after the single
+  decoding. Server and editor (`urlCandidate()`) apply the same rules. What remains: other hosts not listed in
+  `host_url_hosts`, double encoding and backslashes stay ordinary links.
 - **Context (1.13).** A `ContextualHostFileResolverInterface` gets the host's render context, so a host can refuse files
   outside it (e.g. an API token's reach). The bundle never reads or stores the context.
 
@@ -327,6 +337,7 @@ host's token in `X-CSRF-Token`; the host validates it.
 |------|--------|-------|
 | 2026-11-08 | 1.13.0: `host_url_patterns`, `ContextualHostFileResolverInterface`, `host_refused_links` (Beacon request after WikiBundle Appendix IF) | Appendix IJ at `a2560e7`: **Pass-Low** (IJ-L1; IJ-I1 to IJ-I3) |
 | 2026-11-08 | IJ fixes: fail closed on PCRE errors and long URLs (IJ-L1), stricter patterns (IJ-I1), one classification per URL and document (IJ-I2), URL normalisation and `host_url_hosts` (IJ-I3) | Delta IJ at `51f3606`: **Pass** (IJ-I10 Info: crafted URLs that browsers normalise — default port, userinfo, dot segments — still match no pattern) |
+| 2026-11-08 | Unreleased (1.14): `host_url_hosts` env placeholders, validated at service build, invalid values throw | Appendix IK at `fed6d92`: **Pass** (IK-I1 to IK-I3 Info, fixed with the IJ-I10 hardening in the follow-up commit) |
 
 **2026-10-30 — Pass (good)** after remediation (REQ-SEC-004). Method: independent read-only review of `src/` (PHP
 renderer, form type, Twig, CSP) and the TypeScript editor, focused on stored XSS, URL schemes, ReDoS, information
