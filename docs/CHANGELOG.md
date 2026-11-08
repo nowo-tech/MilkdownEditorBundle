@@ -27,6 +27,27 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+`markdown.host_url_hosts` accepts env placeholders. Requested by Beacon on 2026-11-08, so the host names come from
+`DEFAULT_URI` instead of being repeated per environment.
+
+### Changed
+
+- **`markdown.host_url_hosts` entries may be env placeholders**, e.g. `%env(key:host:url:DEFAULT_URI)%`. Literal entries
+  are still validated and lower-cased when the container compiles (now by the extension, so the processed configuration
+  keeps them as written); placeholders are skipped there (lower-casing one would break it, and `key:` processors are
+  typed as arrays too, so the entries are a variable prototype) and `HostSchemes` validates and lower-cases the resolved
+  value when the container builds it. A resolved value
+  that is not `host` or `host:port` throws `InvalidArgumentException` naming the key and the value, so the renderer, the
+  form type and the Twig functions fail to build instead of silently matching other URLs; a value that resolves to an
+  empty string adds no host. Duplicates are dropped. The host pattern is shared as `HostSchemes::HOST_PATTERN` and no
+  longer accepts a trailing newline.
+
+### Security
+
+- Placeholders do not weaken `host_url_hosts`: a host only widens which absolute URLs are read as host values (more URLs
+  go through the resolver and can be hidden), never what a viewer sees, and an invalid resolved value throws instead of
+  being matched.
+
 ## [1.13.0] - 2026-11-08
 
 Plain URLs can be host references, and a host resolver can see the render's context. Requested by Beacon on 2026-11-08

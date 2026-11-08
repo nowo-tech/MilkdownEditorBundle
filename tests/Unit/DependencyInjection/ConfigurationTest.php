@@ -192,11 +192,9 @@ final class ConfigurationTest extends TestCase
             'host_url_patterns' => [['pattern' => '^/files/(?<id>[^|/]{36})/(?:original|preview|[|])$', 'scheme' => 'app-file']],
             'host_url_hosts'    => ['Beacon.Example', 'beacon.example:8443'],
         ]])['markdown'];
-        self::assertSame(['beacon.example', 'beacon.example:8443'], $markdown['host_url_hosts'] ?? null);
+        // 1.14: entries are validated and lower-cased by the extension (env placeholders by HostSchemes).
+        self::assertSame(['Beacon.Example', 'beacon.example:8443'], $markdown['host_url_hosts'] ?? null);
         self::assertSame([], $this->process([])['markdown']['host_url_hosts'] ?? null);
-
-        $this->expectException(InvalidConfigurationException::class);
-        $this->process(['markdown' => ['host_url_hosts' => ['https://beacon.example/x']]]);
     }
 
     #[Test]

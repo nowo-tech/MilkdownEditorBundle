@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\MilkdownEditorBundle\Tests\Integration;
 
+use InvalidArgumentException;
 use LogicException;
 use Nowo\MilkdownEditorBundle\Csp\CspNonceProviderInterface;
 use Nowo\MilkdownEditorBundle\Diff\MarkdownDiffRendererInterface;
@@ -31,6 +32,9 @@ final class BundleTest extends TestCase
 {
     private ?TestKernel $kernel = null;
 
+    /** @var list<string> */
+    private array $envNames = [];
+
     protected function tearDown(): void
     {
         if ($this->kernel instanceof TestKernel) {
@@ -39,6 +43,10 @@ final class BundleTest extends TestCase
             restore_exception_handler();
         }
         $this->kernel = null;
+        foreach ($this->envNames as $name) {
+            unset($_SERVER[$name]);
+        }
+        $this->envNames = [];
         parent::tearDown();
     }
 
@@ -256,6 +264,49 @@ final class BundleTest extends TestCase
         $diff = $this->createStub(MarkdownDiffRendererInterface::class);
         $this->expectException(LogicException::class);
         (new MilkdownViewTwig($diff))->view($this->createStub(Environment::class), 'x');
+    }
+
+    /**
+     * 1.14: host_url_hosts entries may be env placeholders. The container compiles with them; the resolved value is
+     * validated and lower-cased when the renderer is built, and an invalid one fails loudly.
+     */
+    #[Test]
+    public function hostUrlHostsAcceptEnvPlaceholders(): void
+    {
+        $uuid = '0b9c4f0e-5f4e-4d7a-9c1e-3a2b1c0d9e8f';
+        $this->setEnv('MILKDOWN_TEST_URI', 'https://Beacon.Example/');
+        $this->setEnv('MILKDOWN_TEST_HOST', '');
+        $renderer = $this->service($this->container($this->envHostsConfig()), MarkdownRendererInterface::class, MarkdownRendererInterface::class);
+        self::assertStringContainsString('<a href="/f/' . $uuid . '"', $renderer->render('[x](https://beacon.example/files/' . $uuid . ')'));
+        self::assertStringContainsString('<a href="https://other.example/files/' . $uuid . '"', $renderer->render('[x](https://other.example/files/' . $uuid . ')'));
+    }
+
+    /** 1.14: a placeholder that resolves to something other than a host refuses to build the renderer. */
+    #[Test]
+    public function anInvalidResolvedHostThrows(): void
+    {
+        $this->setEnv('MILKDOWN_TEST_URI', 'https://beacon.example/');
+        $this->setEnv('MILKDOWN_TEST_HOST', 'https://evil.example/files');
+        $container = $this->container($this->envHostsConfig());
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('host_url_hosts accepts host names with an optional port');
+        $container->get(MarkdownRendererInterface::class);
+    }
+
+    /** @return array<string, mixed> */
+    private function envHostsConfig(): array
+    {
+        return ['markdown' => [
+            'host_schemes'      => ['app-file' => ['file' => '/f/{id}']],
+            'host_url_patterns' => [['pattern' => '^/files/(?<id>[0-9a-f-]{36})$', 'scheme' => 'app-file', 'url' => 'resolved']],
+            'host_url_hosts'    => ['%env(key:host:url:MILKDOWN_TEST_URI)%', '%env(MILKDOWN_TEST_HOST)%'],
+        ]];
+    }
+
+    private function setEnv(string $name, string $value): void
+    {
+        $_SERVER[$name]   = $value;
+        $this->envNames[] = $name;
     }
 
     #[Test]

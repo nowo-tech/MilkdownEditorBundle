@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace Nowo\MilkdownEditorBundle\Markdown;
 
+use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 use function array_key_exists;
 use function explode;
+use function get_debug_type;
 use function in_array;
+use function is_string;
 use function preg_match;
 use function preg_replace_callback;
 use function rawurldecode;
 use function rawurlencode;
+use function sprintf;
 use function str_contains;
 use function str_replace;
 use function str_starts_with;
@@ -69,20 +73,64 @@ final readonly class HostSchemes
     /** 1.13: longer URLs are never matched against `host_url_patterns` (bounds the regular expression's work). */
     public const MAX_PATTERN_URL_LENGTH = 2048;
 
+    /** 1.14: a `host_url_hosts` entry once lower-cased: a host name with an optional port, without scheme or path. */
+    public const HOST_PATTERN = '~^[a-z0-9][a-z0-9.-]{0,252}(?::\\d{1,5})?$~D';
+
+    /** @var list<string> */
+    private array $urlHosts;
+
     /**
      * @param array<string, array{image?: ?string, file?: ?string, preview?: ?string}> $schemes scheme => templates (validated by the configuration)
      * @param list<string> $imageOrigins Origins (`https://cdn.example.com`) host images may load from although `allow_remote_images` is off
      * @param list<array{pattern: string, scheme: string, url?: string}> $urlPatterns 1.13 `host_url_patterns` (validated by the configuration)
-     * @param list<string> $urlHosts 1.13 `host_url_hosts`: hosts (`host[:port]`, lower case) whose absolute URLs read as their path
+     * @param array<mixed> $urlHosts 1.13 `host_url_hosts`: hosts (`host[:port]`) whose absolute URLs read as their path.
+     *                               1.14: entries may come from env placeholders, so they are validated and lower-cased here
+     *                               ({@see self::normalizeUrlHosts()})
      * @param RequestStack|null $requests 1.13: the current request's host counts as one of `host_url_hosts`
+     *
+     * @throws InvalidArgumentException When a `host_url_hosts` entry is not a host name with an optional port
      */
     public function __construct(
         private array $schemes = [],
         private array $imageOrigins = [],
         private array $urlPatterns = [],
-        private array $urlHosts = [],
+        array $urlHosts = [],
         private ?RequestStack $requests = null,
     ) {
+        $this->urlHosts = self::normalizeUrlHosts($urlHosts);
+    }
+
+    /**
+     * 1.14: `host_url_hosts` as matched — lower-cased, without empty entries. The extension validates literal entries at compile time;
+     * entries written as env placeholders (`%env(key:host:url:DEFAULT_URI)%`) are only known once the container resolves
+     * them, so they are checked here. An entry that resolves to an empty string adds no host (an unset optional
+     * variable); any other value that is not `host` or `host:port` throws, so a misconfiguration fails loudly when the
+     * service is built instead of silently matching less or more. Hosts only ever widen what is read as a host value
+     * (more URLs go through the resolver), never what a viewer sees.
+     *
+     * @param array<mixed> $hosts The configured or resolved entries
+     *
+     * @throws InvalidArgumentException When an entry is not a host name with an optional port
+     *
+     * @return list<string>
+     */
+    public static function normalizeUrlHosts(array $hosts): array
+    {
+        $out = [];
+        foreach ($hosts as $host) {
+            if ($host === '') {
+                continue;
+            }
+            $normalized = is_string($host) ? strtolower($host) : null;
+            if ($normalized === null || preg_match(self::HOST_PATTERN, $normalized) !== 1) {
+                throw new InvalidArgumentException(sprintf('nowo_milkdown_editor.markdown.host_url_hosts accepts host names with an optional port, without scheme or path; got %s.', is_string($host) ? '"' . $host . '"' : get_debug_type($host)));
+            }
+            if (!in_array($normalized, $out, true)) {
+                $out[] = $normalized;
+            }
+        }
+
+        return $out;
     }
 
     /**

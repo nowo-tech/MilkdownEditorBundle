@@ -54,7 +54,7 @@ nowo_milkdown_editor:
         host_schemes: {}                # 1.9: scheme => {image, file, preview} URL templates with {id} (see below)
         host_image_origins: []          # 1.9: origins host images may load from while allow_remote_images is off
         host_url_patterns: []           # 1.13: plain URLs that are host references: [{pattern, scheme, url: written|resolved}]
-        host_url_hosts: []              # 1.13: hosts whose absolute URLs the patterns read as their path (the request's host always counts)
+        host_url_hosts: []              # 1.13: hosts whose absolute URLs the patterns read as their path (the request's host always counts); 1.14: env placeholders allowed
         host_refused_links: text        # 1.13: text | hidden — a refused scheme: link keeps its text or reads *Content not visible*
         image_block: false              # 1.9: images take {width=… align=…}; a standalone image renders as a figure
         file_preview_sandbox: []        # 1.9: tokens added to the sandbox attribute of preview frames
@@ -160,6 +160,12 @@ nowo_milkdown_editor:
         host_url_hosts: [app.example.com]   # https://app.example.com/files/… and //app.example.com/files/… match the first pattern
         host_refused_links: hidden
 ```
+
+`host_url_hosts` entries are `host` or `host:port`, compared in lower case. Since 1.14 an entry may be an env placeholder,
+e.g. `'%env(key:host:url:DEFAULT_URI)%'` (the URL's host, without its port). Literal entries are checked when the
+container compiles; a placeholder is checked once resolved, when the container builds `HostSchemes`: a value that is not a
+host name with an optional port throws an `InvalidArgumentException` (the renderer and the editor's Twig functions cannot
+be built), an empty value adds no host.
 
 Before matching, a URL is normalised: trimmed, its query and fragment dropped, its path percent-decoded once and its uuids
 lower-cased; an absolute or protocol-relative URL of `host_url_hosts` or of the current request's host is read as its path

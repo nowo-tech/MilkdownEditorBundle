@@ -239,14 +239,12 @@ final class Configuration implements ConfigurationInterface
                     ->end()
                 ->end()
                 ->arrayNode('host_url_hosts')
-                    ->info('1.13 (audit IJ-I3): hosts (host or host:port) whose absolute and protocol-relative URLs are matched by host_url_patterns as their path, e.g. [beacon.example.com]. The current request\'s host always counts.')
-                    ->scalarPrototype()->end()
+                    ->info('1.13 (audit IJ-I3): hosts (host or host:port) whose absolute and protocol-relative URLs are matched by host_url_patterns as their path, e.g. [beacon.example.com]. The current request\'s host always counts. 1.14: an entry may be an env placeholder (%env(key:host:url:DEFAULT_URI)%); it is validated and lower-cased when the container builds the service, an invalid value throws, an empty one adds no host.')
+                    // 1.14: a variable prototype, so env placeholders of any processor (key:host:url:…) pass the
+                    // container's placeholder type check; the extension validates and lower-cases literal entries, and
+                    // HostSchemes validates placeholders once resolved.
+                    ->variablePrototype()->end()
                     ->defaultValue([])
-                    ->beforeNormalization()->ifArray()->then(static fn (array $v): array => array_map(static fn (mixed $h): mixed => is_string($h) ? strtolower($h) : $h, $v))->end()
-                    ->validate()
-                        ->ifTrue(static fn (array $v): bool => array_filter($v, static fn (mixed $h): bool => !is_string($h) || preg_match('~^[a-z0-9]([a-z0-9.-]{0,252})(?::\d{1,5})?$~', $h) !== 1) !== [])
-                        ->thenInvalid('host_url_hosts accepts host names with an optional port, without scheme or path (%s).')
-                    ->end()
                 ->end()
                 ->enumNode('host_refused_links')
                     ->info('1.13: a link with a host scheme (app-file:<id>) the resolver refuses keeps its text without a target (text, default, as 1.9) or becomes *Content not visible* (hidden). Links matched by host_url_patterns are always hidden.')

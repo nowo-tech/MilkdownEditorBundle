@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\MilkdownEditorBundle\Tests\Unit\Markdown;
 
+use InvalidArgumentException;
 use Nowo\MilkdownEditorBundle\Markdown\HostSchemes;
 use Nowo\MilkdownEditorBundle\Markdown\MilkdownMarkdownRenderer;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\AllowlistIconResolver;
@@ -228,6 +229,26 @@ final class HostUrlPatternsTest extends TestCase
         self::assertSame('/', $schemes->candidate('https://beacon.example'));
         self::assertSame(['beacon.example'], $schemes->urlHosts());
         self::assertNull((new HostSchemes(self::SCHEMES, [], $this->written()))->matchUrl('https://beacon.example/files/' . self::UUID . '/original'));
+    }
+
+    /** 1.14: hosts from env placeholders are validated and lower-cased when the service is built. */
+    #[Test]
+    public function urlHostsAreNormalisedAndInvalidOnesThrow(): void
+    {
+        $schemes = new HostSchemes(self::SCHEMES, [], $this->written(), ['Beacon.Example:8443', '', 'beacon.example:8443', 'wiki.example']);
+        self::assertSame(['beacon.example:8443', 'wiki.example'], $schemes->urlHosts());
+        self::assertSame([], HostSchemes::normalizeUrlHosts(['']));
+        foreach (['https://beacon.example', 'beacon.example/x', 'user@beacon.example', '-beacon.example', "beacon.example\n", ' beacon.example', 'beacon.example:123456'] as $invalid) {
+            try {
+                HostSchemes::normalizeUrlHosts([$invalid]);
+                self::fail('Accepted ' . $invalid);
+            } catch (InvalidArgumentException $e) {
+                self::assertStringContainsString('host_url_hosts accepts host names', $e->getMessage());
+            }
+        }
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('got int.');
+        new HostSchemes(self::SCHEMES, [], [], [8443]);
     }
 
     #[Test]
