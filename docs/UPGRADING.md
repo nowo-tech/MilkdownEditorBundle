@@ -4,6 +4,7 @@
 
 - [General procedure](#general-procedure)
 - [Unreleased](#unreleased)
+- [To 1.14.1](#to-1141)
 - [To 1.14.0](#to-1140)
 - [To 1.13.0](#to-1130)
 - [To 1.12.0](#to-1120)
@@ -37,6 +38,18 @@ names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialec
 interfaces and `window.NowoMilkdownEditor`.
 
 ## Unreleased
+
+## To 1.14.1
+
+From **1.14.0**:
+
+```bash
+composer update nowo-tech/milkdown-editor-bundle
+```
+
+Nothing to change. Encoded hosts, zero-padded ports, a trailing slash and tabs or newlines inside a URL are now read
+like the plain form by `host_url_patterns` / `host_url_hosts` (audit IK-I7, IK-I8, IK2-L1), so more refused host files are
+hidden. Rebuilt assets ship in the package.
 
 ## To 1.14.0
 

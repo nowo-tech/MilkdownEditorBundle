@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format foll
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.14.1] - 2026-11-08](#1141---2026-11-08)
 - [[1.14.0] - 2026-11-08](#1140---2026-11-08)
 - [[1.13.0] - 2026-11-08](#1130---2026-11-08)
 - [[1.12.0] - 2026-11-07](#1120---2026-11-07)
@@ -27,6 +28,8 @@ All notable changes to this project are documented in this file. The format foll
 - [[1.0.0] - 2026-10-31](#100---2026-10-31)
 
 ## [Unreleased]
+
+## [1.14.1] - 2026-11-08
 
 Three more URL forms that browsers normalise are read as host values (Delta IK, IK-I7 and IK-I8; Delta IK2, IK2-L1). Nothing to configure.
 
