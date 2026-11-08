@@ -10,12 +10,15 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 use function array_key_exists;
 use function array_pop;
+use function chr;
 use function count;
 use function explode;
 use function get_debug_type;
+use function hexdec;
 use function implode;
 use function in_array;
 use function is_string;
+use function ltrim;
 use function preg_match;
 use function preg_replace_callback;
 use function rawurldecode;
@@ -23,10 +26,12 @@ use function rawurlencode;
 use function rtrim;
 use function sprintf;
 use function str_contains;
+use function str_ends_with;
 use function str_replace;
 use function str_starts_with;
 use function strcspn;
 use function strlen;
+use function strpbrk;
 use function strrpos;
 use function strtolower;
 use function substr;
@@ -206,6 +211,23 @@ final readonly class HostSchemes
         if ($candidate === '') {
             return null;
         }
+        $match = $this->matchCandidate($candidate);
+        // 1.14.1 (audit IK-I8): `…/original/` (and `…/original/.`) reach the same route; one trailing slash is dropped
+        // when the URL as written matches no pattern.
+        if ($match === null && strlen($candidate) > 1 && str_ends_with($candidate, '/')) {
+            $match = $this->matchCandidate(substr($candidate, 0, -1));
+        }
+
+        return $match;
+    }
+
+    /**
+     * The `host_url_patterns` entry a normalised candidate matches ({@see self::matchUrl()}).
+     *
+     * @return array{0: ?string, 1: string}|null
+     */
+    private function matchCandidate(string $candidate): ?array
+    {
         $tooLong = strlen($candidate) > self::MAX_PATTERN_URL_LENGTH;
         foreach ($this->urlPatterns as $entry) {
             $mode = ($entry['url'] ?? self::URL_WRITTEN) === self::URL_RESOLVED ? self::URL_RESOLVED : self::URL_WRITTEN;
@@ -303,6 +325,7 @@ final readonly class HostSchemes
     /**
      * 1.14 (audit IJ-I10): an authority as compared with the own hosts — lower case, without userinfo, without a trailing
      * dot on the host and without the scheme's default port (`:443` for https, `:80` for http, either without scheme).
+     * 1.14.1 (audit IK-I7): ASCII percent-escapes decoded and leading zeros of the port dropped first.
      *
      * @param string $authority `[userinfo@]host[:port]`, lower case
      * @param string $scheme `https`, `http` or `` (protocol-relative)
@@ -313,13 +336,20 @@ final readonly class HostSchemes
         if ($at !== false) {
             $authority = substr($authority, $at + 1);
         }
+        // 1.14.1 (audit IK-I7): ASCII percent-escapes decoded, as browsers do (`beacon%2Eexample.com`).
+        $authority = strtolower((string) preg_replace_callback('~%([0-7][0-9a-f])~i', static fn (array $e): string => chr((int) hexdec($e[1])), $authority));
         // A host (or a bracketed IPv6 literal) and an optional port; anything else is compared as written.
         if (preg_match('~^(\[[^\]]*\]|[^:]*)(?::(\d*))?$~D', $authority, $m) !== 1) {
             return $authority;
         }
         [$authority, $port] = [$m[1], $m[2] ?? ''];
-        $host               = rtrim($authority, '.');
-        $default            = match ($scheme) {
+        // 1.14.1 (audit IK-I7): `:0443` is port 443.
+        if ($port !== '') {
+            $port = ltrim($port, '0');
+            $port = $port === '' ? '0' : $port;
+        }
+        $host    = rtrim($authority, '.');
+        $default = match ($scheme) {
             'https' => ['443'],
             'http'  => ['80'],
             default => ['443', '80'],
@@ -334,6 +364,10 @@ final readonly class HostSchemes
         $normalized = self::normalizeAuthority($authority, $scheme);
         if ($normalized === '' || str_starts_with($normalized, ':')) {
             return false;
+        }
+        // 1.14.1 (audit IK-I7): a decoded host with URL delimiters is no host a browser opens; read it as own (hidden).
+        if (strpbrk($normalized, '@/\\?#') !== false) {
+            return true;
         }
         foreach ($this->urlHosts as $host) {
             if ($host === $normalized || self::normalizeAuthority($host, $scheme) === $normalized) {

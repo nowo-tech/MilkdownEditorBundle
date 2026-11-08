@@ -282,6 +282,47 @@ final class HostUrlPatternsTest extends TestCase
         self::assertSame('a:b:c', HostSchemes::normalizeAuthority('a:b:c'));
     }
 
+    /** 1.14.1 (audit IK-I7, IK-I8): encoded hosts, zero-padded ports and a trailing slash match too. */
+    #[Test]
+    public function encodedHostsPaddedPortsAndTrailingSlashesMatch(): void
+    {
+        $schemes = new HostSchemes(self::SCHEMES, [], $this->written(), ['beacon.example', 'port.example:8080']);
+        $file    = '/files/' . self::UUID . '/original';
+        foreach ([
+            'https://beacon%2Eexample' . $file,
+            'https://BEACON%2eEXAMPLE' . $file,
+            'https://%62eacon.example' . $file,
+            'https://beacon.example:0443' . $file,
+            'http://beacon.example:080' . $file,
+            '//beacon.example:00443' . $file,
+            'https://port.example:08080' . $file,
+            'https://beacon.example%3A443' . $file,
+            'https://evil%40beacon.example' . $file,
+            'https://evil.example%2Fx' . $file,
+            $file . '/',
+            $file . '/.',
+            'https://beacon.example' . $file . '/?download=1',
+        ] as $url) {
+            self::assertSame(['app-file:' . self::UUID, 'written'], $schemes->matchUrl($url), $url);
+        }
+        foreach ([
+            'https://beacon.example:0' . $file,
+            'https://beacon.example:000' . $file,
+            'https://beacon.example:08443' . $file,
+            'https://other%2Eexample' . $file,
+            'https://beacon.example%E2%80%8B' . $file,
+            $file . '//x/',
+            '/',
+        ] as $url) {
+            self::assertNull($schemes->matchUrl($url), $url);
+        }
+        self::assertSame('beacon.example', HostSchemes::normalizeAuthority('beacon%2eexample:0443', 'https'));
+        self::assertSame('beacon.example:0', HostSchemes::normalizeAuthority('beacon.example:00'));
+        // A pattern written with the trailing slash still matches as written.
+        $slash = new HostSchemes(self::SCHEMES, [], [['pattern' => '^/dir/(?<id>\\w+)/$', 'scheme' => 'app-file']]);
+        self::assertSame(['app-file:abc', 'written'], $slash->matchUrl('/dir/abc/'));
+    }
+
     /** 1.14: hosts from env placeholders are validated and lower-cased when the service is built. */
     #[Test]
     public function urlHostsAreNormalisedAndInvalidOnesThrow(): void

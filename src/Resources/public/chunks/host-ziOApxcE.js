@@ -74,14 +74,14 @@ function p(e) {
 	}), n.join("/");
 }
 function m(e, t = "") {
-	let n = e.lastIndexOf("@"), r = n === -1 ? e : e.slice(n + 1), i = /^(\[[^\]]*\]|[^:]*)(?::(\d*))?$/.exec(r);
+	let n = e.lastIndexOf("@"), r = (n === -1 ? e : e.slice(n + 1)).replace(/%([0-7][0-9a-f])/gi, (e, t) => String.fromCharCode(parseInt(t, 16))).toLowerCase(), i = /^(\[[^\]]*\]|[^:]*)(?::(\d*))?$/.exec(r);
 	if (!i) return r;
-	let a = i[1].replace(/\.+$/, ""), o = i[2] ?? "";
+	let a = i[1].replace(/\.+$/, ""), o = i[2] ? i[2].replace(/^0+/, "") || "0" : "";
 	return o === "" || (t === "https" ? ["443"] : t === "http" ? ["80"] : ["443", "80"]).includes(o) ? a : `${a}:${o}`;
 }
 function h(e, t, n) {
 	let r = m(e, t);
-	return r === "" || r.startsWith(":") ? !1 : n.some((e) => e === r || m(e, t) === r) ? !0 : typeof location > "u" ? !1 : m(location.host.toLowerCase(), location.protocol.replace(":", "")) === r;
+	return r === "" || r.startsWith(":") ? !1 : /[@/\\?#]/.test(r) || n.some((e) => e === r || m(e, t) === r) ? !0 : typeof location > "u" ? !1 : m(location.host.toLowerCase(), location.protocol.replace(":", "")) === r;
 }
 function g(e, t, n = []) {
 	let r = [];
@@ -104,26 +104,28 @@ function _(e, t) {
 	let n = a.get(t);
 	if (!n || typeof e != "string") return null;
 	let r = f(e, n.hosts);
-	if (r === "") return null;
-	for (let e of n.patterns) {
-		if (r.length > s) {
-			if (r.startsWith(d(e.pattern.source))) return {
+	return r === "" ? null : v(r, n.patterns) ?? (r.length > 1 && r.endsWith("/") ? v(r.slice(0, -1), n.patterns) : null);
+}
+function v(e, t) {
+	for (let n of t) {
+		if (e.length > s) {
+			if (e.startsWith(d(n.pattern.source))) return {
 				reference: null,
-				url: e.url
+				url: n.url
 			};
 			continue;
 		}
-		let t = e.pattern.exec(r);
+		let t = n.pattern.exec(e);
 		if (!t) continue;
-		let n = t.groups?.id ?? "";
+		let r = t.groups?.id ?? "";
 		return {
-			reference: c.test(n) ? `${e.scheme}:${n}` : null,
-			url: e.url
+			reference: c.test(r) ? `${n.scheme}:${r}` : null,
+			url: n.url
 		};
 	}
 	return null;
 }
-function v(e) {
+function y(e) {
 	let t = {};
 	if (!e || typeof e != "object" || Array.isArray(e)) return t;
 	for (let [n, a] of Object.entries(e)) {
@@ -137,21 +139,21 @@ function v(e) {
 	}
 	return t;
 }
-function y(e, n) {
+function b(e, n) {
 	if (typeof e != "string") return !1;
 	let r = t.exec(e);
 	return !!r && Object.prototype.hasOwnProperty.call(n, r[1].toLowerCase());
 }
-function b(e, t) {
+function x(e, t) {
 	if (typeof e != "string") return null;
 	let r = n.exec(e);
 	if (!r) return null;
 	let i = r[1].toLowerCase();
 	return Object.prototype.hasOwnProperty.call(t, i) ? `${i}:${r[2]}` : null;
 }
-function x(t, n, r) {
+function S(t, n, r) {
 	let i;
-	if (y(t, r)) i = b(t, r);
+	if (b(t, r)) i = x(t, r);
 	else {
 		let e = _(t, r);
 		if (!e || e.url === "written") return;
@@ -161,8 +163,8 @@ function x(t, n, r) {
 	let [a, o] = i.split(/:(.*)/s), s = r[a], c = s[n] ?? (n === "image" ? s.file : null);
 	return c && e(c.split("{id}").join(encodeURIComponent(o))) || null;
 }
-function S(t, n, r) {
-	let i = x(t, n, r);
+function C(t, n, r) {
+	let i = S(t, n, r);
 	return i === void 0 ? e(t) : i ?? "";
 }
-export { v as a, y as i, b as n, S as o, x as r, g as s, r as t };
+export { y as a, b as i, x as n, C as o, S as r, g as s, r as t };

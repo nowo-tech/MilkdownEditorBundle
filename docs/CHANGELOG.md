@@ -28,6 +28,20 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+Two more URL forms that browsers normalise are read as host values (Delta IK, IK-I7 and IK-I8). Nothing to configure.
+
+### Security
+
+- **Encoded hosts and zero-padded ports (IK-I7).** `HostSchemes::normalizeAuthority()` and the editor's
+  `normalizeAuthority()` decode ASCII percent-escapes in the authority (`beacon%2Eexample.com`, `host%3A443`) and drop
+  leading zeros of the port (`:0443` is `:443`, so the default-port rule applies) before comparing with the own hosts. A
+  decoded host that contains a URL delimiter (`@`, `/`, `\`, `?`, `#`) is no host a browser opens; it is read as own, so
+  the URL goes through the resolver and is hidden unless visible.
+- **Trailing slash (IK-I8).** When a normalised URL matches no `host_url_patterns` entry and ends with `/`, it is
+  matched again without that one slash, so `/files/<uuid>/original/` and `/files/<uuid>/original/.` (which Symfony's
+  router redirects to the route without the slash) are host values. A pattern written with the slash still matches as
+  written. Server (`HostSchemes::matchUrl()`) and editor (`matchHostUrl()`) apply the same rules.
+
 ## [1.14.0] - 2026-11-08
 
 `host_url_hosts` takes env placeholders, and own-host URLs are normalised further: default port, trailing dot, userinfo and dot segments (Beacon ME ask; audit IJ-I10). Audit: Appendix IK and Delta IK, Pass.

@@ -125,6 +125,44 @@ describe('host URL patterns (1.13)', () => {
     expect(urlCandidate('/files/%E0%A4%A/x')).toBe('/files/%E0%A4%A/x');
   });
 
+  it('reads encoded hosts, zero-padded ports and a trailing slash as the own URL (audit IK-I7, IK-I8)', () => {
+    const s = withUrlPatterns(schemes, [{ pattern: FILES, scheme: 'app-file' }], ['beacon.example', 'port.example:8080']);
+    const ref = { reference: `app-file:${UUID}`, url: 'written' };
+    const file = `/files/${UUID}/original`;
+    for (const url of [
+      `https://beacon%2Eexample${file}`,
+      `https://BEACON%2eEXAMPLE${file}`,
+      `https://%62eacon.example${file}`,
+      `https://beacon.example:0443${file}`,
+      `http://beacon.example:080${file}`,
+      `//beacon.example:00443${file}`,
+      `https://port.example:08080${file}`,
+      `https://beacon.example%3A443${file}`,
+      `https://evil%40beacon.example${file}`,
+      `https://evil.example%2Fx${file}`,
+      `${file}/`,
+      `${file}/.`,
+      `https://beacon.example${file}/?download=1`,
+    ]) {
+      expect(matchHostUrl(url, s), url).toEqual(ref);
+    }
+    for (const url of [
+      `https://beacon.example:0${file}`,
+      `https://beacon.example:000${file}`,
+      `https://beacon.example:08443${file}`,
+      `https://other%2Eexample${file}`,
+      `https://beacon.example%E2%80%8B${file}`,
+      `${file}//x/`,
+      '/',
+    ]) {
+      expect(matchHostUrl(url, s), url).toBeNull();
+    }
+    expect(normalizeAuthority('beacon%2eexample:0443', 'https')).toBe('beacon.example');
+    expect(normalizeAuthority('beacon.example:00')).toBe('beacon.example:0');
+    const slash = withUrlPatterns(schemes, [{ pattern: '^/dir/(?<id>\\w+)/$', scheme: 'app-file' }]);
+    expect(matchHostUrl('/dir/abc/', slash)).toEqual({ reference: 'app-file:abc', url: 'written' });
+  });
+
   it('reads forms a browser normalises as the own URL (audit IJ-I10)', () => {
     const s = withUrlPatterns(schemes, [{ pattern: FILES, scheme: 'app-file' }], ['beacon.example', 'alt.example:443', 'port.example:8080']);
     const ref = { reference: `app-file:${UUID}`, url: 'written' };

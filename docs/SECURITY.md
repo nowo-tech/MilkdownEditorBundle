@@ -231,7 +231,7 @@ configuration, and a host resolver's answer is semi-trusted.
 - **Browser-normalised URL forms (1.14, audit IJ-I10).** Before matching, the host of an absolute URL loses a trailing
   dot, the scheme's default port and any userinfo (an own host with `user@` counts as own, so the URL is hidden unless
   visible), and a path loses repeated slashes and dot segments (`.`, `..`, `%2e`, RFC 3986 §5.2.4) after the single
-  decoding. Server and editor (`urlCandidate()`) apply the same rules. What remains: other hosts not listed in
+  decoding. Server and editor (`urlCandidate()`) apply the same rules. 1.14.1 (Delta IK, IK-I7, IK-I8): ASCII percent-escapes in the host are decoded, leading zeros of the port dropped (a decoded host with `@`, `/`, `\`, `?` or `#` counts as own, so it is hidden unless visible), and a URL that matches no pattern is tried once more without one trailing slash. What remains: other hosts not listed in
   `host_url_hosts`, double encoding and backslashes stay ordinary links.
 - **Context (1.13).** A `ContextualHostFileResolverInterface` gets the host's render context, so a host can refuse files
   outside it (e.g. an API token's reach). The bundle never reads or stores the context.
@@ -338,6 +338,7 @@ host's token in `X-CSRF-Token`; the host validates it.
 | 2026-11-08 | 1.13.0: `host_url_patterns`, `ContextualHostFileResolverInterface`, `host_refused_links` (Beacon request after WikiBundle Appendix IF) | Appendix IJ at `a2560e7`: **Pass-Low** (IJ-L1; IJ-I1 to IJ-I3) |
 | 2026-11-08 | IJ fixes: fail closed on PCRE errors and long URLs (IJ-L1), stricter patterns (IJ-I1), one classification per URL and document (IJ-I2), URL normalisation and `host_url_hosts` (IJ-I3) | Delta IJ at `51f3606`: **Pass** (IJ-I10 Info: crafted URLs that browsers normalise — default port, userinfo, dot segments — still match no pattern) |
 | 2026-11-08 | 1.14.0: `host_url_hosts` env placeholders, validated at service build, invalid values throw | Appendix IK at `fed6d92`: **Pass** (IK-I1 to IK-I3 Info, fixed with the IJ-I10 hardening in the follow-up commit); Delta IK at `a52c088`: **Pass** (IK-I7, IK-I8 Info open: percent-encoded hosts, leading-zero ports, trailing slash after the variant) |
+| 2026-11-08 | Unreleased (1.14.1): IK-I7 (percent-encoded hosts, leading-zero ports) and IK-I8 (one trailing slash) hardening in `HostSchemes` and `host.ts` | Delta pending |
 
 **2026-10-30 — Pass (good)** after remediation (REQ-SEC-004). Method: independent read-only review of `src/` (PHP
 renderer, form type, Twig, CSP) and the TypeScript editor, focused on stored XSS, URL schemes, ReDoS, information

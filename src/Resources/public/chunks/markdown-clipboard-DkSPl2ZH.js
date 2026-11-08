@@ -1,6 +1,6 @@
 import { A as e, C as t, F as n, Ot as r, St as i, bt as a, wt as o, xt as s } from "./lib-9QpRoHAM.js";
 import { u as c } from "./lib-DaU_YkmU.js";
-import { i as l, t as u } from "./host-C5TPKngH.js";
+import { i as l, t as u } from "./host-ziOApxcE.js";
 import { i as d } from "./runtime-DBQRQGPT.js";
 // src/Resources/assets/src/commands/markdown-clipboard.ts
 var f = /* @__PURE__ */ new Set([
