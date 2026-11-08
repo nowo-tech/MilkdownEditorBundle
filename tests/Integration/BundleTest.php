@@ -15,6 +15,7 @@ use Nowo\MilkdownEditorBundle\Twig\MilkdownViewTwig;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Asset\Packages;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -289,8 +290,17 @@ final class BundleTest extends TestCase
         $this->setEnv('MILKDOWN_TEST_HOST', 'https://evil.example/files');
         $container = $this->container($this->envHostsConfig());
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('host_url_hosts accepts host names with an optional port');
+        $this->expectExceptionMessage('host_url_hosts entry #2 is not a host name with an optional port');
         $container->get(MarkdownRendererInterface::class);
+    }
+
+    /** Audit IK-I2: a placeholder for the whole list fails the container build with a clear message. */
+    #[Test]
+    public function aWholeListPlaceholderIsRefusedClearly(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('write one placeholder per entry');
+        $this->container(['markdown' => ['host_url_hosts' => '%env(json:MILKDOWN_TEST_HOSTS)%']]);
     }
 
     /** @return array<string, mixed> */

@@ -47,8 +47,15 @@ nowo_milkdown_editor:
 ```
 
 The resolved value must be `host` or `host:port` (`key:host:url:` drops the port; write a literal `host:port` entry if
-links use one). An invalid value makes building the renderer throw an `InvalidArgumentException`; an empty one adds no
-host.
+links use one). An invalid value makes building the renderer throw an `InvalidArgumentException` that names the entry
+(not its value); an empty or `null` one adds no host. Use one placeholder per entry: a placeholder for the whole list
+(`'%env(json:HOSTS)%'`) is refused when the container compiles.
+
+URL matching is stricter in your favour (audit IJ-I10): `https://host:443/files/…`, `https://host./files/…`,
+`https://user@host/files/…`, `/./files/…`, `/x/../files/…` and `/files//…` now match your `host_url_patterns` like
+the plain form, so the resolver decides about them too. If a host renderer of yours matched such forms itself only to
+hide them, Milkdown now covers them for the hosts in `host_url_hosts` and the request's host; list every host your links
+use.
 
 ## To 1.13.0
 

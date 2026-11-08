@@ -19,6 +19,7 @@ use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
 
+use function is_array;
 use function is_string;
 use function json_encode;
 use function preg_match;
@@ -103,15 +104,21 @@ final class NowoMilkdownEditorExtension extends Extension implements PrependExte
      * 1.14: `host_url_hosts` with its literal entries lower-cased and validated; env placeholders
      * (`%env(key:host:url:DEFAULT_URI)%`) are kept as they are, and {@see HostSchemes} validates them once resolved.
      *
-     * @param array<mixed> $hosts The processed entries
+     * Audit IK-I2: a placeholder for the whole list (`host_url_hosts: '%env(json:HOSTS)%'`) is refused with a clear
+     * message: write one placeholder per entry.
+     *
+     * @param mixed $hosts The processed entries
      * @param ContainerBuilder $container The container being built (knows the env placeholders)
      *
-     * @throws InvalidConfigurationException When a literal entry is not a host name with an optional port
+     * @throws InvalidConfigurationException When the node is not a list or a literal entry is not a host name with an optional port
      *
      * @return list<mixed>
      */
-    public static function urlHosts(array $hosts, ContainerBuilder $container): array
+    public static function urlHosts(mixed $hosts, ContainerBuilder $container): array
     {
+        if (!is_array($hosts)) {
+            throw new InvalidConfigurationException(sprintf('Invalid configuration for path "%s.markdown.host_url_hosts": expected a list of hosts; a placeholder for the whole list (%%env(json:…)%%, %%env(csv:…)%%) is not supported, write one placeholder per entry.', Configuration::ALIAS));
+        }
         $out = [];
         foreach ($hosts as $host) {
             $envs = [];

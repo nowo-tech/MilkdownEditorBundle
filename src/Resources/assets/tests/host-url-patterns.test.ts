@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { hostUrl, isHostUrlPattern, literalPrefix, matchHostUrl, targetUrl, urlCandidate, withUrlPatterns } from '../src/host';
+import { hostUrl, isHostUrlPattern, literalPrefix, matchHostUrl, normalizeAuthority, removeDotSegments, targetUrl, urlCandidate, withUrlPatterns } from '../src/host';
 import { fileCard } from '../src/dialect/file-card';
 import { imageSource } from '../src/nodes/image';
 import { pageHostConfig } from '../src/options';
@@ -121,9 +121,54 @@ describe('host URL patterns (1.13)', () => {
       expect(matchHostUrl(url, s), url).toEqual(ref);
     }
     expect(matchHostUrl(`https://evil.example/files/${UUID}/original`, s)).toBeNull();
-    expect(matchHostUrl(`https://u@beacon.example/files/${UUID}/original`, s)).toBeNull();
     expect(urlCandidate('https://beacon.example', ['beacon.example'])).toBe('/');
     expect(urlCandidate('/files/%E0%A4%A/x')).toBe('/files/%E0%A4%A/x');
+  });
+
+  it('reads forms a browser normalises as the own URL (audit IJ-I10)', () => {
+    const s = withUrlPatterns(schemes, [{ pattern: FILES, scheme: 'app-file' }], ['beacon.example', 'alt.example:443', 'port.example:8080']);
+    const ref = { reference: `app-file:${UUID}`, url: 'written' };
+    const file = `/files/${UUID}/original`;
+    for (const url of [
+      `https://beacon.example:443${file}`,
+      `http://beacon.example:80${file}`,
+      `//beacon.example:443${file}`,
+      `//beacon.example:80${file}`,
+      `https://beacon.example.${file}`,
+      `https://beacon.example.:443${file}`,
+      `https://u@beacon.example${file}`,
+      `https://user:pass@evil.example@beacon.example${file}`,
+      `https://alt.example${file}`,
+      `https://port.example:8080${file}`,
+      `${location.protocol}//${location.hostname}.${location.port ? ':' + location.port : ''}${file}`,
+      `/./files/${UUID}/original`,
+      `/x/../files/${UUID}/original`,
+      `/files/x/../${UUID}/./original`,
+      `/%2e/files/${UUID}/%2E%2E/${UUID}/original`,
+      `//beacon.example//files//${UUID}//original`,
+      `/files//${UUID}/original`,
+      `https://beacon.example/../files/${UUID}/original`,
+    ]) {
+      expect(matchHostUrl(url, s), url).toEqual(ref);
+    }
+    for (const url of [
+      `https://beacon.example:8443${file}`,
+      `http://beacon.example:443${file}`,
+      `https://beacon.example@evil.example${file}`,
+      `https://port.example${file}`,
+      `//:443${file}`,
+      `//a:b:c${file}`,
+      `https://evil.example/../files/${UUID}/original`,
+    ]) {
+      expect(matchHostUrl(url, s), url).toBeNull();
+    }
+    expect(removeDotSegments('/..')).toBe('/');
+    expect(removeDotSegments('/a/..')).toBe('/');
+    expect(removeDotSegments('/a/b/.')).toBe('/a/b/');
+    expect(removeDotSegments('/a/b/../c')).toBe('/a/c');
+    expect(normalizeAuthority('u@[::1]:443')).toBe('[::1]');
+    expect(normalizeAuthority('[::1]:8443', 'https')).toBe('[::1]:8443');
+    expect(normalizeAuthority('a:b:c')).toBe('a:b:c');
   });
 
   describe('editor', () => {

@@ -164,8 +164,14 @@ nowo_milkdown_editor:
 `host_url_hosts` entries are `host` or `host:port`, compared in lower case. Since 1.14 an entry may be an env placeholder,
 e.g. `'%env(key:host:url:DEFAULT_URI)%'` (the URL's host, without its port). Literal entries are checked when the
 container compiles; a placeholder is checked once resolved, when the container builds `HostSchemes`: a value that is not a
-host name with an optional port throws an `InvalidArgumentException` (the renderer and the editor's Twig functions cannot
-be built), an empty value adds no host.
+host name with an optional port throws an `InvalidArgumentException` naming the entry, not its value (the renderer and
+the editor's Twig functions cannot be built); an empty or `null` value adds no host. Write one placeholder per entry: a
+placeholder for the whole list (`'%env(json:HOSTS)%'`) is refused at compile time.
+
+Since 1.14 (audit IJ-I10) the host of an absolute URL is compared without a trailing dot, without the scheme's default
+port (`:443` for https, `:80` for http, either for `//`) and without userinfo, and a path has its repeated slashes
+collapsed and its dot segments (`.`, `..`, `%2e`) removed after decoding, so `https://app.example.com:443/files/…`,
+`https://user@app.example.com/files/…` and `/x/../files/…` match like `/files/…`.
 
 Before matching, a URL is normalised: trimmed, its query and fragment dropped, its path percent-decoded once and its uuids
 lower-cased; an absolute or protocol-relative URL of `host_url_hosts` or of the current request's host is read as its path

@@ -38,12 +38,25 @@ All notable changes to this project are documented in this file. The format foll
   typed as arrays too, so the entries are a variable prototype) and `HostSchemes` validates and lower-cases the resolved
   value when the container builds it. A resolved value
   that is not `host` or `host:port` throws `InvalidArgumentException` naming the key and the value, so the renderer, the
-  form type and the Twig functions fail to build instead of silently matching other URLs; a value that resolves to an
-  empty string adds no host. Duplicates are dropped. The host pattern is shared as `HostSchemes::HOST_PATTERN` and no
+  form type and the Twig functions fail to build instead of silently matching other URLs; the message names the entry
+  (`entry #2`), never its value, which could be a DSN (audit IK-I1). A value that resolves to an empty string or to
+  `null` (`%env(default::X)%` with `X` unset) adds no host (IK-I3). A placeholder for the whole list
+  (`host_url_hosts: '%env(json:HOSTS)%'`) is refused with an `InvalidConfigurationException` asking for one placeholder
+  per entry (IK-I2). Duplicates are dropped. The host pattern is shared as `HostSchemes::HOST_PATTERN` and no
   longer accepts a trailing newline.
+
+- **URL normalisation before matching `host_url_patterns` (audit IJ-I10)**, in `HostSchemes::candidate()` and the
+  editor's `urlCandidate()`: the host is compared without a trailing dot, without the scheme's default port (`:443`
+  for https, `:80` for http, either for `//`) and without userinfo (`https://user@own.host/…` is read as the own host's
+  path, so it goes through the resolver); a path has its repeated slashes collapsed and its dot segments (`.`, `..`,
+  also `%2e`) removed after the single percent-decoding (RFC 3986 §5.2.4). New helpers
+  `HostSchemes::normalizeAuthority()` and `HostSchemes::removeDotSegments()`.
 
 ### Security
 
+- Crafted URLs that a browser normalises to an own file URL (default port, trailing dot, userinfo, dot segments,
+  repeated slashes) are now host values too, so a refused file is hidden in these forms as well (audit IJ-I10). They
+  only ever make more URLs go through the resolver.
 - Placeholders do not weaken `host_url_hosts`: a host only widens which absolute URLs are read as host values (more URLs
   go through the resolver and can be hidden), never what a viewer sees, and an invalid resolved value throws instead of
   being matched.

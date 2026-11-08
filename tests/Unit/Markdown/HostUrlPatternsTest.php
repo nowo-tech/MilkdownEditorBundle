@@ -26,6 +26,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 use function str_repeat;
+use function strlen;
 
 use const JSON_THROW_ON_ERROR;
 
@@ -223,12 +224,62 @@ final class HostUrlPatternsTest extends TestCase
         ] as $url) {
             self::assertSame(['app-file:' . self::UUID, 'written'], $schemes->matchUrl($url), $url);
         }
-        foreach (['https://evil.example/files/' . self::UUID . '/original', 'https://user@beacon.example/files/' . self::UUID . '/original', 'https://beacon.example', '?x', ''] as $url) {
+        foreach (['https://evil.example/files/' . self::UUID . '/original', 'https://beacon.example', '?x', ''] as $url) {
             self::assertNull($schemes->matchUrl($url), $url);
         }
         self::assertSame('/', $schemes->candidate('https://beacon.example'));
         self::assertSame(['beacon.example'], $schemes->urlHosts());
         self::assertNull((new HostSchemes(self::SCHEMES, [], $this->written()))->matchUrl('https://beacon.example/files/' . self::UUID . '/original'));
+    }
+
+    /** 1.14 (audit IJ-I10): forms a browser normalises to an own URL are read as that URL. */
+    #[Test]
+    public function browserNormalisedFormsMatchToo(): void
+    {
+        $requests = new RequestStack([Request::create('https://wiki.example:8443/x')]);
+        $schemes  = new HostSchemes(self::SCHEMES, [], $this->written(), ['beacon.example', 'alt.example:443', 'port.example:8080'], $requests);
+        $file     = '/files/' . self::UUID . '/original';
+        foreach ([
+            'https://beacon.example:443' . $file,
+            'http://beacon.example:80' . $file,
+            '//beacon.example:443' . $file,
+            '//beacon.example:80' . $file,
+            'https://beacon.example.' . $file,
+            'https://beacon.example.:443' . $file,
+            'https://user@beacon.example' . $file,
+            'https://user:pass@evil.example@beacon.example' . $file,
+            'https://alt.example' . $file,
+            'https://port.example:8080' . $file,
+            'https://wiki.example:8443' . $file,
+            'https://wiki.example.:8443' . $file,
+            '/./files/' . self::UUID . '/original',
+            '/x/../files/' . self::UUID . '/original',
+            '/files/x/../' . self::UUID . '/./original',
+            '/%2e/files/' . self::UUID . '/%2E%2E/' . self::UUID . '/original',
+            '//beacon.example//files//' . self::UUID . '//original',
+            '/files//' . self::UUID . '/original',
+            'https://beacon.example/../files/' . self::UUID . '/original',
+        ] as $url) {
+            self::assertSame(['app-file:' . self::UUID, 'written'], $schemes->matchUrl($url), $url);
+        }
+        foreach ([
+            'https://beacon.example:8443' . $file,
+            'http://beacon.example:443' . $file,
+            'https://beacon.example@evil.example' . $file,
+            'https://port.example' . $file,
+            '//:443' . $file,
+            '//a:b:c' . $file,
+            'https://evil.example/../files/' . self::UUID . '/original',
+        ] as $url) {
+            self::assertNull($schemes->matchUrl($url), $url);
+        }
+        self::assertSame('/', HostSchemes::removeDotSegments('/..'));
+        self::assertSame('/', HostSchemes::removeDotSegments('/a/..'));
+        self::assertSame('/a/b/', HostSchemes::removeDotSegments('/a/b/.'));
+        self::assertSame('/a/c', HostSchemes::removeDotSegments('/a/b/../c'));
+        self::assertSame('[::1]', HostSchemes::normalizeAuthority('u@[::1]:443'));
+        self::assertSame('[::1]:8443', HostSchemes::normalizeAuthority('[::1]:8443', 'https'));
+        self::assertSame('a:b:c', HostSchemes::normalizeAuthority('a:b:c'));
     }
 
     /** 1.14: hosts from env placeholders are validated and lower-cased when the service is built. */
@@ -237,17 +288,20 @@ final class HostUrlPatternsTest extends TestCase
     {
         $schemes = new HostSchemes(self::SCHEMES, [], $this->written(), ['Beacon.Example:8443', '', 'beacon.example:8443', 'wiki.example']);
         self::assertSame(['beacon.example:8443', 'wiki.example'], $schemes->urlHosts());
-        self::assertSame([], HostSchemes::normalizeUrlHosts(['']));
-        foreach (['https://beacon.example', 'beacon.example/x', 'user@beacon.example', '-beacon.example', "beacon.example\n", ' beacon.example', 'beacon.example:123456'] as $invalid) {
+        self::assertSame([], HostSchemes::normalizeUrlHosts(['', null]));
+        foreach (['https://beacon.example', 'beacon.example/x', 'user@beacon.example', '-beacon.example', "beacon.example\n", ' beacon.example', 'beacon.example:123456', 'mysql://app:s3cret@db/app'] as $invalid) {
             try {
-                HostSchemes::normalizeUrlHosts([$invalid]);
+                HostSchemes::normalizeUrlHosts(['ok.example', $invalid]);
                 self::fail('Accepted ' . $invalid);
             } catch (InvalidArgumentException $e) {
-                self::assertStringContainsString('host_url_hosts accepts host names', $e->getMessage());
+                // Audit IK-I1: the entry is named, its value (maybe a DSN) never shown.
+                self::assertStringContainsString('host_url_hosts entry #2 is not a host name', $e->getMessage());
+                self::assertStringContainsString('a string of ' . strlen($invalid) . ' characters', $e->getMessage());
+                self::assertStringNotContainsString($invalid, $e->getMessage());
             }
         }
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('got int.');
+        $this->expectExceptionMessage('entry #1 is not a host name with an optional port, without scheme or path (got int; the value is not shown).');
         new HostSchemes(self::SCHEMES, [], [], [8443]);
     }
 

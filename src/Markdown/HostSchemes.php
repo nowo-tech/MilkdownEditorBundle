@@ -9,20 +9,25 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 use function array_key_exists;
+use function array_pop;
+use function count;
 use function explode;
 use function get_debug_type;
+use function implode;
 use function in_array;
 use function is_string;
 use function preg_match;
 use function preg_replace_callback;
 use function rawurldecode;
 use function rawurlencode;
+use function rtrim;
 use function sprintf;
 use function str_contains;
 use function str_replace;
 use function str_starts_with;
 use function strcspn;
 use function strlen;
+use function strrpos;
 use function strtolower;
 use function substr;
 use function trim;
@@ -101,12 +106,13 @@ final readonly class HostSchemes
     }
 
     /**
-     * 1.14: `host_url_hosts` as matched — lower-cased, without empty entries. The extension validates literal entries at compile time;
-     * entries written as env placeholders (`%env(key:host:url:DEFAULT_URI)%`) are only known once the container resolves
-     * them, so they are checked here. An entry that resolves to an empty string adds no host (an unset optional
-     * variable); any other value that is not `host` or `host:port` throws, so a misconfiguration fails loudly when the
-     * service is built instead of silently matching less or more. Hosts only ever widen what is read as a host value
-     * (more URLs go through the resolver), never what a viewer sees.
+     * 1.14: `host_url_hosts` as matched — lower-cased, without empty entries. The extension validates literal entries at
+     * compile time; entries written as env placeholders (`%env(key:host:url:DEFAULT_URI)%`) are only known once the
+     * container resolves them, so they are checked here. An entry that resolves to an empty string or to null adds no
+     * host (an unset optional variable, audit IK-I3); any other value that is not `host` or `host:port` throws, so a
+     * misconfiguration fails loudly when the service is built instead of silently matching less or more. The message
+     * names the entry, never its value (it could be a DSN with credentials, audit IK-I1). Hosts only ever widen what is
+     * read as a host value (more URLs go through the resolver), never what a viewer sees.
      *
      * @param array<mixed> $hosts The configured or resolved entries
      *
@@ -116,14 +122,16 @@ final readonly class HostSchemes
      */
     public static function normalizeUrlHosts(array $hosts): array
     {
-        $out = [];
+        $out   = [];
+        $index = 0;
         foreach ($hosts as $host) {
-            if ($host === '') {
+            ++$index;
+            if ($host === '' || $host === null) {
                 continue;
             }
             $normalized = is_string($host) ? strtolower($host) : null;
             if ($normalized === null || preg_match(self::HOST_PATTERN, $normalized) !== 1) {
-                throw new InvalidArgumentException(sprintf('nowo_milkdown_editor.markdown.host_url_hosts accepts host names with an optional port, without scheme or path; got %s.', is_string($host) ? '"' . $host . '"' : get_debug_type($host)));
+                throw new InvalidArgumentException(sprintf('nowo_milkdown_editor.markdown.host_url_hosts entry #%d is not a host name with an optional port, without scheme or path (got %s; the value is not shown).', $index, is_string($host) ? 'a string of ' . strlen($host) . ' characters' : get_debug_type($host)));
             }
             if (!in_array($normalized, $out, true)) {
                 $out[] = $normalized;
@@ -243,32 +251,98 @@ final readonly class HostSchemes
      * 1.13 (audit IJ-I3): the string `host_url_patterns` are matched against. Query and fragment are dropped, the path is
      * percent-decoded once and uuids are lower-cased; `https://<host>/…` and `//<host>/…` read as their path when the host
      * is one of `host_url_hosts` or the current request's host. Other absolute URLs keep their origin.
+     *
+     * 1.14 (audit IJ-I10): forms a browser normalises to the same URL match too. The host is compared without a trailing
+     * dot and without the scheme's default port (`:443` for https, `:80` for http, either for `//`), and with any
+     * userinfo (`user@`) left out: such a URL is read as the host's path, so it goes through the resolver and is hidden
+     * unless visible. A path (written as one, or an own host's) has its repeated slashes collapsed and its dot segments
+     * (`.`, `..`, also percent-encoded) removed after the decoding (RFC 3986 §5.2.4).
      */
     public function candidate(string $url): string
     {
-        $url = trim($url, " \t\n\r\f\v");
-        $cut = strcspn($url, '?#');
-        $url = substr($url, 0, $cut);
-        if (preg_match('~^(?:https?:)?//([^/\\\\]*)(.*)$~i', $url, $m) === 1 && $this->isOwnHost(strtolower($m[1]))) {
-            $url = $m[2] === '' ? '/' : $m[2];
+        $url  = trim($url, " \t\n\r\f\v");
+        $cut  = strcspn($url, '?#');
+        $url  = substr($url, 0, $cut);
+        $path = str_starts_with($url, '/') && !str_starts_with($url, '//');
+        if (preg_match('~^(?:(https?):)?//([^/\\\\]*)(.*)$~i', $url, $m) === 1 && $this->isOwnHost(strtolower($m[2]), strtolower($m[1]))) {
+            $url  = $m[3] === '' ? '/' : $m[3];
+            $path = true;
         }
         $url = rawurldecode($url);
+        if ($path) {
+            $url = self::removeDotSegments((string) preg_replace('~/{2,}~', '/', $url));
+        }
 
         return (string) preg_replace_callback('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i', static fn (array $u): string => strtolower($u[0]), $url);
     }
 
-    /** Whether an authority (`host[:port]`, lower case) is this application's: `host_url_hosts` or the request's host. */
-    private function isOwnHost(string $authority): bool
+    /**
+     * 1.14 (audit IJ-I10): RFC 3986 §5.2.4 `remove_dot_segments` for a path that starts with `/`.
+     */
+    public static function removeDotSegments(string $path): string
     {
-        if ($authority === '' || str_contains($authority, '@')) {
+        $segments = explode('/', $path);
+        $last     = count($segments) - 1;
+        $out      = [];
+        foreach ($segments as $index => $segment) {
+            if ($segment === '.' || $segment === '..') {
+                if ($segment === '..' && count($out) > 1) {
+                    array_pop($out);
+                }
+                if ($index === $last) {
+                    $out[] = '';
+                }
+                continue;
+            }
+            $out[] = $segment;
+        }
+
+        return implode('/', $out);
+    }
+
+    /**
+     * 1.14 (audit IJ-I10): an authority as compared with the own hosts — lower case, without userinfo, without a trailing
+     * dot on the host and without the scheme's default port (`:443` for https, `:80` for http, either without scheme).
+     *
+     * @param string $authority `[userinfo@]host[:port]`, lower case
+     * @param string $scheme `https`, `http` or `` (protocol-relative)
+     */
+    public static function normalizeAuthority(string $authority, string $scheme = ''): string
+    {
+        $at = strrpos($authority, '@');
+        if ($at !== false) {
+            $authority = substr($authority, $at + 1);
+        }
+        // A host (or a bracketed IPv6 literal) and an optional port; anything else is compared as written.
+        if (preg_match('~^(\[[^\]]*\]|[^:]*)(?::(\d*))?$~D', $authority, $m) !== 1) {
+            return $authority;
+        }
+        [$authority, $port] = [$m[1], $m[2] ?? ''];
+        $host               = rtrim($authority, '.');
+        $default            = match ($scheme) {
+            'https' => ['443'],
+            'http'  => ['80'],
+            default => ['443', '80'],
+        };
+
+        return $port === '' || in_array($port, $default, true) ? $host : $host . ':' . $port;
+    }
+
+    /** Whether an authority (lower case) is this application's: `host_url_hosts` or the request's host (1.14: normalised). */
+    private function isOwnHost(string $authority, string $scheme): bool
+    {
+        $normalized = self::normalizeAuthority($authority, $scheme);
+        if ($normalized === '' || str_starts_with($normalized, ':')) {
             return false;
         }
-        if (in_array($authority, $this->urlHosts, true)) {
-            return true;
+        foreach ($this->urlHosts as $host) {
+            if ($host === $normalized || self::normalizeAuthority($host, $scheme) === $normalized) {
+                return true;
+            }
         }
         $request = $this->requests?->getCurrentRequest();
 
-        return $request instanceof Request && strtolower($request->getHttpHost()) === $authority;
+        return $request instanceof Request && self::normalizeAuthority(strtolower($request->getHttpHost()), $request->getScheme()) === $normalized;
     }
 
     /**

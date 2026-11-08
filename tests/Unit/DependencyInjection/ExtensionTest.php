@@ -165,5 +165,6 @@ final class ExtensionTest extends TestCase
                 self::assertStringContainsString('host_url_hosts accepts host names with an optional port', $e->getMessage());
             }
         }
+
     }
 }
