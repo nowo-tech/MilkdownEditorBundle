@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format foll
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.13.0] - 2026-11-08](#1130---2026-11-08)
 - [[1.12.0] - 2026-11-07](#1120---2026-11-07)
 - [[1.11.0] - 2026-11-07](#1110---2026-11-07)
 - [[1.10.0] - 2026-11-07](#1100---2026-11-07)
@@ -26,10 +27,12 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-11-08
+
 Plain URLs can be host references, and a host resolver can see the render's context. Requested by Beacon on 2026-11-08
 after the WikiBundle 1.24 REST API audit (spec 218, Appendix IF): wiki pages reference files as `/files/<uuid>/original`,
 so the API's reader view returned their uuid and alt text even when the token's *where* excluded the file. Nothing changes
-for hosts that leave the new keys empty. **Audit: re-verification pending.**
+for hosts that leave the new keys empty. Audit: Appendix IJ, Pass after the fixes (Delta IJ, 2026-11-08).
 
 ### Added
 

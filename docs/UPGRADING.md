@@ -3,7 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
-- [To 1.13.0 (unreleased)](#to-1130-unreleased)
+- [To 1.13.0](#to-1130)
 - [To 1.12.0](#to-1120)
 - [To 1.11.0](#to-1110)
 - [To 1.10.0](#to-1100)
@@ -34,7 +34,7 @@ Public API covered by Semantic Versioning: the configuration tree, profile keys,
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
 
-## To 1.13.0 (unreleased)
+## To 1.13.0
 
 From **1.12.0**: `composer update nowo-tech/milkdown-editor-bundle`, then run `assets:install`. Nothing changes until you set
 the new keys:

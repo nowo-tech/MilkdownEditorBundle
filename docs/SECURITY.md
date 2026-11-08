@@ -325,8 +325,8 @@ host's token in `X-CSRF-Token`; the host validates it.
 
 | Date | Change | Grade |
 |------|--------|-------|
-| 2026-11-08 | 1.13 (unreleased): `host_url_patterns`, `ContextualHostFileResolverInterface`, `host_refused_links` (Beacon request after WikiBundle Appendix IF) | Appendix IJ at `a2560e7`: **Pass-Low** (IJ-L1; IJ-I1 to IJ-I3) |
-| 2026-11-08 | IJ fixes: fail closed on PCRE errors and long URLs (IJ-L1), stricter patterns (IJ-I1), one classification per URL and document (IJ-I2), URL normalisation and `host_url_hosts` (IJ-I3) | **Re-verification pending** |
+| 2026-11-08 | 1.13.0: `host_url_patterns`, `ContextualHostFileResolverInterface`, `host_refused_links` (Beacon request after WikiBundle Appendix IF) | Appendix IJ at `a2560e7`: **Pass-Low** (IJ-L1; IJ-I1 to IJ-I3) |
+| 2026-11-08 | IJ fixes: fail closed on PCRE errors and long URLs (IJ-L1), stricter patterns (IJ-I1), one classification per URL and document (IJ-I2), URL normalisation and `host_url_hosts` (IJ-I3) | Delta IJ at `51f3606`: **Pass** (IJ-I10 Info: crafted URLs that browsers normalise — default port, userinfo, dot segments — still match no pattern) |
 
 **2026-10-30 — Pass (good)** after remediation (REQ-SEC-004). Method: independent read-only review of `src/` (PHP
 renderer, form type, Twig, CSP) and the TypeScript editor, focused on stored XSS, URL schemes, ReDoS, information
