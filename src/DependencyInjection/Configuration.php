@@ -17,13 +17,18 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 
 use function array_filter;
+use function array_key_exists;
 use function implode;
 use function in_array;
 use function is_array;
 use function is_string;
 use function preg_match;
 use function sprintf;
+use function str_contains;
+use function str_ends_with;
+use function str_starts_with;
 use function strlen;
+use function substr_count;
 
 /**
  * Configuration tree of `nowo_milkdown_editor` (REQ-CFG-001 / REQ-SF-006).
@@ -38,6 +43,12 @@ use function strlen;
  */
 final class Configuration implements ConfigurationInterface
 {
+    /** 1.13: the longest `host_url_patterns` pattern. */
+    public const MAX_HOST_URL_PATTERN_LENGTH = 300;
+
+    /** 1.13: characters a `host_url_patterns` pattern may escape with `\` (read the same way by PCRE and RegExp). */
+    public const HOST_URL_PATTERN_ESCAPES = 'dDwWsS./-_~+?*()[]{}|^$\\';
+
     /** Root key of the bundle configuration and name of its asset package. */
     public const ALIAS = 'nowo_milkdown_editor';
 
@@ -209,6 +220,28 @@ final class Configuration implements ConfigurationInterface
                         })
                     ->end()
                 ->end()
+                ->arrayNode('host_url_patterns')
+                    ->info('1.13: plain URLs that are host references too, e.g. {pattern: "^/files/(?<id>[0-9a-f-]{36})/(original|preview)$", scheme: app-file}. A matching image src, link href or file card href goes through the same HostFileResolverInterface as app-file:<id>: refused, it renders *Content not visible* without its URL, alt text or name. url: written (default) keeps the author\'s URL when the viewer may see the file; resolved replaces it with the resolver\'s URL. Patterns: anchored (^…$), one named group (?<id>…), at most ' . self::MAX_HOST_URL_PATTERN_LENGTH . ' printable ASCII characters, no "#", groups (?: or (?<id> only, escapes \\d \\w \\s (and upper case) or of punctuation; the scheme must be one of host_schemes.')
+                    ->arrayPrototype()
+                        ->children()
+                            ->scalarNode('pattern')->isRequired()->cannotBeEmpty()->end()
+                            ->scalarNode('scheme')->isRequired()->cannotBeEmpty()->end()
+                            ->enumNode('url')->values([HostSchemes::URL_WRITTEN, HostSchemes::URL_RESOLVED])->defaultValue(HostSchemes::URL_WRITTEN)->end()
+                        ->end()
+                    ->end()
+                    ->defaultValue([])
+                    ->validate()
+                        ->ifTrue(static fn (array $v): bool => self::invalidHostUrlPatterns($v) !== null)
+                        ->then(static function (array $v): never {
+                            throw new InvalidConfigurationException((string) self::invalidHostUrlPatterns($v));
+                        })
+                    ->end()
+                ->end()
+                ->enumNode('host_refused_links')
+                    ->info('1.13: a link with a host scheme (app-file:<id>) the resolver refuses keeps its text without a target (text, default, as 1.9) or becomes *Content not visible* (hidden). Links matched by host_url_patterns are always hidden.')
+                    ->values(['text', 'hidden'])
+                    ->defaultValue('text')
+                ->end()
                 ->arrayNode('host_image_origins')
                     ->info('1.9: origins (https://cdn.example.com) host images may load from while allow_remote_images is off. Any other remote URL from a template or a resolver renders as a link. Author images never use this list.')
                     ->scalarPrototype()->end()
@@ -237,9 +270,88 @@ final class Configuration implements ConfigurationInterface
                         ->thenInvalid('Mark colours must be lower-case tokens (%s).')
                     ->end()
                 ->end()
+            ->end()
+            ->validate()
+                ->ifTrue(static fn (array $v): bool => self::unknownUrlPatternScheme($v) !== null)
+                ->then(static function (array $v): never {
+                    throw new InvalidConfigurationException(sprintf('The host_url_patterns scheme "%s" is not one of host_schemes.', (string) self::unknownUrlPatternScheme($v)));
+                })
             ->end();
 
         return $node;
+    }
+
+    /**
+     * 1.13: the scheme of a `host_url_patterns` entry that `host_schemes` does not declare, or null.
+     *
+     * @param array<mixed> $markdown The processed `markdown` node
+     */
+    private static function unknownUrlPatternScheme(array $markdown): ?string
+    {
+        $schemes = is_array($markdown['host_schemes'] ?? null) ? $markdown['host_schemes'] : [];
+        foreach (is_array($markdown['host_url_patterns'] ?? null) ? $markdown['host_url_patterns'] : [] as $entry) {
+            $scheme = is_array($entry) && is_string($entry['scheme'] ?? null) ? $entry['scheme'] : '';
+            if (!array_key_exists($scheme, $schemes)) {
+                return $scheme;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 1.13: the error of a `host_url_patterns` value, or null when it is valid. A pattern is matched by PCRE (PHP) and by
+     * the browser's RegExp (editor), so only the subset both read the same way is accepted.
+     *
+     * @param array<mixed> $patterns
+     */
+    public static function invalidHostUrlPatterns(array $patterns): ?string
+    {
+        foreach ($patterns as $entry) {
+            $pattern = is_array($entry) ? ($entry['pattern'] ?? null) : null;
+            $scheme  = is_array($entry) ? ($entry['scheme'] ?? null) : null;
+            if (!is_string($scheme) || preg_match(HostSchemes::SCHEME_PATTERN, $scheme) !== 1) {
+                return sprintf('Invalid host_url_patterns scheme "%s".', is_string($scheme) ? $scheme : '');
+            }
+            $error = is_string($pattern) ? self::invalidHostUrlPattern($pattern) : 'it must be a string';
+            if ($error !== null) {
+                return sprintf('Invalid host_url_patterns pattern "%s": %s.', is_string($pattern) ? $pattern : '', $error);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 1.13: why one `host_url_patterns` pattern is refused, or null.
+     */
+    private static function invalidHostUrlPattern(string $pattern): ?string
+    {
+        if (strlen($pattern) > self::MAX_HOST_URL_PATTERN_LENGTH || preg_match('/^[\x20-\x7e]+$/', $pattern) !== 1 || str_contains($pattern, '#')) {
+            return 'at most ' . self::MAX_HOST_URL_PATTERN_LENGTH . ' printable ASCII characters, without "#"';
+        }
+        preg_match_all('/\\\\(.?)/s', $pattern, $escapes);
+        foreach ($escapes[1] as $escaped) {
+            if ($escaped === '' || !str_contains(self::HOST_URL_PATTERN_ESCAPES, $escaped)) {
+                return 'only the escapes \d \w \s (and upper case) and of punctuation are accepted';
+            }
+        }
+        // Without its escapes: `\$` at the end or `\(?` are not an anchor or a group.
+        $bare = (string) preg_replace('/\\\\./s', '', $pattern);
+        if (!str_starts_with($bare, '^') || !str_ends_with($bare, '$')) {
+            return 'it must be anchored with ^ and $';
+        }
+        if (substr_count($bare, '(?<id>') !== 1) {
+            return 'it needs exactly one named group (?<id>…)';
+        }
+        if (preg_match('/\(\?(?!:|<id>)/', $bare) === 1) {
+            return 'only (?: and (?<id> groups are accepted (no lookaround, flags or other named groups)';
+        }
+        if (@preg_match('#' . $pattern . '#D', '') === false) {
+            return 'it is not a valid regular expression';
+        }
+
+        return null;
     }
 
     /**

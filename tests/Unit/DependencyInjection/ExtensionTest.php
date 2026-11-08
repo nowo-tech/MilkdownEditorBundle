@@ -12,6 +12,7 @@ use Nowo\MilkdownEditorBundle\Markdown\MilkdownMarkdownRenderer;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\AllowlistIconResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\FilePreviewResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\HostFileResolverInterface;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\RenderContextProviderInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TablerCatalog;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateFilePreviewResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateHostFileResolver;
@@ -19,6 +20,7 @@ use Nowo\MilkdownEditorBundle\Twig\MilkdownEditorTwig;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Reference;
@@ -119,9 +121,24 @@ final class ExtensionTest extends TestCase
         $schemes = $container->getDefinition(HostSchemes::class);
         self::assertSame(['app-file' => ['file' => '/f/{id}', 'image' => null, 'preview' => null]], $schemes->getArgument('$schemes'));
         self::assertSame(['https://cdn.example'], $schemes->getArgument('$imageOrigins'));
+        self::assertSame([], $schemes->getArgument('$urlPatterns'));
         self::assertSame('allow-downloads allow-popups', $container->getDefinition(MilkdownEditorTwig::class)->getArgument('$previewSandbox'));
         self::assertSame(500, $container->getDefinition(MilkdownEditorTwig::class)->getArgument('$maxPreviews'));
         self::assertSame(TemplateHostFileResolver::class, (string) $container->getAlias(HostFileResolverInterface::class));
         self::assertSame(TemplateFilePreviewResolver::class, (string) $container->getAlias(FilePreviewResolverInterface::class));
+    }
+
+    /** 1.13: the URL patterns reach HostSchemes; the renderer takes the host's render context provider when there is one. */
+    #[Test]
+    public function hostUrlPatternsAndTheRenderContextAreWired(): void
+    {
+        $container = new ContainerBuilder();
+        $patterns  = [['pattern' => '^/files/(?<id>[0-9a-f-]{36})/original$', 'scheme' => 'app-file', 'url' => 'written']];
+        (new NowoMilkdownEditorExtension())->load([['markdown' => ['host_schemes' => ['app-file' => ['file' => '/f/{id}']], 'host_url_patterns' => $patterns]]], $container);
+        self::assertSame($patterns, $container->getDefinition(HostSchemes::class)->getArgument('$urlPatterns'));
+        $context = $container->getDefinition(MilkdownMarkdownRenderer::class)->getArgument('$renderContext');
+        self::assertInstanceOf(Reference::class, $context);
+        self::assertSame(RenderContextProviderInterface::class, (string) $context);
+        self::assertSame(ContainerInterface::NULL_ON_INVALID_REFERENCE, $context->getInvalidBehavior());
     }
 }

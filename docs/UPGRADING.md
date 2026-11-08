@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [General procedure](#general-procedure)
+- [To 1.13.0 (unreleased)](#to-1130-unreleased)
 - [To 1.12.0](#to-1120)
 - [To 1.11.0](#to-1110)
 - [To 1.10.0](#to-1100)
@@ -32,6 +33,35 @@
 Public API covered by Semantic Versioning: the configuration tree, profile keys, form options, Twig filter / function
 names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialect, the resolver and directive
 interfaces and `window.NowoMilkdownEditor`.
+
+## To 1.13.0 (unreleased)
+
+From **1.12.0**: `composer update nowo-tech/milkdown-editor-bundle`, then run `assets:install`. Nothing changes until you set
+the new keys:
+
+- **Plain URLs as host references.** If your content links files by URL (`![plan](/files/<uuid>/preview)`), declare them so
+  your `HostFileResolverInterface` decides who sees them:
+
+  ```yaml
+  nowo_milkdown_editor:
+      markdown:
+          host_schemes:
+              app-file: { file: /files/{id}/original, image: /files/{id}/preview }
+          host_url_patterns:
+              - { pattern: '^/files/(?<id>[0-9a-f-]{36})/(?:original|preview)$', scheme: app-file }   # url: written
+  ```
+
+  With the default resolver (the templates) every match resolves, so the output does not change; give the scheme at least a
+  `file` or `image` template, or every match is refused. With your own resolver, a file it leaves out renders
+  *Content not visible* without its URL, alt text or name. Use `url: resolved` only if the resolver's URLs should replace
+  the written ones.
+- **Context.** To narrow by what is being rendered (a wiki space, an API token's reach), implement
+  `ContextualHostFileResolverInterface::resolveFilesInContext($references, ?object $context)` and alias
+  `RenderContextProviderInterface` to a service that returns the render's context (WikiBundle passes its own to its
+  renderer). Keep `resolveFiles()` for calls without a context.
+- **Refused scheme links.** `host_refused_links: hidden` drops their text too.
+- Constructors gained optional trailing arguments: `HostSchemes($schemes, $imageOrigins, $urlPatterns)`,
+  `DocumentProcessor(…, $renderContext, $hideRefusedLinks)`, `MilkdownMarkdownRenderer(…, $renderContext)`.
 
 ## To 1.12.0
 

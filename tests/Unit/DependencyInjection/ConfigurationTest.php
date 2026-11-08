@@ -14,6 +14,8 @@ use Symfony\Component\Config\Definition\Processor;
 
 final class ConfigurationTest extends TestCase
 {
+    private const FILES = '^/files/(?<id>[0-9a-f-]{36})/(?:original|preview)$';
+
     /**
      * @param array<string, mixed> $config
      *
@@ -125,6 +127,78 @@ final class ConfigurationTest extends TestCase
             'file_preview_sandbox' => ['allow-scripts', 'allow-downloads'],
         ]])['markdown'];
         self::assertSame(['app-file' => ['image' => '/f/{id}/i', 'file' => 'https://x.example/{id}', 'preview' => null]], $markdown['host_schemes'] ?? null);
+    }
+
+    /** 1.13: off by default; url defaults to written; the scheme must be declared. */
+    #[Test]
+    public function hostUrlPatterns(): void
+    {
+        $markdown = $this->process([])['markdown'];
+        self::assertSame([[], 'text'], [$markdown['host_url_patterns'] ?? null, $markdown['host_refused_links'] ?? null]);
+
+        $markdown = $this->process(['markdown' => [
+            'host_schemes'       => ['app-file' => ['file' => '/f/{id}']],
+            'host_url_patterns'  => [['pattern' => self::FILES, 'scheme' => 'app-file'], ['pattern' => '^https://cdn\\.example/(?<id>\\w+)\\$$', 'scheme' => 'app-file', 'url' => 'resolved']],
+            'host_refused_links' => 'hidden',
+        ]])['markdown'];
+        self::assertSame([['pattern' => self::FILES, 'scheme' => 'app-file', 'url' => 'written'], ['pattern' => '^https://cdn\\.example/(?<id>\\w+)\\$$', 'scheme' => 'app-file', 'url' => 'resolved']], $markdown['host_url_patterns'] ?? null);
+        self::assertSame('hidden', $markdown['host_refused_links'] ?? null);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function invalidHostUrlPatterns(): iterable
+    {
+        yield 'not anchored at the start' => ['/files/(?<id>[a-z]+)$'];
+        yield 'not anchored at the end' => ['^/files/(?<id>[a-z]+)'];
+        yield 'escaped dollar' => ['^/files/(?<id>[a-z]+)\\$'];
+        yield 'no id group' => ['^/files/([a-z]+)$'];
+        yield 'two id groups' => ['^/(?<id>a)/(?<id>b)$'];
+        yield 'lookahead' => ['^/(?=x)(?<id>a)$'];
+        yield 'lookbehind' => ['^/(?<!x)(?<id>a)$'];
+        yield 'inline flag' => ['^/(?i)(?<id>a)$'];
+        yield 'other named group' => ['^/(?<x>a)(?<id>a)$'];
+        yield 'python named group' => ['^/(?P<id>a)(?<id>a)$'];
+        yield 'unicode escape' => ['^/\\p{L}(?<id>a)$'];
+        yield 'back reference' => ['^/(?<id>a)\\1$'];
+        yield 'subject anchor' => ['^\\A/(?<id>a)$'];
+        yield 'dangling escape' => ['^/(?<id>a)$\\'];
+        yield 'hash' => ['^/#(?<id>a)$'];
+        yield 'not ascii' => ['^/é(?<id>a)$'];
+        yield 'too long' => ['^/' . str_repeat('a', 300) . '(?<id>a)$'];
+        yield 'invalid' => ['^/(?<id>[a)$'];
+    }
+
+    #[Test]
+    #[DataProvider('invalidHostUrlPatterns')]
+    public function invalidHostUrlPatternsAreRefused(string $pattern): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('Invalid host_url_patterns pattern');
+        $this->process(['markdown' => ['host_schemes' => ['app-file' => ['file' => '/f/{id}']], 'host_url_patterns' => [['pattern' => $pattern, 'scheme' => 'app-file']]]]);
+    }
+
+    #[Test]
+    public function aPatternNeedsADeclaredSchemeAndAValidName(): void
+    {
+        try {
+            $this->process(['markdown' => ['host_url_patterns' => [['pattern' => self::FILES, 'scheme' => 'app-file']]]]);
+            self::fail('An undeclared scheme was accepted.');
+        } catch (InvalidConfigurationException $e) {
+            self::assertStringContainsString('"app-file" is not one of host_schemes', $e->getMessage());
+        }
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('Invalid host_url_patterns scheme "App"');
+        $this->process(['markdown' => ['host_url_patterns' => [['pattern' => self::FILES, 'scheme' => 'App']]]]);
+    }
+
+    #[Test]
+    public function theValidatorsReadAnyValue(): void
+    {
+        self::assertSame('Invalid host_url_patterns scheme "".', Configuration::invalidHostUrlPatterns(['x']));
+        self::assertSame('Invalid host_url_patterns pattern "": it must be a string.', Configuration::invalidHostUrlPatterns([['scheme' => 'a', 'pattern' => 1]]));
+        self::assertNull(Configuration::invalidHostUrlPatterns([['scheme' => 'a', 'pattern' => self::FILES]]));
     }
 
     /**

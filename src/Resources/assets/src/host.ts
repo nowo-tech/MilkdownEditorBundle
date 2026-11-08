@@ -4,12 +4,18 @@
  * renderer's default resolver (`HostSchemes.php`): `image` for `<img src>`, `file` for links and file cards, `preview`
  * for previews. An id is 1–200 characters of `[A-Za-z0-9._~-]`, without a leading dot, URL-encoded into the template; a value of an
  * allow-listed scheme that is not a valid reference stays inert (no request, no link).
+ *
+ * 1.13: `markdown.host_url_patterns` (sent as `hostUrlPatterns`) make plain URLs host references too. A pattern with
+ * `url: 'resolved'` shows the scheme's template URL, as for `scheme:` values; with `url: 'written'` (default) the editor
+ * shows the author's URL as before (the renderer only uses the resolver to decide who sees it).
  */
 import { safeUrl } from './link-titles';
 
 export type HostTemplates = { image: string | null; file: string | null; preview: string | null };
 export type HostSchemes = Record<string, HostTemplates>;
 export type HostKind = keyof HostTemplates;
+/** 1.13: one `host_url_patterns` entry, compiled. */
+export type HostUrlPattern = { pattern: RegExp; scheme: string; url: 'written' | 'resolved' };
 
 /** ASCII whitespace only, like PHP's `\s` without `/u` (audit GX-I6). */
 const SCHEME = /^[ \t\n\v\f\r]*([a-z][a-z0-9+.-]{0,30}):/i;
@@ -20,6 +26,68 @@ export const RESERVED = new Set(['http', 'https', 'javascript', 'vbscript', 'dat
 /** A template the browser may request: a path with one leading `/`, or an http(s) URL, with `{id}` after the first `/` of the path (never in the authority). */
 const isTemplate = (value: unknown): value is string =>
   typeof value === 'string' && value.length <= 500 && /^(?:\/(?![/\\])|https?:\/\/[^/?#{}\\]+\/).*\{id\}/is.test(value);
+
+/** 1.13: the URL patterns of a `hostSchemes` object (see {@link withUrlPatterns}). */
+const URL_PATTERNS = new WeakMap<HostSchemes, HostUrlPattern[]>();
+
+/** The longest pattern and URL the renderer accepts (`Configuration::MAX_HOST_URL_PATTERN_LENGTH`, `HostSchemes::MAX_PATTERN_URL_LENGTH`). */
+const MAX_PATTERN_LENGTH = 300;
+const MAX_URL_LENGTH = 2048;
+const ID = /^[A-Za-z0-9_~-][A-Za-z0-9._~-]{0,199}$/;
+
+/**
+ * Whether a pattern is in the subset PCRE and RegExp read the same way (what the PHP configuration checked): printable
+ * ASCII without `#`, at most 300 characters, anchored with `^` and `$`, one `(?<id>…)` group, no other `(?` group and
+ * only the escapes `\d \w \s` (and upper case) and of punctuation.
+ */
+export function isHostUrlPattern(pattern: unknown): pattern is string {
+  if (typeof pattern !== 'string' || pattern.length > MAX_PATTERN_LENGTH || !/^[\x20-\x7e]+$/.test(pattern) || pattern.includes('#')) return false;
+  for (const m of pattern.matchAll(/\\([\s\S]?)/g)) if (m[1] === '' || !'dDwWsS./-_~+?*()[]{}|^$\\'.includes(m[1]!)) return false;
+  const bare = pattern.replace(/\\[\s\S]/g, '');
+  if (!bare.startsWith('^') || !bare.endsWith('$') || bare.split('(?<id>').length !== 2 || /\(\?(?!:|<id>)/.test(bare)) return false;
+  try {
+    new RegExp(pattern);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 1.13: `schemes` with the `hostUrlPatterns` option; invalid entries and entries of unknown schemes are dropped.
+ *
+ * @returns A copy of `schemes` that carries the patterns (the same object when there are none)
+ */
+export function withUrlPatterns(schemes: HostSchemes, value: unknown): HostSchemes {
+  const patterns: HostUrlPattern[] = [];
+  for (const raw of Array.isArray(value) ? value : []) {
+    const entry = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+    const scheme = typeof entry.scheme === 'string' ? entry.scheme.toLowerCase() : '';
+    if (!isHostUrlPattern(entry.pattern) || !Object.prototype.hasOwnProperty.call(schemes, scheme)) continue;
+    patterns.push({ pattern: new RegExp(entry.pattern), scheme, url: entry.url === 'resolved' ? 'resolved' : 'written' });
+  }
+  if (!patterns.length) return schemes;
+  const copy = { ...schemes };
+  URL_PATTERNS.set(copy, patterns);
+  return copy;
+}
+
+/**
+ * 1.13: the URL pattern a plain URL matches: its `scheme:id` reference (null when the id is not valid) and its mode.
+ */
+export function matchHostUrl(value: unknown, schemes: HostSchemes): { reference: string | null; url: 'written' | 'resolved' } | null {
+  const patterns = URL_PATTERNS.get(schemes);
+  if (!patterns || typeof value !== 'string') return null;
+  const url = value.trim();
+  if (url === '' || url.length > MAX_URL_LENGTH) return null;
+  for (const entry of patterns) {
+    const m = entry.pattern.exec(url);
+    if (!m) continue;
+    const id = m.groups?.id ?? '';
+    return { reference: ID.test(id) ? `${entry.scheme}:${id}` : null, url: entry.url };
+  }
+  return null;
+}
 
 /** Validates the `hostSchemes` option (what the PHP configuration already checked). */
 export function parseHostSchemes(value: unknown): HostSchemes {
@@ -59,8 +127,15 @@ export function hostReference(value: unknown, schemes: HostSchemes): string | nu
  * @returns The URL; null for a host value that cannot be resolved (inert); undefined when `value` is no host value
  */
 export function hostUrl(value: unknown, kind: HostKind, schemes: HostSchemes): string | null | undefined {
-  if (!isHostUrl(value, schemes)) return undefined;
-  const reference = hostReference(value, schemes);
+  let reference: string | null;
+  if (isHostUrl(value, schemes)) {
+    reference = hostReference(value, schemes);
+  } else {
+    // 1.13: a plain URL of a `url: 'resolved'` pattern; `written` ones stay the author's URL.
+    const match = matchHostUrl(value, schemes);
+    if (!match || match.url === 'written') return undefined;
+    reference = match.reference;
+  }
   if (!reference) return null;
   const [scheme, id] = reference.split(/:(.*)/s) as [string, string];
   const templates = schemes[scheme]!;

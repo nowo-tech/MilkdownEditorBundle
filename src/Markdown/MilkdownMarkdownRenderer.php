@@ -16,6 +16,7 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\FilePreviewResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\HostFileResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\IconResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\PageResolverInterface;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\RenderContextProviderInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateFilePreviewResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateHostFileResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\UserResolverInterface;
@@ -57,7 +58,7 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
     private ?FootnoteSalt $footnoteSalt = null;
 
     /**
-     * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, footnotes?: bool, max_footnote_refs?: int, mention_display?: string, max_nesting_level?: int, max_input_length?: int, max_inline_markers?: int, max_references?: int, mark_colors?: list<string>, heading_ids?: bool, image_block?: bool, file_preview_sandbox?: list<string>, host_schemes?: mixed} $options The `nowo_milkdown_editor.markdown` configuration
+     * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, footnotes?: bool, max_footnote_refs?: int, mention_display?: string, max_nesting_level?: int, max_input_length?: int, max_inline_markers?: int, max_references?: int, mark_colors?: list<string>, heading_ids?: bool, image_block?: bool, file_preview_sandbox?: list<string>, host_schemes?: mixed, host_refused_links?: string} $options The `nowo_milkdown_editor.markdown` configuration
      * @param PageResolverInterface $pages Page link resolver (per viewer)
      * @param UserResolverInterface $users Mention resolver
      * @param IconResolverInterface $icons Icon allowlist and sprite
@@ -68,6 +69,7 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
      * @param HostSchemes $hostSchemes Host references (1.9, `host_schemes`)
      * @param HostFileResolverInterface|null $sources Resolves host references per viewer (1.9; null: the templates)
      * @param FilePreviewResolverInterface|null $previews Previews of `view="preview"` file cards (1.9; null: the templates)
+     * @param RenderContextProviderInterface|null $renderContext The render's context for a contextual host file resolver (1.13)
      */
     public function __construct(
         private readonly array $options,
@@ -81,6 +83,7 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
         private readonly HostSchemes $hostSchemes = new HostSchemes(),
         private readonly ?HostFileResolverInterface $sources = null,
         private readonly ?FilePreviewResolverInterface $previews = null,
+        private readonly ?RenderContextProviderInterface $renderContext = null,
     ) {
     }
 
@@ -174,6 +177,8 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
                 $this->sources ?? new TemplateHostFileResolver($this->hostSchemes),
                 $this->previews ?? new TemplateFilePreviewResolver($this->hostSchemes),
                 $this->options['image_block'] ?? false,
+                $this->renderContext,
+                ($this->options['host_refused_links'] ?? 'text') === 'hidden',
             ),
             $math,
         ));

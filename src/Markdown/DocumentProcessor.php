@@ -16,10 +16,12 @@ use Nowo\MilkdownEditorBundle\Markdown\Node\ImageFigure;
 use Nowo\MilkdownEditorBundle\Markdown\Node\LeafDirective;
 use Nowo\MilkdownEditorBundle\Markdown\Node\Mention;
 use Nowo\MilkdownEditorBundle\Markdown\Node\WikiLink;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\ContextualHostFileResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\FilePreviewResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\FileReference;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\HostFileResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\PageResolverInterface;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\RenderContextProviderInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\ResolvedFile;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\UserResolverInterface;
 use Psr\Log\LoggerInterface;
@@ -47,6 +49,11 @@ use function trim;
  * With `markdown.image_block`, an image takes the `{width=… align=…}` block that follows it, and a paragraph holding only
  * an image becomes an {@see ImageFigure}.
  *
+ * 1.13: plain URLs that match `markdown.host_url_patterns` are host references too, resolved in the same batch; a
+ * {@see ContextualHostFileResolverInterface} gets the render's context ({@see RenderContextProviderInterface}). A refused
+ * image, card or pattern link renders *Content not visible* with no URL, alt text or name; a refused `scheme:` link keeps
+ * its text unless `host_refused_links` is `hidden`. A visible `url: written` reference keeps the author's URL untouched.
+ *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  */
 final readonly class DocumentProcessor
@@ -65,6 +72,8 @@ final readonly class DocumentProcessor
      * @param HostFileResolverInterface|null $sources Resolves host references for the viewer (1.9; null: none resolve)
      * @param FilePreviewResolverInterface|null $previews Previews of `view="preview"` file cards (1.9; null: none)
      * @param bool $imageBlock Standalone images become figures with caption, width and alignment (1.9)
+     * @param RenderContextProviderInterface|null $renderContext The render's context for a contextual host file resolver (1.13)
+     * @param bool $hideRefusedLinks A refused `scheme:` link renders *Content not visible* instead of its text (1.13, `host_refused_links: hidden`)
      */
     public function __construct(
         private PageResolverInterface $pages,
@@ -77,6 +86,8 @@ final readonly class DocumentProcessor
         private ?HostFileResolverInterface $sources = null,
         private ?FilePreviewResolverInterface $previews = null,
         private bool $imageBlock = false,
+        private ?RenderContextProviderInterface $renderContext = null,
+        private bool $hideRefusedLinks = false,
     ) {
     }
 
@@ -109,7 +120,7 @@ final readonly class DocumentProcessor
                 $mentions[$node->handle][] = $node;
             } elseif ($node instanceof LeafDirective) {
                 $leaves[] = $node;
-            } elseif (($node instanceof Image || $node instanceof Link) && $this->hostSchemes->isHostUrl($node->getUrl())) {
+            } elseif (($node instanceof Image || $node instanceof Link) && $this->hostSchemes->isHostValue($node->getUrl())) {
                 $hosted[] = $node;
             } elseif ($node instanceof Image && !$this->allowRemoteImages && self::isRemote($node->getUrl())) {
                 $images[] = $node;
@@ -166,13 +177,13 @@ final readonly class DocumentProcessor
     {
         $references = [];
         foreach ($hosted as $node) {
-            $reference = $this->hostSchemes->reference($node->getUrl());
+            $reference = $this->hostSchemes->hostReference($node->getUrl());
             if ($reference !== null) {
                 $references[$reference] = true;
             }
         }
         foreach ($cards as $card) {
-            $reference = $this->hostSchemes->reference($card->attributes['href'] ?? '');
+            $reference = $this->hostSchemes->hostReference($card->attributes['href'] ?? '');
             if ($reference !== null) {
                 $references[$reference] = true;
             }
@@ -180,22 +191,35 @@ final readonly class DocumentProcessor
         $ids      = array_slice(array_keys($references), 0, $this->maxReferences);
         $resolved = $ids === [] || !$this->sources instanceof HostFileResolverInterface
             ? []
-            : array_intersect_key($this->call(fn (): array => $this->sources->resolveFiles($ids), 'host file'), array_flip($ids));
+            : array_intersect_key($this->call(fn (): array => $this->resolveFiles($ids), 'host file'), array_flip($ids));
 
         foreach ($hosted as $node) {
-            $reference = $this->hostSchemes->reference($node->getUrl());
+            $written   = $node->getUrl();
+            $reference = $this->hostSchemes->hostReference($written);
             $source    = $reference !== null ? ($resolved[$reference] ?? null) : null;
-            $url       = $source instanceof ResolvedFile ? DialectRenderer::safeUrl($node instanceof Image ? ($source->imageUrl ?? $source->url) : $source->url) : '';
+            $keep      = $this->hostSchemes->keepsWrittenUrl($written);
+            $url       = $source instanceof ResolvedFile ? DialectRenderer::safeUrl($keep ? $written : ($node instanceof Image ? ($source->imageUrl ?? $source->url) : $source->url)) : '';
             if ($node instanceof Link) {
-                if ($url === '') {
-                    $this->unwrap($node);
+                if ($url !== '') {
+                    // 1.13 `url: written`: the link as the author wrote it.
+                    $node->setUrl($keep ? $written : $url);
+                } elseif ($this->hideRefusedLinks || !$this->hostSchemes->isHostUrl($written)) {
+                    // 1.13: neither the target nor the text (often the file name) of a reference the viewer may not see.
+                    $node->replaceWith(new HiddenReference());
                 } else {
-                    $node->setUrl($url);
+                    $this->unwrap($node);
                 }
                 continue;
             }
             if ($url === '' || !$source instanceof ResolvedFile) {
                 $node->replaceWith(new HiddenReference());
+                continue;
+            }
+            if ($keep) {
+                // 1.13 `url: written`: the image as the author wrote it, under the policy of author images.
+                if (!$this->allowRemoteImages && self::isRemote($written)) {
+                    $this->imageToLink($node);
+                }
                 continue;
             }
             $node->setUrl($url);
@@ -218,25 +242,27 @@ final readonly class DocumentProcessor
         foreach ($cards as $card) {
             $href = $card->attributes['href'] ?? '';
             $url  = DialectRenderer::safeUrl($href);
-            if ($this->hostSchemes->isHostUrl($href)) {
-                $reference = $this->hostSchemes->reference($href);
+            $keep = $this->hostSchemes->keepsWrittenUrl($href);
+            if ($this->hostSchemes->isHostValue($href)) {
+                $reference = $this->hostSchemes->hostReference($href);
                 $source    = $reference !== null ? ($resolved[$reference] ?? null) : null;
-                $url       = $source instanceof ResolvedFile ? DialectRenderer::safeUrl($source->url) : '';
-                if ($url === '') {
+                $url       = $source instanceof ResolvedFile ? DialectRenderer::safeUrl($keep ? $href : $source->url) : '';
+                if ($url === '' || !$source instanceof ResolvedFile) {
                     $card->data->set('nowo_file_hidden', true);
                     continue;
                 }
-                if ($source instanceof ResolvedFile && $source->name !== null) {
+                // 1.13 `url: written`: the card as the author wrote it.
+                if (!$keep && $source->name !== null) {
                     $card->data->set('nowo_file_name', $source->name);
                 }
-                if ($source instanceof ResolvedFile && $source->type !== null) {
+                if (!$keep && $source->type !== null) {
                     $card->data->set('nowo_file_type', $source->type);
                 }
             }
             $card->data->set('nowo_file_url', $url);
             if ($url !== '' && FileCard::view($card->attributes) === 'preview') {
                 $byHref[$href][] = $card;
-                $wanted[$href]   = new FileReference($href, $url, FileCard::name($this->text($card->data->get('nowo_file_name', null)) ?? $card->label), $this->text($card->data->get('nowo_file_type', null)) ?? $card->attributes['type'] ?? '', $this->hostSchemes->reference($href));
+                $wanted[$href]   = new FileReference($href, $url, FileCard::name($this->text($card->data->get('nowo_file_name', null)) ?? $card->label), $this->text($card->data->get('nowo_file_type', null)) ?? $card->attributes['type'] ?? '', $keep ? null : $this->hostSchemes->hostReference($href));
             }
         }
         if ($wanted === [] || !$this->previews instanceof FilePreviewResolverInterface) {
@@ -259,6 +285,23 @@ final readonly class DocumentProcessor
                 $card->data->set('nowo_file_preview', $preview);
             }
         }
+    }
+
+    /**
+     * 1.13: the host resolver's answer, with the render's context when it takes one.
+     *
+     * @param list<string> $references
+     *
+     * @return array<string, ResolvedFile>
+     */
+    private function resolveFiles(array $references): array
+    {
+        $sources = $this->sources;
+        if ($sources instanceof ContextualHostFileResolverInterface) {
+            return $sources->resolveFilesInContext($references, $this->renderContext?->renderContext());
+        }
+
+        return $sources instanceof HostFileResolverInterface ? $sources->resolveFiles($references) : [];
     }
 
     private function text(mixed $value): ?string

@@ -150,6 +150,11 @@ export type EditorOptions = {
   actionBarInsert: ActionBarInsert[];
   /** 1.9 (ME-5): host references (`markdown.host_schemes`): scheme → URL templates with `{id}`. */
   hostSchemes: import('./host').HostSchemes;
+  /**
+   * 1.13: `markdown.host_url_patterns` — `{pattern, scheme, url}` entries that make plain URLs host references. Read only
+   * from the page configuration block (or a host's own `createEditor()` call), never from a widget's JSON.
+   */
+  hostUrlPatterns?: unknown;
   /** 1.9 (ME-6): extra `sandbox` tokens of file preview frames (`markdown.file_preview_sandbox`). */
   previewSandbox: string;
   /** 1.9: previews one editor shows (`markdown.max_references`); other files are cards (audit GX-L1). */

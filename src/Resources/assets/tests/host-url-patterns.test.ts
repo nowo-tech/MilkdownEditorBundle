@@ -1,0 +1,122 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import { hostUrl, isHostUrlPattern, matchHostUrl, targetUrl, withUrlPatterns } from '../src/host';
+import { fileCard } from '../src/dialect/file-card';
+import { imageSource } from '../src/nodes/image';
+import { pageHostConfig } from '../src/options';
+import { editor } from './helpers';
+import type { MilkdownEditorHandle } from '../src/editor';
+
+const UUID = '0f8fad5b-d9cb-469f-a165-70867728950e';
+const FILES = '^/files/(?<id>[0-9a-f-]{36})/(?:original|preview)$';
+const schemes = { 'app-file': { image: '/f/{id}/view', file: '/f/{id}', preview: '/f/{id}/embed' } };
+
+describe('host URL patterns (1.13)', () => {
+  it('accepts only the subset PCRE and RegExp read alike (the PHP configuration rules)', () => {
+    expect(isHostUrlPattern(FILES)).toBe(true);
+    expect(isHostUrlPattern('^https://cdn\\.example\\.com/(?<id>\\w+)\\$$')).toBe(true);
+    for (const bad of [
+      null,
+      42,
+      '/files/(?<id>[a-z]+)$', // not anchored at the start
+      '^/files/(?<id>[a-z]+)', // not anchored at the end
+      '^/files/(?<id>[a-z]+)\\$', // an escaped dollar is no anchor
+      '^/files/([a-z]+)$', // no id group
+      '^/(?<id>a)/(?<id>b)$', // two
+      '^/(?=x)(?<id>a)$', // lookahead
+      '^/(?i)(?<id>a)$', // inline flag
+      '^/(?<other>x)(?<id>a)$', // another named group
+      '^/\\p{L}(?<id>a)$', // escape outside the subset
+      '^/(?<id>a)\\', // dangling escape
+      '^/#(?<id>a)$', // "#"
+      '^/é(?<id>a)$', // not ASCII
+      `^/${'a'.repeat(300)}(?<id>a)$`, // too long
+      '^/(?<id>[a)$', // not a regular expression
+    ]) {
+      expect(isHostUrlPattern(bad), String(bad)).toBe(false);
+    }
+  });
+
+  it('keeps only valid patterns of known schemes; without any, the same object', () => {
+    expect(withUrlPatterns(schemes, undefined)).toBe(schemes);
+    expect(withUrlPatterns(schemes, [null, { pattern: FILES, scheme: 'other' }, { pattern: '^x$', scheme: 'app-file' }])).toBe(schemes);
+    const withPatterns = withUrlPatterns(schemes, [{ pattern: FILES, scheme: 'APP-FILE' }]);
+    expect(withPatterns).not.toBe(schemes);
+    expect(withPatterns).toEqual(schemes);
+    expect(matchHostUrl(`/files/${UUID}/original`, withPatterns)).toEqual({ reference: `app-file:${UUID}`, url: 'written' });
+  });
+
+  it('matches whole, trimmed URLs up to the length bound; an invalid id is a reference no one sees', () => {
+    const s = withUrlPatterns(schemes, [{ pattern: '^/files/(?<id>[^/]+)/original$', scheme: 'app-file', url: 'resolved' }]);
+    expect(matchHostUrl(` /files/${UUID}/original `, s)).toEqual({ reference: `app-file:${UUID}`, url: 'resolved' });
+    expect(matchHostUrl('/files/.hidden/original', s)).toEqual({ reference: null, url: 'resolved' });
+    expect(matchHostUrl(`/x/files/${UUID}/original`, s)).toBeNull();
+    expect(matchHostUrl(`/files/${'a'.repeat(2048)}/original`, s)).toBeNull();
+    expect(matchHostUrl('', s)).toBeNull();
+    expect(matchHostUrl(42, s)).toBeNull();
+    expect(matchHostUrl(`/files/${UUID}/original`, schemes)).toBeNull();
+    expect(hostUrl('/files/.hidden/original', 'file', s)).toBeNull();
+    // A group that did not take part: no id.
+    const optional = withUrlPatterns(schemes, [{ pattern: '^/x(?:/(?<id>\\w+))?$', scheme: 'app-file' }]);
+    expect(matchHostUrl('/x', optional)).toEqual({ reference: null, url: 'written' });
+    expect(matchHostUrl('/x/abc', optional)).toEqual({ reference: 'app-file:abc', url: 'written' });
+  });
+
+  it('written: the author URL as before; resolved: the scheme templates', () => {
+    const written = withUrlPatterns(schemes, [{ pattern: FILES, scheme: 'app-file' }]);
+    const resolved = withUrlPatterns(schemes, [{ pattern: FILES, scheme: 'app-file', url: 'resolved' }]);
+    const url = `/files/${UUID}/preview`;
+    expect(hostUrl(url, 'image', written)).toBeUndefined();
+    expect(targetUrl(url, 'file', written)).toBe(url);
+    expect(imageSource(url, written)).toBe(url);
+    expect(hostUrl(url, 'image', resolved)).toBe(`/f/${UUID}/view`);
+    expect(targetUrl(url, 'file', resolved)).toBe(`/f/${UUID}`);
+    expect(imageSource(url, resolved)).toBe(`/f/${UUID}/view`);
+    // Scheme values are unchanged by patterns.
+    expect(targetUrl('app-file:abc', 'file', resolved)).toBe('/f/abc');
+  });
+
+  it('file cards: a preview only for resolved patterns', () => {
+    const href = `/files/${UUID}/original`;
+    const written = withUrlPatterns(schemes, [{ pattern: FILES, scheme: 'app-file' }]);
+    const resolved = withUrlPatterns(schemes, [{ pattern: FILES, scheme: 'app-file', url: 'resolved' }]);
+    expect(fileCard('a.pdf', { href, view: 'preview' }, { hostSchemes: written, previewSandbox: '' }).querySelector('iframe')).toBeNull();
+    const card = fileCard('a.pdf', { href, view: 'preview' }, { hostSchemes: resolved, previewSandbox: '' });
+    expect(card.querySelector('a')?.getAttribute('href')).toBe(`/f/${UUID}`);
+    // The frame loads near the viewport only (audit GX-L1); the open link is the resolved file.
+    expect(card.querySelector('iframe')).not.toBeNull();
+    expect(card.querySelector('.nowo-milkdown-file__open')?.getAttribute('href')).toBe(`/f/${UUID}`);
+  });
+
+  describe('editor', () => {
+    let handle: MilkdownEditorHandle | null = null;
+    afterEach(async () => {
+      await handle?.destroy();
+      handle = null;
+      document.head.querySelectorAll('script[data-nowo-milkdown-config]').forEach((el) => el.remove());
+    });
+
+    it('reads the patterns from the page block only', () => {
+      const el = document.createElement('script');
+      el.type = 'application/json';
+      el.setAttribute('data-nowo-milkdown-config', '');
+      el.textContent = JSON.stringify({ hostSchemes: schemes, hostUrlPatterns: [{ pattern: FILES, scheme: 'app-file' }] });
+      document.head.append(el);
+      expect(pageHostConfig().hostUrlPatterns).toEqual([{ pattern: FILES, scheme: 'app-file' }]);
+      el.textContent = JSON.stringify({ hostSchemes: schemes, hostUrlPatterns: 'x' });
+      expect(pageHostConfig().hostUrlPatterns).toEqual([]);
+    });
+
+    it('a resolved pattern image shows the template URL and keeps the written Markdown', async () => {
+      const md = `![plan](/files/${UUID}/preview)`;
+      handle = await editor(md, { hostUrlPatterns: [{ pattern: FILES, scheme: 'app-file', url: 'resolved' }] }, { hostSchemes: schemes, hostUrlPatterns: [{ pattern: FILES, scheme: 'app-file', url: 'resolved' }] });
+      expect(handle.root.querySelector('.nowo-milkdown-image img')?.getAttribute('src')).toBe(`/f/${UUID}/view`);
+      expect(handle.getMarkdown()).toContain(md);
+    });
+
+    it('patterns in the widget JSON are ignored (audit GX-L2)', async () => {
+      handle = await editor(`![plan](/files/${UUID}/preview)`, { hostSchemes: schemes, hostUrlPatterns: [{ pattern: FILES, scheme: 'app-file', url: 'resolved' }] });
+      expect(handle.root.querySelector('.nowo-milkdown-image')).toBeNull();
+      expect(handle.root.querySelector('img[src]')?.getAttribute('src')).toBe(`/files/${UUID}/preview`);
+    });
+  });
+});

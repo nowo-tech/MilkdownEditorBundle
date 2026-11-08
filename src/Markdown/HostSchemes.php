@@ -9,7 +9,9 @@ use function explode;
 use function preg_match;
 use function rawurlencode;
 use function str_replace;
+use function strlen;
 use function strtolower;
+use function trim;
 
 /**
  * Host URL schemes (1.9, ME-5): references such as `host-file:<id>` that a host stores instead of URLs
@@ -24,6 +26,13 @@ use function strtolower;
  * URL-encoded into the template; anything else with an allow-listed scheme is not a valid reference and stays inert
  * (no link, no image). `host_image_origins` lists the other origins host images may load from while
  * `allow_remote_images` is off.
+ *
+ * 1.13: `host_url_patterns` make plain URLs host references too, so content written before the scheme existed
+ * (`![plan](/files/<uuid>/preview)`) goes through the same resolver. Each pattern is anchored, has a named group `id`
+ * and maps to a scheme of `host_schemes`; a matching URL is the reference `scheme:<id>`. With `url: written` (default)
+ * the resolver only decides whether the viewer sees the reference and the author's URL is kept as written; with
+ * `url: resolved` the resolver's URL replaces it, as for `scheme:` values. A matching URL whose id is not a valid id
+ * is a reference no viewer sees.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  */
@@ -41,11 +50,21 @@ final readonly class HostSchemes
     /** Kinds of URL a template builds. */
     public const KINDS = ['image', 'file', 'preview'];
 
+    /** 1.13: `url` of a URL pattern — keep the author's URL (the resolver only gates it). */
+    public const URL_WRITTEN = 'written';
+
+    /** 1.13: `url` of a URL pattern — the resolver's URL replaces the author's, as for `scheme:` references. */
+    public const URL_RESOLVED = 'resolved';
+
+    /** 1.13: longer URLs are never matched against `host_url_patterns` (bounds the regular expression's work). */
+    public const MAX_PATTERN_URL_LENGTH = 2048;
+
     /**
      * @param array<string, array{image?: ?string, file?: ?string, preview?: ?string}> $schemes scheme => templates (validated by the configuration)
      * @param list<string> $imageOrigins Origins (`https://cdn.example.com`) host images may load from although `allow_remote_images` is off
+     * @param list<array{pattern: string, scheme: string, url?: string}> $urlPatterns 1.13 `host_url_patterns` (validated by the configuration)
      */
-    public function __construct(private array $schemes = [], private array $imageOrigins = [])
+    public function __construct(private array $schemes = [], private array $imageOrigins = [], private array $urlPatterns = [])
     {
     }
 
@@ -92,6 +111,79 @@ final readonly class HostSchemes
         $scheme = strtolower($m[1]);
 
         return array_key_exists($scheme, $this->schemes) ? $scheme . ':' . $m[2] : null;
+    }
+
+    /**
+     * 1.13: the `host_url_patterns` entry a plain URL matches, as `[reference, url mode]` — the reference is null when the
+     * matched id is not a valid id (such a URL is a host value no viewer sees) — or null when no pattern matches.
+     *
+     * @return array{0: ?string, 1: string}|null
+     */
+    public function matchUrl(string $url): ?array
+    {
+        $url = trim($url, " \t\n\r\f\v");
+        if ($this->urlPatterns === [] || $url === '' || strlen($url) > self::MAX_PATTERN_URL_LENGTH) {
+            return null;
+        }
+        foreach ($this->urlPatterns as $entry) {
+            if (preg_match('#' . $entry['pattern'] . '#D', $url, $m) !== 1) {
+                continue;
+            }
+            $scheme = strtolower($entry['scheme']);
+            $id     = $m['id'] ?? '';
+            $valid  = array_key_exists($scheme, $this->schemes) && preg_match('#^' . self::ID_PATTERN . '$#D', $id) === 1;
+
+            return [$valid ? $scheme . ':' . $id : null, ($entry['url'] ?? self::URL_WRITTEN) === self::URL_RESOLVED ? self::URL_RESOLVED : self::URL_WRITTEN];
+        }
+
+        return null;
+    }
+
+    /**
+     * Whether `$url` is a host value: an allow-listed scheme ({@see self::isHostUrl()}) or, 1.13, a URL that matches a
+     * `host_url_patterns` entry.
+     */
+    public function isHostValue(string $url): bool
+    {
+        return $this->isHostUrl($url) || $this->matchUrl($url) !== null;
+    }
+
+    /**
+     * The `scheme:id` reference of a host value ({@see self::reference()} or, 1.13, of its URL pattern), or null.
+     */
+    public function hostReference(string $url): ?string
+    {
+        return $this->isHostUrl($url) ? $this->reference($url) : ($this->matchUrl($url)[0] ?? null);
+    }
+
+    /**
+     * 1.13: whether a host value keeps the author's URL once the resolver lets the viewer see it (a URL pattern with
+     * `url: written`); `scheme:` values and `url: resolved` patterns take the resolver's URL.
+     */
+    public function keepsWrittenUrl(string $url): bool
+    {
+        return !$this->isHostUrl($url) && ($this->matchUrl($url)[1] ?? null) === self::URL_WRITTEN;
+    }
+
+    /** 1.13: whether `host_url_patterns` has entries. */
+    public function hasUrlPatterns(): bool
+    {
+        return $this->urlPatterns !== [];
+    }
+
+    /**
+     * 1.13: the URL patterns for the editor's page configuration (`hostUrlPatterns`).
+     *
+     * @return list<array{pattern: string, scheme: string, url: string}>
+     */
+    public function urlPatternsToArray(): array
+    {
+        $out = [];
+        foreach ($this->urlPatterns as $entry) {
+            $out[] = ['pattern' => $entry['pattern'], 'scheme' => strtolower($entry['scheme']), 'url' => ($entry['url'] ?? self::URL_WRITTEN) === self::URL_RESOLVED ? self::URL_RESOLVED : self::URL_WRITTEN];
+        }
+
+        return $out;
     }
 
     /**

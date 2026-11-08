@@ -7,6 +7,7 @@
 - [Features](#features)
 - [Markdown renderer](#markdown-renderer)
   - [Host references](#host-references)
+    - [Plain URLs as host references (1.13)](#plain-urls-as-host-references-113)
   - [Renderer limits](#renderer-limits)
 - [Form options](#form-options)
 - [Icons](#icons)
@@ -52,6 +53,8 @@ nowo_milkdown_editor:
         max_references: 500             # distinct page ids / handles / host references sent to each resolver per document
         host_schemes: {}                # 1.9: scheme => {image, file, preview} URL templates with {id} (see below)
         host_image_origins: []          # 1.9: origins host images may load from while allow_remote_images is off
+        host_url_patterns: []           # 1.13: plain URLs that are host references: [{pattern, scheme, url: written|resolved}]
+        host_refused_links: text        # 1.13: text | hidden — a refused scheme: link keeps its text or reads *Content not visible*
         image_block: false              # 1.9: images take {width=… align=…}; a standalone image renders as a figure
         file_preview_sandbox: []        # 1.9: tokens added to the sandbox attribute of preview frames
         icon_sprite_url: ~
@@ -144,6 +147,25 @@ A scheme is lower-case letters, digits, `+`, `.` and `-`, and not one of the bro
 the path (never in the host) and at most 500 characters; anything else fails at container build. The templates are in the
 page (`script[data-nowo-milkdown-config]`, printed by `nowo_milkdown_editor_assets()`), so do not put secrets in them.
 See [USAGE](USAGE.md#host-references).
+
+#### Plain URLs as host references (1.13)
+
+```yaml
+nowo_milkdown_editor:
+    markdown:
+        host_url_patterns:
+            - { pattern: '^/files/(?<id>[0-9a-f-]{36})/(?:original|preview)$', scheme: app-file }
+            - { pattern: '^https://cdn\.example\.com/(?<id>[A-Za-z0-9_-]+)$', scheme: app-file, url: resolved }
+        host_refused_links: hidden
+```
+
+A URL (trimmed, at most 2,048 characters) that matches the first pattern that fits is the reference `scheme:<id>` and goes
+through the host resolver with the scheme's other references. `url: written` (default) keeps the author's URL when the
+viewer may see the file; `url: resolved` uses the resolver's URL. A refused one renders *Content not visible* without URL,
+alt text or name. A pattern is read by PCRE and by the browser, so only a common subset is accepted: anchored `^…$`,
+exactly one `(?<id>…)`, no other `(?` group (no lookaround, flags or other named groups), escapes only `\d \D \w \W \s \S`
+and punctuation, printable ASCII without `#`, at most 300 characters; its scheme must be in `host_schemes`. Anything else
+fails at container build. The patterns are in the page (`hostUrlPatterns`) like the templates.
 
 ### Renderer limits
 

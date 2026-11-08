@@ -203,7 +203,7 @@ export const DEFAULT_MAX_PREVIEWS = 500;
  *
  * @param doc - The document
  */
-export function pageHostConfig(doc: Document = document): Pick<EditorOptions, 'hostSchemes' | 'previewSandbox' | 'maxPreviews'> {
+export function pageHostConfig(doc: Document = document): Pick<EditorOptions, 'hostSchemes' | 'hostUrlPatterns' | 'previewSandbox' | 'maxPreviews'> {
   const nonce = pageNonce(doc);
   for (const element of doc.querySelectorAll<HTMLScriptElement>('script[type="application/json"][data-nowo-milkdown-config]')) {
     if ((element.nonce || element.getAttribute('nonce') || '') !== nonce) continue;
@@ -212,6 +212,8 @@ export function pageHostConfig(doc: Document = document): Pick<EditorOptions, 'h
       const max = data.maxPreviews;
       return {
         hostSchemes: parseHostSchemes(data.hostSchemes),
+        // 1.13: validated against the schemes when the editor is created (withUrlPatterns()).
+        hostUrlPatterns: Array.isArray(data.hostUrlPatterns) ? data.hostUrlPatterns : [],
         previewSandbox: previewSandbox(data.previewSandbox),
         maxPreviews: typeof max === 'number' && Number.isInteger(max) && max > 0 ? max : DEFAULT_MAX_PREVIEWS,
       };
@@ -219,5 +221,5 @@ export function pageHostConfig(doc: Document = document): Pick<EditorOptions, 'h
       // Not JSON: not ours.
     }
   }
-  return { hostSchemes: {}, previewSandbox: '', maxPreviews: DEFAULT_MAX_PREVIEWS };
+  return { hostSchemes: {}, hostUrlPatterns: [], previewSandbox: '', maxPreviews: DEFAULT_MAX_PREVIEWS };
 }
