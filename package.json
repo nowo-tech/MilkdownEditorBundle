@@ -31,7 +31,7 @@
     "@milkdown/plugin-collab": "7.23.0",
     "@lezer/highlight": "1.2.5",
     "katex": "0.19.1",
-    "mermaid": "12.2.0",
+    "mermaid": "12.3.0",
     "mdast-util-directive": "3.1.1",
     "micromark-extension-directive": "4.0.0",
     "y-prosemirror": "1.3.7",
