@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format foll
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.15.0] - 2026-11-09](#1150---2026-11-09)
 - [[1.14.1] - 2026-11-08](#1141---2026-11-08)
 - [[1.14.0] - 2026-11-08](#1140---2026-11-08)
 - [[1.13.0] - 2026-11-08](#1130---2026-11-08)
@@ -28,6 +29,8 @@ All notable changes to this project are documented in this file. The format foll
 - [[1.0.0] - 2026-10-31](#100---2026-10-31)
 
 ## [Unreleased]
+
+## [1.15.0] - 2026-11-09
 
 Next minor: **1.15.0**. The `top_bar` keeps one row on phones with a "⋮" overflow menu, and its heading selector is translated (Beacon MUX-41). See [UPGRADING](UPGRADING.md#unreleased).
 

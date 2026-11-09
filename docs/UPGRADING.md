@@ -4,6 +4,7 @@
 
 - [General procedure](#general-procedure)
 - [Unreleased](#unreleased)
+- [To 1.15.0](#to-1150)
 - [To 1.14.1](#to-1141)
 - [To 1.14.0](#to-1140)
 - [To 1.13.0](#to-1130)
@@ -38,6 +39,14 @@ names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialec
 interfaces and `window.NowoMilkdownEditor`.
 
 ## Unreleased
+
+## To 1.15.0
+
+From **1.14.1**:
+
+```bash
+composer update nowo-tech/milkdown-editor-bundle
+```
 
 Next minor: 1.15.0. Nothing to do. Fields with `top_bar` keep one row on phones (below 768 px) and group the rest
 behind "⋮"; desktop is unchanged. Hosts that translate the `NowoMilkdownEditorBundle` domain add the `topbar.*` keys
