@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format foll
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.15.1] - 2026-11-09](#1151---2026-11-09)
 - [[1.15.0] - 2026-11-09](#1150---2026-11-09)
 - [[1.14.1] - 2026-11-08](#1141---2026-11-08)
 - [[1.14.0] - 2026-11-08](#1140---2026-11-08)
@@ -30,9 +31,17 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+## [1.15.1] - 2026-11-09
+
+Patch: bundled mermaid 12.3.0 and mdast-util-directive 3.2.0, assets rebuilt.
+
+### Changed
+
+- **Dependencies:** the bundled `mermaid` goes from 12.2.0 to 12.3.0 and `mdast-util-directive` from 3.1.1 to 3.2.0 (built with vite 8.3.6); the shipped assets under `src/Resources/public` are rebuilt (chunk file names change). No API or configuration change.
+
 ## [1.15.0] - 2026-11-09
 
-Next minor: **1.15.0**. The `top_bar` keeps one row on phones with a "⋮" overflow menu, and its heading selector is translated (Beacon MUX-41). See [UPGRADING](UPGRADING.md#unreleased).
+Next minor: **1.15.0**. The `top_bar` keeps one row on phones with a "⋮" overflow menu, and its heading selector is translated (Beacon MUX-41). See [UPGRADING](UPGRADING.md#to-1151).
 
 ### Added
 

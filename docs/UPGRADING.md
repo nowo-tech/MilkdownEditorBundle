@@ -4,6 +4,7 @@
 
 - [General procedure](#general-procedure)
 - [Unreleased](#unreleased)
+- [To 1.15.1](#to-1151)
 - [To 1.15.0](#to-1150)
 - [To 1.14.1](#to-1141)
 - [To 1.14.0](#to-1140)
@@ -39,6 +40,16 @@ names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialec
 interfaces and `window.NowoMilkdownEditor`.
 
 ## Unreleased
+
+## To 1.15.1
+
+From **1.15.0**:
+
+```bash
+composer update nowo-tech/milkdown-editor-bundle
+```
+
+No configuration or API change. The shipped assets were rebuilt with the updated front-end dependencies; clear the asset cache (`assets:install`) after updating.
 
 ## To 1.15.0
 
