@@ -1,6 +1,6 @@
 import { n as e, r as t } from "./dist-BgjOpFmx.js";
 import { C as n, N as r, P as i, U as a, _ as o, d as s, m as ee, o as te, r as ne, y as re } from "./dist-BUN4Kjhx.js";
-import { html as ie } from "./dist-BEbuTC4G.js";
+import { html as ie } from "./dist-DMjKKUsK.js";
 // node_modules/.pnpm/@lezer+php@1.0.6/node_modules/@lezer/php/dist/index.js
 var ae = 1, oe = 2, se = 276, c = 3, l = 277, u = 278, d = 279, f = 4, p = 5, m = 6, h = 7, g = 8, _ = 9, v = 10, y = 11, b = 12, x = 13, S = 14, C = 15, w = 16, T = 17, E = 18, D = 19, O = 20, k = 21, A = 22, j = 23, M = 24, N = 25, P = 26, F = 27, I = 28, L = 29, R = 30, z = 31, B = 32, V = 33, H = 34, U = 35, W = 36, G = 37, K = 38, ce = 39, le = 40, ue = 41, de = 42, fe = 43, pe = 44, me = 45, he = 46, ge = 47, _e = 48, ve = 49, ye = 50, be = 51, xe = 52, Se = 53, Ce = 54, we = 55, Te = 56, Ee = 57, De = 58, Oe = 59, ke = 60, Ae = 61, je = 62, q = 63, Me = {
 	abstract: f,

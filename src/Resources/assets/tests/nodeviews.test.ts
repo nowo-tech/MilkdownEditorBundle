@@ -101,7 +101,7 @@ describe('node view contracts', () => {
 describe('remaining branches', () => {
   it('lazy loaders resolve the real modules', async () => {
     expect(typeof (await lazyFeatures.math()).latex).toBe('function');
-    expect(typeof (await lazyFeatures.topBar()).topBar).toBe('function');
+    expect(typeof (await lazyFeatures.topBar()).addTopBar).toBe('function');
     expect(typeof (await lazyFeatures.code()).addCodeMirror).toBe('function');
     const mermaid = await mermaidLoader.load();
     expect(typeof mermaid.render).toBe('function');

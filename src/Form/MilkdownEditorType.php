@@ -132,6 +132,11 @@ final class MilkdownEditorType extends AbstractType
         'version_view' => [
             'version.region', 'version.viewing', 'version.viewing_old', 'version.restore', 'version.copy',
         ],
+        'top_bar' => [
+            'topbar.heading', 'topbar.paragraph', 'topbar.h1', 'topbar.h2', 'topbar.h3', 'topbar.h4', 'topbar.h5', 'topbar.h6',
+            'topbar.bold', 'topbar.italic', 'topbar.strikethrough', 'topbar.code', 'topbar.bullet_list', 'topbar.ordered_list', 'topbar.task_list', 'topbar.link',
+            'topbar.image', 'topbar.table', 'topbar.code_block', 'topbar.math', 'topbar.quote', 'topbar.hr', 'topbar.more',
+        ],
         'comments' => [
             'comments.action', 'comments.no_selection', 'comments.position', 'comments.position_label',
             'comments.title', 'comments.show_resolved', 'comments.truncated', 'comments.new_label', 'comments.send',

@@ -168,6 +168,22 @@ final class BundleTest extends TestCase
     }
 
     #[Test]
+    public function theTopBarStringsComeWithTheTopBar(): void
+    {
+        $container = $this->container();
+        $this->service($container, 'translator', LocaleAwareInterface::class)->setLocale('es');
+        $view = $this->service($container, FormFactoryInterface::class, FormFactoryInterface::class)
+            ->create(MilkdownEditorType::class, null, ['features' => ['top_bar']])
+            ->createView();
+        /** @var array{messages: object} $options */
+        $options  = $view->vars['milkdown_options'];
+        $messages = (array) $options['messages'];
+        self::assertSame('Párrafo', $messages['topbar.paragraph']);
+        self::assertSame('Más herramientas', $messages['topbar.more']);
+        self::assertCount(count(MilkdownEditorType::MESSAGE_KEYS) + count(MilkdownEditorType::FEATURE_MESSAGE_KEYS['top_bar']), $messages);
+    }
+
+    #[Test]
     public function theClipboardAndInsertStringsComeWithTheirFeatures(): void
     {
         $container = $this->container();

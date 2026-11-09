@@ -29,6 +29,14 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+Next minor: **1.15.0**. The `top_bar` keeps one row on phones with a "⋮" overflow menu, and its heading selector is translated (Beacon MUX-41). See [UPGRADING](UPGRADING.md#unreleased).
+
+### Added
+
+- **Top bar overflow on phones (MUX-41):** below 768 px (`TOP_BAR_GROUP_MEDIA_QUERY`, followed live) the `top_bar` no longer wraps to several rows: the controls that do not fit are hidden and offered by a "⋮" menu button (`aria-haspopup="menu"`, `aria-expanded`, `aria-controls`) that opens the bundle's accessible menu (arrow keys, Home / End, type-ahead, Esc closes and gives the focus back; the heading selector becomes a submenu of radio items). Desktop keeps the bar as it is.
+- **Top bar accessibility:** Crepe's icon buttons get names (`aria-label` / `title`), and Enter / Space run them (Crepe reacts to pointer presses only); on the heading selector they open the heading options as a menu.
+- **Translated top bar (MUX-41):** the heading selector no longer shows Crepe's English *Paragraph* / *Heading 1–6*. 23 new `topbar.*` keys in the 7 locales (de, en, es, fr, it, nl, pt), sent only to fields with `top_bar`; four new UI glyphs (`bold`, `italic`, `strikethrough`, `dots-vertical`, Tabler 3.50.0). Assets rebuilt.
+
 ## [1.14.1] - 2026-11-08
 
 Three more URL forms that browsers normalise are read as host values (Delta IK, IK-I7 and IK-I8; Delta IK2, IK2-L1). Nothing to configure.

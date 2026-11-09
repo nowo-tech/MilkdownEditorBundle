@@ -1,9 +1,10 @@
 import { u as e } from "./lib-DaU_YkmU.js";
 import { at as t, ot as n, st as r, ut as i } from "./lib-9QpRoHAM.js";
-import { a, i as o } from "./runtime-DBQRQGPT.js";
-import { a as s, c, colorItems as l, i as u, l as d, n as f, s as p, t as m } from "./colors-CxE4grbu.js";
-import { t as h } from "./file-view-Bt1kb5r1.js";
-import { s as g, t as _ } from "./keyboard-CCMZD5Il.js";
+import { a, i as o } from "./runtime-CYrUAiqI.js";
+import { t as s } from "./menu-Dm_n0-h8.js";
+import { c, colorItems as l, i as u, o as d, r as f, s as p, t as m } from "./colors-CTWPHOsF.js";
+import { t as h } from "./file-view-DMF5e7IR.js";
+import { s as g, t as _ } from "./keyboard-C4Z_2Gid.js";
 // src/Resources/assets/src/plugins/block-actions.ts
 var v = new r("nowo-milkdown-block-actions"), y = /* @__PURE__ */ new WeakMap();
 function b(e, t) {
@@ -33,7 +34,7 @@ var x = class {
 	constructor(e, t, n) {
 		this.view = e, this.runtime = t, this.drag = n, this.host = e.dom.closest(".nowo-milkdown") ?? document.body, this.button = document.createElement("button"), this.button.type = "button", this.button.tabIndex = -1, this.button.className = "nowo-milkdown-block-handle", this.button.setAttribute("aria-label", a(t, "block.actions")), this.button.setAttribute("aria-haspopup", "menu"), this.button.setAttribute("aria-expanded", "false"), this.button.setAttribute("aria-keyshortcuts", "Control+/"), this.button.textContent = "⋮⋮", this.button.hidden = !0, this.button.addEventListener("mousedown", (e) => e.preventDefault()), this.button.addEventListener("click", () => this.openFromButton()), n && (this.button.draggable = !0, this.button.addEventListener("dragstart", (e) => this.dragStart(e)), this.button.addEventListener("dragend", () => {
 			this.view.dragging = null, this.dragDoc = null, this.dragCancelled = !1;
-		})), this.host.append(this.button), this.host.classList.add("nowo-milkdown--blocks"), this.menu = new m(this.host, a(t, "block.actions"), (t) => {
+		})), this.host.append(this.button), this.host.classList.add("nowo-milkdown--blocks"), this.menu = new s(this.host, a(t, "block.actions"), (t) => {
 			this.button.setAttribute("aria-expanded", "false"), t && e.focus();
 		}), this.menu.icons = t.menuIcons, e.dom.addEventListener("mousemove", this.onMove), e.dom.addEventListener("keydown", this.onKey, !0);
 	}
@@ -63,7 +64,7 @@ var x = class {
 		}
 	}
 	move(e) {
-		let t = p(e)(this.view.state, this.view.dispatch), n = t ? e === -1 ? "block.moved_up" : "block.moved_down" : e === -1 ? "block.first" : "block.last";
+		let t = d(e)(this.view.state, this.view.dispatch), n = t ? e === -1 ? "block.moved_up" : "block.moved_down" : e === -1 ? "block.first" : "block.last";
 		return this.announce(a(this.runtime, n)), t;
 	}
 	announce(e) {
@@ -79,10 +80,10 @@ var x = class {
 		this.open(e.left, e.bottom);
 	}
 	groups() {
-		let { view: e, runtime: t } = this, n = e.state, r = c(e), i = f.filter((e) => d(e)(n)).map((e) => ({
+		let { view: e, runtime: t } = this, n = e.state, r = p(e), i = m.filter((e) => c(e)(n)).map((e) => ({
 			id: `turn_${e}`,
 			label: a(t, `slash.${e}`),
-			run: () => r(d(e))
+			run: () => r(c(e))
 		})), o = [];
 		return i.length && o.push({
 			id: "turn_into",
@@ -98,27 +99,27 @@ var x = class {
 				{
 					id: "duplicate",
 					label: a(t, "menu.duplicate"),
-					run: () => r(s)
+					run: () => r(u)
 				},
 				{
 					id: "move_up",
 					label: a(t, "menu.move_up"),
 					shortcut: "Alt+Shift+ArrowUp",
-					disabled: !p(-1)(n),
+					disabled: !d(-1)(n),
 					run: () => r(() => this.move(-1))
 				},
 				{
 					id: "move_down",
 					label: a(t, "menu.move_down"),
 					shortcut: "Alt+Shift+ArrowDown",
-					disabled: !p(1)(n),
+					disabled: !d(1)(n),
 					run: () => r(() => this.move(1))
 				}
 			],
 			[{
 				id: "delete",
 				label: a(t, "menu.delete"),
-				run: () => r(u)
+				run: () => r(f)
 			}]
 		];
 	}
