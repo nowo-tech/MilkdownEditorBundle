@@ -137,9 +137,13 @@ describe('mounting', () => {
 
   it('lazy features load in parallel and the top bar is added', async () => {
     const add = vi.fn();
-    const spy = vi.spyOn(lazyFeatures, 'topBar').mockResolvedValue({ topBar: 'TB' } as never);
-    await addFeatures({ addFeature: add } as never, { features: ['top_bar', 'cursor'], placeholder: '' } as never, { messages: {} } as never);
+    const entries: never[] = [];
+    const addTopBar = vi.fn(() => entries);
+    const spy = vi.spyOn(lazyFeatures, 'topBar').mockResolvedValue({ addTopBar } as never);
+    const runtime = { messages: {} } as { messages: object; topBar?: unknown };
+    await addFeatures({ addFeature: add } as never, { features: ['top_bar', 'cursor'], placeholder: '' } as never, runtime as never);
     expect(spy).toHaveBeenCalled();
-    expect(add.mock.calls.map((c) => c[0])).toContain('TB');
+    expect(addTopBar).toHaveBeenCalled();
+    expect(runtime.topBar).toBe(entries);
   });
 });

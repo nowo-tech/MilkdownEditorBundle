@@ -39,6 +39,12 @@ interfaces and `window.NowoMilkdownEditor`.
 
 ## Unreleased
 
+Next minor: 1.15.0. Nothing to do. Fields with `top_bar` keep one row on phones (below 768 px) and group the rest
+behind "⋮"; desktop is unchanged. Hosts that translate the `NowoMilkdownEditorBundle` domain add the `topbar.*` keys
+(see `src/Resources/translations/NowoMilkdownEditorBundle.en.yaml`). A host stylesheet that restyled
+`.milkdown-top-bar .top-bar-inner` should check the bar at phone width (`.nowo-milkdown-top-bar--grouped`,
+`.nowo-milkdown-top-bar__more`).
+
 ## To 1.14.1
 
 From **1.14.0**:

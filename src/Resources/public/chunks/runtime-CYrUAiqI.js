@@ -196,7 +196,30 @@ var t = {
 	"comments.react": "React with {emoji} ({count})",
 	"comments.edit": "Edit",
 	"comments.save": "Save",
-	"comments.delete": "Delete"
+	"comments.delete": "Delete",
+	"topbar.heading": "Text style",
+	"topbar.paragraph": "Paragraph",
+	"topbar.h1": "Heading 1",
+	"topbar.h2": "Heading 2",
+	"topbar.h3": "Heading 3",
+	"topbar.h4": "Heading 4",
+	"topbar.h5": "Heading 5",
+	"topbar.h6": "Heading 6",
+	"topbar.bold": "Bold",
+	"topbar.italic": "Italic",
+	"topbar.strikethrough": "Strikethrough",
+	"topbar.code": "Inline code",
+	"topbar.bullet_list": "Bulleted list",
+	"topbar.ordered_list": "Numbered list",
+	"topbar.task_list": "Task list",
+	"topbar.link": "Link",
+	"topbar.image": "Image",
+	"topbar.table": "Table",
+	"topbar.code_block": "Code block",
+	"topbar.math": "Math",
+	"topbar.quote": "Quote",
+	"topbar.hr": "Divider",
+	"topbar.more": "More tools"
 };
 function n(e, n, r = {}) {
 	return (e[n] ?? t[n] ?? n).replace(/\{(\w+)\}/g, (e, t) => t in r ? String(r[t]) : e);
@@ -255,7 +278,8 @@ var _ = {
 	hostSchemes: {},
 	previewSandbox: "",
 	maxPreviews: 500,
-	previewFiles: /* @__PURE__ */ new Set()
+	previewFiles: /* @__PURE__ */ new Set(),
+	topBar: null
 }), y = e(v(), "nowoMilkdownRuntime"), b = (e, t, r = {}) => n(e.messages, t, r), x = (e) => `tabler-${e.charAt(0)}.svg`;
 function S(e, t) {
 	return e.spriteUrl && e.icons.has(t) ? `${e.spriteUrl}#tabler-${t}` : e.catalogUrl && h(t) ? `${e.catalogUrl}${x(t)}#tabler-${t}` : null;

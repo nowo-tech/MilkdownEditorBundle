@@ -332,6 +332,13 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   };
   label?.addEventListener('click', focus);
   const unwatch = watchControls(surface, runtime);
+  // MUX-41: names the top bar's controls and groups its overflow behind "⋮" on phones.
+  const unwatchTopBar = runtime.topBar
+    ? (await import('./features/top-bar')).watchTopBar(surface, root, runtime.topBar, runtime, {
+        run: (fn) => editor.action(fn),
+        focusEditor: () => editor.action((ctx) => ctx.get(editorViewCtx).focus()),
+      })
+    : (): void => undefined;
 
   /**
    * *Insert icon* / *Icon…*: the picker at the caret (1.7, inline, never a new block) when the field has icons or the
@@ -595,6 +602,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
       destroyed = true;
       stopThreads();
       unwatch();
+      unwatchTopBar();
       stopCollaboration();
       form?.removeEventListener('submit', sync, true);
       form?.removeEventListener('formdata', sync, true);

@@ -20,7 +20,7 @@ export const lazyFeatures = {
   code: () => import('./features/code'),
   math: () => import('@milkdown/crepe/feature/latex'),
   katex: () => import('katex'),
-  topBar: () => import('@milkdown/crepe/feature/top-bar'),
+  topBar: () => import('./features/top-bar'),
   colors: () => import('./commands/colors'),
 };
 
@@ -76,7 +76,8 @@ export async function addFeatures(builder: CrepeBuilder, options: EditorOptions,
     );
   }
   if (on.has('table')) builder.addFeature(table);
-  if (topBar) builder.addFeature(topBar.topBar);
+  // MUX-41: translated headings; the editor groups the bar's overflow behind "⋮" on phones (watchTopBar).
+  if (topBar) runtime.topBar = topBar.addTopBar(builder, runtime);
   // CodeMirror before LaTeX: the LaTeX preview wraps the code block's renderPreview.
   if (code) code.addCodeMirror(builder, runtime, on.has('mermaid'));
   if (math) {

@@ -42,6 +42,8 @@ export type Runtime = {
   /** 1.9: how many distinct files may show a preview, and those that do (audit GX-L1). */
   maxPreviews: number;
   previewFiles: Set<string>;
+  /** MUX-41 `top_bar`: the controls of Crepe's top bar (filled when it renders), null without the feature. */
+  topBar: import('./features/top-bar').TopBarEntry[] | null;
 };
 
 export const defaultRuntime = (): Runtime => ({
@@ -63,6 +65,7 @@ export const defaultRuntime = (): Runtime => ({
   previewSandbox: '',
   maxPreviews: 500,
   previewFiles: new Set(),
+  topBar: null,
 });
 
 export const runtimeCtx = $ctx<Runtime, 'nowoMilkdownRuntime'>(defaultRuntime(), 'nowoMilkdownRuntime');

@@ -100,7 +100,7 @@ the `Nowo\MilkdownEditorBundle\ProfileRegistry` service.
 | Feature | What it adds | Chunk |
 |---------|--------------|-------|
 | `toolbar` | Selection toolbar (bold, italic, strike, code, link…) | entry |
-| `top_bar` | Fixed top bar with a heading selector and insert actions | lazy |
+| `top_bar` | Fixed top bar with a heading selector and insert actions; translated (`topbar.*`), named and keyboard-operable controls; below 768 px one row with a "⋮" overflow menu (1.15) | lazy |
 | `link_tooltip` | Link preview / edit tooltip | entry |
 | `table` | GFM tables with row / column handles (named controls) | entry |
 | `code_mirror` | CodeMirror code blocks, languages loaded on demand, nonce-aware | lazy |

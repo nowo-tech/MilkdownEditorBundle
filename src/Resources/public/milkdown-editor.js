@@ -1,5 +1,5 @@
 import { C as e, S as t, _ as n, a as r, b as i, c as a, d as o, f as s, g as c, h as l, i as u, m as d, n as f, o as p, p as m, r as h, s as g, t as _, u as v, v as y, x as b, y as x } from "./chunks/link-tooltip-CrklcZfC.js";
-import { $t as S, A as C, Bt as w, C as T, Ct as E, Gt as D, I as ee, It as te, Jt as ne, Kt as re, M as O, Nt as ie, O as k, Ot as A, P as ae, Qt as j, St as M, T as oe, U as se, W as ce, Wt as N, a as le, at as ue, bt as de, c as fe, ct as pe, d as me, et as he, f as ge, h as _e, i as ve, j as ye, k as be, l as P, m as F, mt as xe, n as Se, nn as Ce, nt as we, on as Te, ot as I, qt as Ee, r as De, rt as Oe, st as L, tn as ke, ut as R, xt as Ae, z as je } from "./chunks/lib-9QpRoHAM.js";
+import { $t as S, A as C, Bt as w, C as T, Ct as E, Gt as D, I as ee, It as te, Jt as ne, Kt as re, M as O, Nt as ie, O as k, Ot as A, P as ae, Qt as oe, St as j, T as se, U as ce, W as le, Wt as M, a as ue, at as N, bt as de, c as fe, ct as pe, d as me, et as he, f as ge, h as _e, i as ve, j as ye, k as be, l as P, m as F, mt as xe, n as Se, nn as Ce, nt as we, on as Te, ot as I, qt as Ee, r as De, rt as Oe, st as L, tn as ke, ut as R, xt as Ae, z as je } from "./chunks/lib-9QpRoHAM.js";
 import { a as Me, c as Ne, d as Pe, f as Fe, g as Ie, h as Le, m as Re, n as z, p as ze, t as B, u as V } from "./chunks/lib-DaU_YkmU.js";
 import { n as Be, r as Ve, t as He } from "./chunks/dist-DiZPwpkv.js";
 import { a as Ue, i as We, n as Ge, r as Ke, t as qe } from "./chunks/lib-B0HMIP_r.js";
@@ -8,13 +8,13 @@ import { d as lt, t as ut } from "./chunks/dist-DPp-l4A4.js";
 import { _ as H, c as dt, d as U, f as ft, h as pt, i as mt, l as ht, m as gt, n as _t, o as vt, p as yt, s as bt, u as xt, v as St } from "./chunks/floating-ui.dom-DE0KslHM.js";
 import { t as Ct } from "./chunks/purify.es-CZ6K1J3y.js";
 import { t as wt } from "./chunks/mermaid-DJO1IgvH.js";
-import { a as W, c as Tt, d as Et, f as Dt, i as Ot, l as kt, n as At, r as jt, s as Mt, t as Nt, u as Pt } from "./chunks/runtime-DBQRQGPT.js";
+import { a as W, c as Tt, d as Et, f as Dt, i as Ot, l as kt, n as At, r as jt, s as Mt, t as Nt, u as Pt } from "./chunks/runtime-CYrUAiqI.js";
 import { n as Ft, t as It } from "./chunks/link-titles-Cs1oogn7.js";
 import { a as Lt, n as Rt, s as zt } from "./chunks/host-BeYazOMQ.js";
-import { a as Bt, c as Vt, d as Ht, f as Ut, i as Wt, m as Gt, n as Kt, o as qt, p as Jt, s as Yt, t as Xt, u as G } from "./chunks/directives-Cjq-r_Gz.js";
-import { a as Zt, i as Qt } from "./chunks/layer-N-kUiX52.js";
+import { a as Bt, c as Vt, d as Ht, f as Ut, i as Wt, m as Gt, n as Kt, o as qt, p as Jt, s as Yt, t as Xt, u as G } from "./chunks/directives-Df2NBKeH.js";
+import { a as Zt, i as Qt } from "./chunks/layer-ChVHXxrT.js";
 import { i as $t, n as en, r as tn } from "./chunks/context-menu-registry-Dw2l9wcD.js";
-import { a as nn, c as rn, f as an, i as on, l as sn, n as cn, o as ln, p as un } from "./chunks/keyboard-CCMZD5Il.js";
+import { a as nn, c as rn, f as an, i as on, l as sn, n as cn, o as ln, p as un } from "./chunks/keyboard-C4Z_2Gid.js";
 import { i as dn } from "./chunks/dist-BmAqUYId.js";
 import { n as fn, r as pn, t as mn } from "./chunks/search-BYXNAND9.js";
 import { n as hn, t as gn } from "./chunks/heading-slug-DVQeGYqO.js";
@@ -32,7 +32,7 @@ function vn(e, t) {
 	} }), e;
 }
 function yn(e, t) {
-	let n = ce(t);
+	let n = le(t);
 	if (n) return e.dispatch(e.state.tr.replaceSelectionWith(n, !0)), !0;
 	try {
 		return e.dispatch(e.state.tr.replaceSelection(t)), !0;
@@ -61,7 +61,7 @@ var bn = V((e) => {
 				if (l) {
 					let e = JSON.parse(l)?.mode;
 					if (c && e) {
-						let { tr: r } = n.state, i = se("code_block", t);
+						let { tr: r } = n.state, i = ce("code_block", t);
 						return r.replaceSelectionWith(i.create({ language: e })).setSelection(R.near(r.doc.resolve(Math.max(0, r.selection.from - 2)))).insertText(c.replace(/\r\n?/g, "\n")), n.dispatch(r), !0;
 					}
 				}
@@ -183,7 +183,7 @@ var jn = [kn, An], Mn = class {
 		return this.selectionUpdatedListeners.push(e), this;
 	}
 }, Nn = S(new Mn(), "listener"), Pn = new L("MILKDOWN_LISTENER"), Fn = (e) => (e.inject(Nn, new Mn()), async () => {
-	await e.wait(le);
+	await e.wait(ue);
 	let { listeners: t } = e.get(Nn);
 	t.beforeMount.forEach((t) => t(e)), await e.wait(fe);
 	let n = e.get(C), r = null, i = null, a = null, o = null, s = Ue(() => {
@@ -219,7 +219,7 @@ var jn = [kn, An], Mn = class {
 			}
 		}
 	});
-	e.update(oe, (e) => e.concat(c)), await e.wait(ve), t.mounted.forEach((t) => t(e));
+	e.update(se, (e) => e.concat(c)), await e.wait(ve), t.mounted.forEach((t) => t(e));
 });
 Fn.meta = {
 	package: "@milkdown/plugin-listener",
@@ -471,7 +471,7 @@ function sr(e, t) {
 	let { move: r } = n;
 	if (!r) return;
 	let i = e.state.selection;
-	if (!(i instanceof ue)) return;
+	if (!(i instanceof N)) return;
 	let { from: a, to: o } = i;
 	return a <= t && t <= o;
 }
@@ -493,7 +493,7 @@ function cr(e) {
 			let c = s.mapping.map(o), l = r.openStart == 0 && r.openEnd == 0 && r.content.childCount == 1, u = s.doc;
 			if (l ? s.replaceRangeWith(c, c, r.content.firstChild) : s.replaceRange(c, c, r), s.doc.eq(u)) return !0;
 			let d = s.doc.resolve(c);
-			if (l && ue.isSelectable(r.content.firstChild) && d.nodeAfter && d.nodeAfter.sameMarkup(r.content.firstChild)) s.setSelection(new ue(d));
+			if (l && N.isSelectable(r.content.firstChild) && d.nodeAfter && d.nodeAfter.sameMarkup(r.content.firstChild)) s.setSelection(new N(d));
 			else {
 				let t = s.mapping.map(o);
 				s.mapping.maps[s.mapping.maps.length - 1].forEach((e, n, r, i) => t = i), s.setSelection(lr(e, d, s.doc.resolve(t)));
@@ -595,7 +595,7 @@ var J = class e extends pe {
 			for (;;) {
 				let o = n > 0 ? a.firstChild : a.lastChild;
 				if (!o) {
-					if (a.isAtom && !a.isText && !ue.isSelectable(a)) {
+					if (a.isAtom && !a.isText && !N.isSelectable(a)) {
 						t = t.doc.resolve(i + a.nodeSize * n), r = !1;
 						continue search;
 					}
@@ -686,14 +686,14 @@ function vr(e, t, n) {
 		left: n.clientX,
 		top: n.clientY
 	});
-	return i && i.inside > -1 && ue.isSelectable(e.state.doc.nodeAt(i.inside)) ? !1 : (e.dispatch(e.state.tr.setSelection(new J(r))), !0);
+	return i && i.inside > -1 && N.isSelectable(e.state.doc.nodeAt(i.inside)) ? !1 : (e.dispatch(e.state.tr.setSelection(new J(r))), !0);
 }
 function yr(e, t) {
 	if (t.inputType != "insertCompositionText" || !(e.state.selection instanceof J)) return !1;
 	let { $from: n } = e.state.selection, r = n.parent.contentMatchAt(n.index()).findWrapping(e.state.schema.nodes.text);
 	if (!r) return !1;
-	let i = M.empty;
-	for (let e = r.length - 1; e >= 0; e--) i = M.from(r[e].createAndFill(null, i));
+	let i = j.empty;
+	for (let e = r.length - 1; e >= 0; e--) i = j.from(r[e].createAndFill(null, i));
 	let a = e.state.tr.replace(n.pos, n.pos, new A(i, 0, 0));
 	return a.setSelection(R.near(a.doc.resolve(n.pos + 1))), e.dispatch(a), !1;
 }
@@ -1628,7 +1628,7 @@ Yi = /* @__PURE__ */ new WeakSet(), Xi = function(e) {
 	if (!i) return !1;
 	let a = n.doc.resolve(i.inside), o = je((e) => e.type.name === "table_cell" || e.type.name === "table_header")(a);
 	if (!o || n.selection instanceof R && je((e) => e.type.name === "table_cell" || e.type.name === "table_header")(n.selection.$from)?.node === o.node) return !1;
-	let { from: s } = o, c = ue.create(n.doc, s + 1);
+	let { from: s } = o, c = N.create(n.doc, s + 1);
 	return !n.selection.eq(c) && (n.selection instanceof ut ? setTimeout(() => {
 		r(n.tr.setSelection(c).scrollIntoView());
 	}, 20) : requestAnimationFrame(() => {
@@ -2013,7 +2013,7 @@ function Ma(e, t, n) {
 	});
 }
 function Na(e, t, n) {
-	let r = e.parent.copy(M.from(e.node)), i = t.parent.copy(M.from(t.node)), a = new xe(0, r.content.size, new A(i.content, 0, 0));
+	let r = e.parent.copy(j.from(e.node)), i = t.parent.copy(j.from(t.node)), a = new xe(0, r.content.size, new A(i.content, 0, 0));
 	return ya.create(r, void 0, n.encoder).addSteps(i, [a.getMap()], null).changes.map((n) => Ma(n, e.abs, t.abs));
 }
 function Pa(e, t) {
@@ -2395,14 +2395,14 @@ function so(e, t) {
 	}
 }
 function co(e, t, n) {
-	if (!n) return M.empty;
-	if (!oo(t, n)) return M.from(t.text(n));
+	if (!n) return j.empty;
+	if (!oo(t, n)) return j.from(t.text(n));
 	let r = so(e.get(T), n)?.firstChild;
-	if (r?.type.name !== "paragraph" || r.content.size === 0) return M.from(t.text(n));
+	if (r?.type.name !== "paragraph" || r.content.size === 0) return j.from(t.text(n));
 	let i = r.content, a = /^[ \t]+/.exec(n)?.[0];
-	a && (i = M.from(t.text(a)).append(i));
+	a && (i = j.from(t.text(a)).append(i));
 	let o = /[ \t]+$/.exec(n)?.[0];
-	return o && (i = i.append(M.from(t.text(o)))), i;
+	return o && (i = i.append(j.from(t.text(o)))), i;
 }
 function lo({ ctx: e, tr: t, buffer: n, from: r, to: i, resolved: a }) {
 	let o = t.doc.type.schema, s = n.indexOf("\n");
@@ -2414,7 +2414,7 @@ function lo({ ctx: e, tr: t, buffer: n, from: r, to: i, resolved: a }) {
 			insertEndPos: r + a.size
 		};
 	}
-	let c = n.substring(0, s), l = n.substring(s + 1), u = e.get(T), d = l.trim() ? so(u, l) : null, f = d ? eo(d.content) : M.empty;
+	let c = n.substring(0, s), l = n.substring(s + 1), u = e.get(T), d = l.trim() ? so(u, l) : null, f = d ? eo(d.content) : j.empty;
 	if (f.childCount === 0) {
 		let a = co(e, o, n.replace(/\n/g, " "));
 		return t = t.replaceWith(r, i, a), {
@@ -2424,7 +2424,7 @@ function lo({ ctx: e, tr: t, buffer: n, from: r, to: i, resolved: a }) {
 		};
 	}
 	let p = a.depth, m = co(e, o, c);
-	for (let e = p; e > 0; e--) m = M.from(a.node(e).copy(m));
+	for (let e = p; e > 0; e--) m = j.from(a.node(e).copy(m));
 	let h = m.append(f), g = new A(h, p, 0), _ = t.doc.content.size, v = t.doc.resolve(Math.min(i, _)), y = i;
 	p > 0 && v.depth === p && v.parentOffset === v.parent.content.size && (y = v.after(p)), t = t.replace(r, y, g);
 	let b = h.size - p;
@@ -3282,11 +3282,11 @@ async function ws(e, t = {}) {
 }
 // src/Resources/assets/src/features.ts
 var Ts = {
-	code: () => import("./chunks/code-DwDysq5o.js").then((e) => e.t),
+	code: () => import("./chunks/code-BNxuHnBY.js").then((e) => e.t),
 	math: () => import("./chunks/latex-cTjeFhLI.js"),
 	katex: () => import("./chunks/katex-DNCsLolD.js"),
-	topBar: () => import("./chunks/top-bar-Giu4y46u.js"),
-	colors: () => import("./chunks/colors-CxE4grbu.js")
+	topBar: () => import("./chunks/top-bar-DOK8djTZ.js"),
+	colors: () => import("./chunks/colors-CTWPHOsF.js")
 }, Es = "<svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 16l5-12 5 12\"/><path d=\"M9 11h6\"/><path d=\"M4 20h16\"/></svg>", Ds = "<svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 5h16v11H9l-5 4z\"/></svg>";
 async function Os(e, t, n) {
 	let r = new Set(t.features), [i, a, o] = await Promise.all([
@@ -3316,7 +3316,7 @@ async function Os(e, t, n) {
 			});
 		} } : void 0);
 	}
-	if (r.has("table") && e.addFeature(la), o && e.addFeature(o.topBar), i && i.addCodeMirror(e, n, r.has("mermaid")), a) {
+	if (r.has("table") && e.addFeature(la), o && (n.topBar = o.addTopBar(e, n)), i && i.addCodeMirror(e, n, r.has("mermaid")), a) {
 		let t = await Ts.katex();
 		Ss(t.default ?? t), ms(hs, n.nonce), e.addFeature(a.latex, { katexOptions: {
 			trust: !1,
@@ -3535,7 +3535,7 @@ function Gs(e = document) {
 }
 // src/Resources/assets/src/icons/open.ts
 var Ks = {
-	picker: () => import("./chunks/icon-picker-BIVPna3w.js"),
+	picker: () => import("./chunks/icon-picker-7iZ3LsBA.js"),
 	catalog: () => import("./chunks/catalog-BfEKgkVo.js")
 };
 async function qs(e) {
@@ -3851,7 +3851,7 @@ function sc(e, t, n, r, i, a, o, s, c, l, u, d, f, p, m) {
 		return e.enter(r), e.enter(i), e.consume(t), e.exit(i), v;
 	}
 	function v(t) {
-		return t === 35 ? (h = o, y(t)) : t === 46 ? (h = s, y(t)) : m && re(t) ? w(e, v, "whitespace")(t) : !m && D(t) ? te(e, v)(t) : t === null || N(t) || ne(t) || Ee(t) && t !== 45 && t !== 95 ? A(t) : (e.enter(a), e.enter(c), e.consume(t), S);
+		return t === 35 ? (h = o, y(t)) : t === 46 ? (h = s, y(t)) : m && re(t) ? w(e, v, "whitespace")(t) : !m && D(t) ? te(e, v)(t) : t === null || M(t) || ne(t) || Ee(t) && t !== 45 && t !== 95 ? A(t) : (e.enter(a), e.enter(c), e.consume(t), S);
 	}
 	function y(t) {
 		let n = h + "Marker";
@@ -3871,13 +3871,13 @@ function sc(e, t, n, r, i, a, o, s, c, l, u, d, f, p, m) {
 		return e.consume(t), x;
 	}
 	function S(t) {
-		return t === null || N(t) || ne(t) || Ee(t) && t !== 45 && t !== 46 && t !== 58 && t !== 95 ? (e.exit(c), m && re(t) ? w(e, C, "whitespace")(t) : !m && D(t) ? te(e, C)(t) : C(t)) : (e.consume(t), S);
+		return t === null || M(t) || ne(t) || Ee(t) && t !== 45 && t !== 46 && t !== 58 && t !== 95 ? (e.exit(c), m && re(t) ? w(e, C, "whitespace")(t) : !m && D(t) ? te(e, C)(t) : C(t)) : (e.consume(t), S);
 	}
 	function C(t) {
 		return t === 61 ? (e.enter(l), e.consume(t), e.exit(l), T) : (e.exit(a), v(t));
 	}
 	function T(t) {
-		return t === null || t === 60 || t === 61 || t === 62 || t === 96 || t === 125 || m && N(t) ? n(t) : t === 34 || t === 39 ? (e.enter(u), e.enter(f), e.consume(t), e.exit(f), g = t, ee) : m && re(t) ? w(e, T, "whitespace")(t) : !m && D(t) ? te(e, T)(t) : (e.enter(d), e.enter(p), e.consume(t), g = void 0, E);
+		return t === null || t === 60 || t === 61 || t === 62 || t === 96 || t === 125 || m && M(t) ? n(t) : t === 34 || t === 39 ? (e.enter(u), e.enter(f), e.consume(t), e.exit(f), g = t, ee) : m && re(t) ? w(e, T, "whitespace")(t) : !m && D(t) ? te(e, T)(t) : (e.enter(d), e.enter(p), e.consume(t), g = void 0, E);
 	}
 	function E(t) {
 		return t === null || t === 34 || t === 39 || t === 60 || t === 61 || t === 62 || t === 96 ? n(t) : t === 125 || D(t) ? (e.exit(p), e.exit(d), e.exit(a), v(t)) : (e.consume(t), E);
@@ -3886,10 +3886,10 @@ function sc(e, t, n, r, i, a, o, s, c, l, u, d, f, p, m) {
 		return t === g ? (e.enter(f), e.consume(t), e.exit(f), e.exit(u), e.exit(a), k) : (e.enter(d), O(t));
 	}
 	function O(t) {
-		return t === g ? (e.exit(d), ee(t)) : t === null ? n(t) : N(t) ? m ? n(t) : te(e, O)(t) : (e.enter(p), e.consume(t), ie);
+		return t === g ? (e.exit(d), ee(t)) : t === null ? n(t) : M(t) ? m ? n(t) : te(e, O)(t) : (e.enter(p), e.consume(t), ie);
 	}
 	function ie(t) {
-		return t === g || t === null || N(t) ? (e.exit(p), O(t)) : (e.consume(t), ie);
+		return t === g || t === null || M(t) ? (e.exit(p), O(t)) : (e.consume(t), ie);
 	}
 	function k(e) {
 		return e === 125 || D(e) ? v(e) : A(e);
@@ -3918,7 +3918,7 @@ function cc(e, t, n, r, i, a, o) {
 		return l && (l.next = n), l = n, p(t);
 	}
 	function p(t) {
-		return t === null || s > 999 || t === 91 && ++c > 32 ? n(t) : t === 93 && !c-- ? (e.exit("chunkText"), h(t)) : N(t) ? o ? n(t) : (e.consume(t), e.exit("chunkText"), f) : (e.consume(t), t === 92 ? m : p);
+		return t === null || s > 999 || t === 91 && ++c > 32 ? n(t) : t === 93 && !c-- ? (e.exit("chunkText"), h(t)) : M(t) ? o ? n(t) : (e.consume(t), e.exit("chunkText"), f) : (e.consume(t), t === 92 ? m : p);
 	}
 	function m(t) {
 		return t === 91 || t === 92 || t === 93 ? (e.consume(t), s++, p) : p(t);
@@ -3932,10 +3932,10 @@ function lc(e, t, n, r) {
 	let i = this;
 	return a;
 	function a(t) {
-		return t === null || N(t) || Ee(t) || ne(t) ? n(t) : (e.enter(r), e.consume(t), o);
+		return t === null || M(t) || Ee(t) || ne(t) ? n(t) : (e.enter(r), e.consume(t), o);
 	}
 	function o(a) {
-		return a === null || N(a) || ne(a) || Ee(a) && a !== 45 && a !== 95 ? (e.exit(r), i.previous === 45 || i.previous === 95 ? n(a) : t(a)) : (e.consume(a), o);
+		return a === null || M(a) || ne(a) || Ee(a) && a !== 45 && a !== 95 ? (e.exit(r), i.previous === 45 || i.previous === 95 ? n(a) : t(a)) : (e.consume(a), o);
 	}
 }
 // node_modules/.pnpm/micromark-extension-directive@4.0.0/node_modules/micromark-extension-directive/lib/directive-container.js
@@ -3971,10 +3971,10 @@ function mc(e, t, n) {
 		return w(e, p, "whitespace")(t);
 	}
 	function p(i) {
-		return e.exit("directiveContainerFence"), i === null ? C(i) : N(i) ? r.interrupt ? t(i) : e.attempt(pc, m, C)(i) : n(i);
+		return e.exit("directiveContainerFence"), i === null ? C(i) : M(i) ? r.interrupt ? t(i) : e.attempt(pc, m, C)(i) : n(i);
 	}
 	function m(t) {
-		return t === null ? C(t) : N(t) ? e.check(pc, y, C)(t) : (e.enter("directiveContainerContent"), h(t));
+		return t === null ? C(t) : M(t) ? e.check(pc, y, C)(t) : (e.enter("directiveContainerContent"), h(t));
 	}
 	function h(t) {
 		return e.attempt({
@@ -3983,14 +3983,14 @@ function mc(e, t, n) {
 		}, S, a ? w(e, g, "linePrefix", a + 1) : g)(t);
 	}
 	function g(t) {
-		return t === null ? S(t) : N(t) ? e.check(pc, v, S)(t) : v(t);
+		return t === null ? S(t) : M(t) ? e.check(pc, v, S)(t) : v(t);
 	}
 	function _(t) {
 		if (t === null) {
 			let n = e.exit("chunkDocument");
 			return r.parser.lazy[n.start.line] = !1, S(t);
 		}
-		return N(t) ? e.check(pc, b, x)(t) : (e.consume(t), _);
+		return M(t) ? e.check(pc, b, x)(t) : (e.consume(t), _);
 	}
 	function v(t) {
 		let n = e.enter("chunkDocument", {
@@ -4027,7 +4027,7 @@ function mc(e, t, n) {
 			return t === 58 ? (e.consume(t), i++, s) : i < o ? n(t) : (e.exit("directiveContainerSequence"), w(e, c, "whitespace")(t));
 		}
 		function c(r) {
-			return r === null || N(r) ? (e.exit("directiveContainerFence"), t(r)) : n(r);
+			return r === null || M(r) ? (e.exit("directiveContainerFence"), t(r)) : n(r);
 		}
 	}
 }
@@ -4074,7 +4074,7 @@ function xc(e, t, n) {
 		return w(e, l, "whitespace")(t);
 	}
 	function l(r) {
-		return r === null || N(r) ? (e.exit("directiveLeaf"), t(r)) : n(r);
+		return r === null || M(r) ? (e.exit("directiveLeaf"), t(r)) : n(r);
 	}
 }
 function Sc(e, t, n) {
@@ -4207,12 +4207,12 @@ function zc(e, t) {
 		for (l--; ++l <= e.length;) {
 			let t = e.charCodeAt(l);
 			if (!b(t)) break;
-			y += String.fromCharCode(t), u === "named" && Mc.includes(y) && (_ = y, v = j(y));
+			y += String.fromCharCode(t), u === "named" && Mc.includes(y) && (_ = y, v = oe(y));
 		}
 		let x = e.charCodeAt(l) === 59;
 		if (x) {
 			l++;
-			let e = u === "named" && j(y);
+			let e = u === "named" && oe(y);
 			e && (_ = y, v = e);
 		}
 		let S = 1 + l - o, C = "";
@@ -5318,7 +5318,7 @@ async function ku(e, t = {}) {
 	};
 	e.classList.add("nowo-milkdown"), e.dataset.theme = r.theme, e.style.setProperty("--nowo-milkdown-min-height", r.minHeight), n.hidden = !0, n.value = Cu(n.value);
 	let { bar: s, surface: c, status: l, announce: u } = Du(e, o);
-	r.version && e.insertBefore((await import("./chunks/version-C18ZpIc4.js")).versionBanner(e, r.version, o), s);
+	r.version && e.insertBefore((await import("./chunks/version-CHHCIg5l.js")).versionBanner(e, r.version, o), s);
 	let d = Eu(n), f = n.value;
 	r.upload && (r.upload.hostSchemes = r.hostSchemes);
 	let p = pu({
@@ -5340,7 +5340,7 @@ async function ku(e, t = {}) {
 	let g = new $n({
 		root: c,
 		defaultValue: f
-	}), _ = g.editor, v = r.collaboration ? await import("./chunks/collab-Cpbs3MxO.js") : null, y = r.features.includes("context_menu") ? await import("./chunks/context-menu-Cds6MCIs.js") : null, b = r.features.includes("block_actions") ? await import("./chunks/block-actions-7kWOde6M.js") : null, x = r.features.includes("colors") ? await import("./chunks/colors-CxE4grbu.js") : null, S = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-DSI64ToL.js") : null, C = r.comments ? await import("./chunks/comments-Dmn8Mh65.js") : null, w = null, T = null, E = r.comments ? {
+	}), _ = g.editor, v = r.collaboration ? await import("./chunks/collab-Cpbs3MxO.js") : null, y = r.features.includes("context_menu") ? await import("./chunks/context-menu-Co2KgULx.js") : null, b = r.features.includes("block_actions") ? await import("./chunks/block-actions-D78S2HKn.js") : null, x = r.features.includes("colors") ? await import("./chunks/colors-CTWPHOsF.js") : null, S = r.features.includes("markdown_clipboard") ? await import("./chunks/markdown-clipboard-YvGgctMF.js") : null, C = r.comments ? await import("./chunks/comments-Dmn8Mh65.js") : null, w = null, T = null, E = r.comments ? {
 		root: e,
 		announce: (e, t) => u(e, t),
 		yjs: () => w,
@@ -5395,21 +5395,24 @@ async function ku(e, t = {}) {
 		ee ? (te = !0, c.focus({ preventScroll: !0 })) : _.action((e) => e.get(F).focus());
 	};
 	d?.addEventListener("click", A);
-	let ae = Ul(c, o), j = (e) => {
+	let ae = Ul(c, o), oe = o.topBar ? (await import("./chunks/top-bar-DOK8djTZ.js")).watchTopBar(c, e, o.topBar, o, {
+		run: (e) => _.action(e),
+		focusEditor: () => _.action((e) => e.get(F).focus())
+	}) : () => void 0, j = (e) => {
 		if (jt(o)) {
 			Ys(e, o);
 			return;
 		}
 		let { $from: t } = e.state.selection, n = t.parent.textBetween(0, t.parentOffset, void 0, "￼");
 		e.dispatch(e.state.tr.insertText(n === "" || /\s$/.test(n) ? ":" : " :")), e.focus();
-	}, M = !!(r.suggestions[":"] || jt(o));
-	if (m && r.actionBarInsert.includes("file") && Ou(s, W(o, "upload.button"), () => _.action((e) => h(e.get(F))), r.toolbarIcons ? "file-upload" : null), M && !r.readonly && r.actionBarInsert.includes("icon") && Ou(s, W(o, "icon.button"), () => _.action((e) => j(e.get(F))), r.toolbarIcons ? "icons" : null), r.features.includes("insert_menu") && !r.readonly) {
+	}, se = !!(r.suggestions[":"] || jt(o));
+	if (m && r.actionBarInsert.includes("file") && Ou(s, W(o, "upload.button"), () => _.action((e) => h(e.get(F))), r.toolbarIcons ? "file-upload" : null), se && !r.readonly && r.actionBarInsert.includes("icon") && Ou(s, W(o, "icon.button"), () => _.action((e) => j(e.get(F))), r.toolbarIcons ? "icons" : null), r.features.includes("insert_menu") && !r.readonly) {
 		let e = [];
 		m && e.push({
 			id: "file",
 			label: W(o, "menu.insert_file"),
 			run: (e) => h(e)
-		}), M && e.push({
+		}), se && e.push({
 			id: "icon",
 			label: W(o, "slash.icon"),
 			run: j,
@@ -5417,7 +5420,7 @@ async function ku(e, t = {}) {
 		}), _.action((t) => o.insert.push(...tn(Ql(t, r, o), e)));
 	}
 	s.childElementCount || s.remove();
-	let oe = null, se = () => void 0, ce = null;
+	let ce = null, le = () => void 0, M = null;
 	if (v && r.collaboration) {
 		e.dataset.collab = "connecting", e.setAttribute("aria-busy", "true");
 		let t = r.collaboration.topic, i = v, a = [...s.querySelectorAll("button")];
@@ -5465,7 +5468,7 @@ async function ku(e, t = {}) {
 			if (e.querySelector(".nowo-milkdown__reload")) return;
 			let t = document.createElement("button");
 			t.type = "button", t.className = "nowo-milkdown__reload", t.textContent = W(o, "collab.reload"), t.addEventListener("click", () => i.page.reload()), l.after(t);
-		}, ae = n.defaultValue === "" ? f : Cu(n.defaultValue), j = v.startCollaboration(_, r.collaboration, ae, {
+		}, ae = n.defaultValue === "" ? f : Cu(n.defaultValue), oe = v.startCollaboration(_, r.collaboration, ae, {
 			onStatus: (t) => {
 				e.dataset.collab = t, t === "online" && (p = !1, E?.remove(), E = null), t === "standalone" ? (p = !0, l.textContent = "", D("collab.standalone")) : u(`collab.${t}`, {});
 			},
@@ -5484,37 +5487,37 @@ async function ku(e, t = {}) {
 			},
 			isUntouched: () => O() === d
 		});
-		ne = j.edited, oe = j.provider, ce = j.ready, C && (w = v.yjsAnchors(() => _.action((e) => e.get(F).state)));
-		let M = oe, N = (e, t) => {
+		ne = oe.edited, ce = oe.provider, M = oe.ready, C && (w = v.yjsAnchors(() => _.action((e) => e.get(F).state)));
+		let j = ce, se = (e, t) => {
 			let n = k?.querySelector(`input[name="${e}"]`) ?? null;
 			t === null ? n?.remove() : (n || (n = document.createElement("input"), n.type = "hidden", n.name = e, k?.append(n)), n.value = t);
-		}, le = () => {
-			M.flush(!0);
-			let e = M.status === "online" && j.bound();
-			N(vu, e ? t : null);
-			let n = e ? M.includedSeq : null;
-			N(yu, n === null ? null : String(n)), N(bu, j.bound() ? M.epoch : null);
+		}, ue = () => {
+			j.flush(!0);
+			let e = j.status === "online" && oe.bound();
+			se(vu, e ? t : null);
+			let n = e ? j.includedSeq : null;
+			se(yu, n === null ? null : String(n)), se(bu, oe.bound() ? j.epoch : null);
 		};
-		k?.addEventListener("submit", le, !0);
-		let ue = () => M.flush();
-		c.addEventListener("focusout", ue), se = () => {
-			k?.removeEventListener("submit", h, !0), c.removeEventListener("pointerdown", b), k?.removeEventListener("submit", le, !0), c.removeEventListener("focusout", ue), j.stop();
+		k?.addEventListener("submit", ue, !0);
+		let N = () => j.flush();
+		c.addEventListener("focusout", N), le = () => {
+			k?.removeEventListener("submit", h, !0), c.removeEventListener("pointerdown", b), k?.removeEventListener("submit", ue, !0), c.removeEventListener("focusout", N), oe.stop();
 		};
 	}
-	ce && await ce;
-	let N = !1, le = C && E ? C.commentsApi(_, E, () => T, () => !N) : void 0;
-	le && E?.canCreate && (o.comment = le.start);
-	let ue = () => void 0, de = r.comments;
-	if (le && C && de?.url && de.panel !== "none") {
-		let t = de.url, { mountThreadPanel: n } = await import("./chunks/thread-ui-I5Fa-ZLI.js"), i = n({
+	M && await M;
+	let ue = !1, N = C && E ? C.commentsApi(_, E, () => T, () => !ue) : void 0;
+	N && E?.canCreate && (o.comment = N.start);
+	let de = () => void 0, fe = r.comments;
+	if (N && C && fe?.url && fe.panel !== "none") {
+		let t = fe.url, { mountThreadPanel: n } = await import("./chunks/thread-ui-HxU_N851.js"), i = n({
 			root: e,
 			surface: c,
 			options: {
-				...de,
+				...fe,
 				url: t
 			},
 			runtime: o,
-			api: () => le,
+			api: () => N,
 			announce: u,
 			tops: () => C.threadTops(_, c),
 			hubUrl: r.collaboration?.hubUrl ?? null
@@ -5524,20 +5527,20 @@ async function ku(e, t = {}) {
 			open: (e) => i.open(e),
 			refresh: (e) => i.refresh(e),
 			mount: (e) => i.mount(e)
-		}, ue = () => i.destroy();
+		}, de = () => i.destroy();
 	}
 	return {
 		root: e,
 		textarea: n,
 		options: r,
 		builder: g,
-		provider: oe,
-		...le ? { comments: le } : {},
+		provider: ce,
+		...N ? { comments: N } : {},
 		getMarkdown: O,
 		setMarkdown: (e) => _.action(Ie(Cu(e))),
 		focus: A,
 		destroy: async () => {
-			N = !0, ue(), ae(), se(), k?.removeEventListener("submit", ie, !0), k?.removeEventListener("formdata", ie, !0), d?.removeEventListener("click", A), await g.destroy(), e.querySelectorAll(".nowo-milkdown__version, .nowo-milkdown__actions, .nowo-milkdown__surface, .nowo-milkdown__status, .nowo-milkdown__alert, .nowo-milkdown__notice, .nowo-milkdown__reload").forEach((e) => e.remove()), n.hidden = !1;
+			ue = !0, de(), ae(), oe(), le(), k?.removeEventListener("submit", ie, !0), k?.removeEventListener("formdata", ie, !0), d?.removeEventListener("click", A), await g.destroy(), e.querySelectorAll(".nowo-milkdown__version, .nowo-milkdown__actions, .nowo-milkdown__surface, .nowo-milkdown__status, .nowo-milkdown__alert, .nowo-milkdown__notice, .nowo-milkdown__reload").forEach((e) => e.remove()), n.hidden = !1;
 		}
 	};
 }

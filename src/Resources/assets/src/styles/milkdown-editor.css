@@ -511,6 +511,51 @@
   outline: 2px solid var(--nowo-milkdown-focus);
   outline-offset: 1px;
 }
+/* MUX-41: phones keep the top bar on one row; what does not fit goes behind the "⋮" menu button. */
+.nowo-milkdown .milkdown .milkdown-top-bar.nowo-milkdown-top-bar--grouped {
+  flex-wrap: nowrap;
+}
+.nowo-milkdown .milkdown .milkdown-top-bar.nowo-milkdown-top-bar--grouped .top-bar-inner {
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  width: auto;
+  min-width: 0;
+  overflow: hidden;
+}
+.nowo-milkdown .milkdown .milkdown-top-bar [data-nowo-overflow] {
+  display: none;
+}
+.nowo-milkdown-top-bar__more {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-left: 0.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--nowo-milkdown-radius-control);
+  background: transparent;
+  color: var(--nowo-milkdown-muted);
+  cursor: pointer;
+}
+.nowo-milkdown-top-bar__more[hidden] {
+  display: none;
+}
+.nowo-milkdown-top-bar__more:hover,
+.nowo-milkdown-top-bar__more[aria-expanded='true'] {
+  background: var(--nowo-milkdown-accent-soft);
+  color: var(--nowo-milkdown-text);
+}
+.nowo-milkdown-top-bar__more:focus-visible {
+  outline: 2px solid var(--nowo-milkdown-focus);
+  outline-offset: 1px;
+}
+.nowo-milkdown-top-bar__more-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
 .nowo-milkdown-menu__swatch {
   display: inline-block;
   width: 1.25rem;
