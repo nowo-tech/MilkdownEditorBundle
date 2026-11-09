@@ -31,6 +31,10 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Documentation
+
+- USAGE: new section "Using it from a DDD / hexagonal application" (where the bundle sits in a hexagonal host, the ports, events and DTOs to build an anti-corruption layer on, and the known limitations).
+
 ## [1.15.1] - 2026-11-09
 
 Patch: bundled mermaid 12.3.0 and mdast-util-directive 3.2.0, assets rebuilt.
