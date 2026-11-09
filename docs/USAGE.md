@@ -14,6 +14,7 @@
   - [Previews](#previews)
 - [Collaboration](#collaboration)
 - [Rendering Markdown in PHP](#rendering-markdown-in-php)
+- [Using it from a DDD / hexagonal application](#using-it-from-a-ddd--hexagonal-application)
 - [Rendering Mermaid and math on read pages](#rendering-mermaid-and-math-on-read-pages)
 - [JavaScript API and Stimulus](#javascript-api-and-stimulus)
 - [Context menu](#context-menu)
@@ -473,6 +474,60 @@ Raw HTML is escaped (or stripped), unsafe link schemes are dropped and remote im
 `allow_remote_images` is on. Documents over `max_input_length` bytes or with more than `max_inline_markers` inline
 delimiters render as escaped plain text (a parser-cost bound, see [SECURITY](SECURITY.md#parser-cost)). A resolver that throws is logged (`warning`, no content) and its references render as
 not visible.
+
+## Using it from a DDD / hexagonal application
+
+The bundle is a **presentation** component (form field, Twig) with a stateless Markdown renderer. It has no
+entities, no Doctrine mapping and no PHP events, and it stores nothing: uploads, collaboration and comments go to
+endpoints you own. The domain keeps a Markdown string.
+
+- **Store Markdown as a plain string** in your aggregate (or a `MarkdownBody` value object of your own); the form field
+  submits a string with normalised line endings.
+- **Implement the resolvers as infrastructure adapters** over your application's read side. They get ids and return
+  bundle DTOs, so the domain never sees the bundle:
+
+```php
+namespace App\Infrastructure\Markdown;
+
+use App\Application\Wiki\ReadablePages;   // your query port
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\PageResolverInterface;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\ResolvedPage;
+
+final class WikiPageResolver implements PageResolverInterface
+{
+    public function __construct(private ReadablePages $pages) {}
+
+    public function resolvePages(array $ids): array
+    {
+        $out = [];
+        foreach ($this->pages->visibleToCurrentViewer($ids) as $page) {   // your DTOs
+            $out[$page->id] = new ResolvedPage($page->title, $page->url);
+        }
+
+        return $out; // missing = not visible
+    }
+}
+```
+
+```yaml
+services:
+    Nowo\MilkdownEditorBundle\Markdown\Resolver\PageResolverInterface: '@App\Infrastructure\Markdown\WikiPageResolver'
+```
+
+  The same pattern applies to `UserResolverInterface`, `HostFileResolverInterface` (or
+  `ContextualHostFileResolverInterface` with a `RenderContextProviderInterface`), `FilePreviewResolverInterface`,
+  `IconResolverInterface` and `CspNonceProviderInterface`.
+- **Render through the port**: inject `MarkdownRendererInterface` / `MarkdownDiffRendererInterface` in your
+  presentation or read-model layer, not in the domain.
+- **Upload, collaboration and comment endpoints** are your controllers: call your use cases there and answer the JSON
+  documented above. Validate comment anchors with `CommentAnchor::fromJson()` in the controller and store
+  `toJson()` (or map it to your own value object).
+- Leaf directives (`::issue{id=…}`): a `DirectiveRendererInterface` adapter loads the referenced objects in `prepare()`
+  through your query port and renders escaped HTML.
+
+Known limitations: `DirectiveRendererInterface` receives the bundle's `LeafDirective` node (a league/commonmark block);
+`[[wiki:…]]` links require lower-case UUID ids; the HTTP contracts have no PHP DTOs yet, so endpoints build their JSON
+arrays by hand.
 
 ## Rendering Mermaid and math on read pages
 
