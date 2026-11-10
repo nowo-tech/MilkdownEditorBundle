@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format foll
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.16.0] - 2026-11-10](#1160---2026-11-10)
 - [[1.15.1] - 2026-11-09](#1151---2026-11-09)
 - [[1.15.0] - 2026-11-09](#1150---2026-11-09)
 - [[1.14.1] - 2026-11-08](#1141---2026-11-08)
@@ -31,8 +32,10 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-11-10
+
 Target 1.16.0. File previews for `url: written` patterns and a list of the types the host can preview (Symfony Beacon
-spec 212 block B). Both are opt-in: without them nothing changes. See [UPGRADING](UPGRADING.md#unreleased).
+spec 212 block B). Both are opt-in: without them nothing changes. See [UPGRADING](UPGRADING.md#to-1160).
 
 ### Added
 
