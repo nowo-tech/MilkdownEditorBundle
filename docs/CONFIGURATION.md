@@ -58,6 +58,8 @@ nowo_milkdown_editor:
         host_refused_links: text        # 1.13: text | hidden — a refused scheme: link keeps its text or reads *Content not visible*
         image_block: false              # 1.9: images take {width=… align=…}; a standalone image renders as a figure
         file_preview_sandbox: []        # 1.9: tokens added to the sandbox attribute of preview frames
+        file_preview_written_urls: false # 1.16: cards of url: written patterns preview the scheme's preview template (never the written URL)
+        file_preview_types: []          # 1.16: MIME types (text/csv), families (text/*) and extensions (.csv) the host can preview; empty: any
         icon_sprite_url: ~
         icons: []
         icon_catalog: false             # 1.7: also render any Tabler outline icon (and callout icon) from the bundled shards

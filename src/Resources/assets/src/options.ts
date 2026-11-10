@@ -2,7 +2,7 @@
  * Reads and validates the widget options (`data-nowo-milkdown-options`, JSON written by the form type).
  */
 import { isIconName } from './dialect/patterns';
-import { parseHostSchemes } from './host';
+import { parseHostSchemes, parsePreviewTypes } from './host';
 import { FEATURES, type ActionBarInsert, type CollaborationOptions, type CommentsOptions, type EditorOptions, type Feature, type Theme, type Trigger, type UploadOptions } from './types';
 
 export const DEFAULT_FEATURES: Feature[] = ['toolbar', 'link_tooltip', 'table', 'code_mirror', 'placeholder', 'cursor', 'slash_menu'];
@@ -168,6 +168,8 @@ export function parseOptions(raw: string | undefined | null): EditorOptions {
     hostSchemes: {},
     previewSandbox: '',
     maxPreviews: DEFAULT_MAX_PREVIEWS,
+    previewWrittenUrls: false,
+    previewTypes: [],
     collaboration: versionOn ? null : collaboration(data.collaboration),
     colors: Array.isArray(data.colors) ? data.colors.filter((c): c is string => typeof c === 'string') : [],
     mentionDisplay: data.mentionDisplay === 'name' ? 'name' : 'handle',
@@ -203,7 +205,9 @@ export const DEFAULT_MAX_PREVIEWS = 500;
  *
  * @param doc - The document
  */
-export function pageHostConfig(doc: Document = document): Pick<EditorOptions, 'hostSchemes' | 'hostUrlPatterns' | 'hostUrlHosts' | 'previewSandbox' | 'maxPreviews'> {
+export function pageHostConfig(
+  doc: Document = document,
+): Pick<EditorOptions, 'hostSchemes' | 'hostUrlPatterns' | 'hostUrlHosts' | 'previewSandbox' | 'maxPreviews' | 'previewWrittenUrls' | 'previewTypes'> {
   const nonce = pageNonce(doc);
   for (const element of doc.querySelectorAll<HTMLScriptElement>('script[type="application/json"][data-nowo-milkdown-config]')) {
     if ((element.nonce || element.getAttribute('nonce') || '') !== nonce) continue;
@@ -217,10 +221,13 @@ export function pageHostConfig(doc: Document = document): Pick<EditorOptions, 'h
         hostUrlHosts: Array.isArray(data.hostUrlHosts) ? data.hostUrlHosts : [],
         previewSandbox: previewSandbox(data.previewSandbox),
         maxPreviews: typeof max === 'number' && Number.isInteger(max) && max > 0 ? max : DEFAULT_MAX_PREVIEWS,
+        // 1.16 (spec 212 B): sent only when configured.
+        previewWrittenUrls: data.previewWrittenUrls === true,
+        previewTypes: parsePreviewTypes(data.previewTypes),
       };
     } catch {
       // Not JSON: not ours.
     }
   }
-  return { hostSchemes: {}, hostUrlPatterns: [], hostUrlHosts: [], previewSandbox: '', maxPreviews: DEFAULT_MAX_PREVIEWS };
+  return { hostSchemes: {}, hostUrlPatterns: [], hostUrlHosts: [], previewSandbox: '', maxPreviews: DEFAULT_MAX_PREVIEWS, previewWrittenUrls: false, previewTypes: [] };
 }

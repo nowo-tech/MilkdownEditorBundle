@@ -1,7 +1,7 @@
 import { at as e } from "./lib-9QpRoHAM.js";
-import { d as t, u as n } from "./directives-Df2NBKeH.js";
-import { d as r, h as i, m as a, u as o } from "./keyboard-C4Z_2Gid.js";
-import { a as s } from "./runtime-CYrUAiqI.js";
+import { d as t, u as n } from "./directives-EZe-7lQ8.js";
+import { d as r, h as i, m as a, u as o } from "./keyboard-B_Y_3ody.js";
+import { a as s } from "./runtime-DrkgxD4y.js";
 // src/Resources/assets/src/commands/file-view.ts
 function c(t) {
 	let { selection: n } = t, r = (e) => e?.type.name === "leafDirective" && e.attrs.name === "file";

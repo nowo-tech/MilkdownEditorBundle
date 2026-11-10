@@ -17,7 +17,7 @@ import { addFeatures } from './features';
 import { createPageResolver } from './link-titles';
 import { createUserResolver } from './user-names';
 import { pageHostConfig, parseOptions } from './options';
-import { withUrlPatterns } from './host';
+import { parsePreviewTypes, withUrlPatterns } from './host';
 import { directives } from './nodes/directives';
 import { hostLinkSchema, imageAttributesSchema, imageLiftRemark, imageView } from './nodes/image';
 import { inlineRefs, mentionNameView } from './nodes/inline-refs';
@@ -189,6 +189,8 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     dark: () => isDark(root),
     hostSchemes: options.hostSchemes,
     previewSandbox: options.previewSandbox,
+    previewWrittenUrls: options.previewWrittenUrls === true,
+    previewTypes: parsePreviewTypes(options.previewTypes),
     maxPreviews: options.maxPreviews,
   };
   root.classList.add('nowo-milkdown');

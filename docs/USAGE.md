@@ -279,6 +279,14 @@ leaves out shows its card). Plain URLs have no preview by default. In the editor
 endpoint answers for the viewer. Frames load when they come near the viewport, and one editor shows at most
 `max_references` distinct previews (the other files are cards).
 
+1.16 (spec 212 block B): a card whose `href` matches a `host_url_patterns` entry with `url: written` has no preview in
+the editor unless `markdown.file_preview_written_urls: true`; then it frames the `preview` template of the pattern's
+scheme with the matched id — never the URL the author wrote — and so does the default `TemplateFilePreviewResolver`.
+`markdown.file_preview_types` lists what your endpoint can draw (`[text/csv, text/*, .md]`; empty: anything): any other
+card stays a card in the editor and in the default resolver, so a type you cannot preview is not framed as an empty
+page. The link's extension (else the name's) or the card's MIME type decides; your endpoint remains the authority. A
+host `FilePreviewResolverInterface` decides both on the read side.
+
 The endpoint must send:
 
 - `Content-Security-Policy: sandbox; default-src 'none'; frame-ancestors 'self'` (add what the page needs, e.g. `style-src`);

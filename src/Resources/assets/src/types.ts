@@ -161,6 +161,13 @@ export type EditorOptions = {
   previewSandbox: string;
   /** 1.9: previews one editor shows (`markdown.max_references`); other files are cards (audit GX-L1). */
   maxPreviews: number;
+  /**
+   * 1.16 (spec 212 B) `markdown.file_preview_written_urls`: cards matching a `url: 'written'` pattern also preview the
+   * scheme's `preview` template URL (never the written URL). Page configuration block or `createEditor()` only.
+   */
+  previewWrittenUrls?: boolean;
+  /** 1.16 (spec 212 B) `markdown.file_preview_types`: MIME types, `family/*` and `.ext` the host can preview (empty: any). */
+  previewTypes?: unknown;
   collaboration: CollaborationOptions | null;
   /** Colours the editor offers (`markdown.mark_colors`, 1.4); empty: the whole palette. */
   colors: string[];

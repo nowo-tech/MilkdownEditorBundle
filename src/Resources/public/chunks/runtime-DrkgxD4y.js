@@ -277,6 +277,8 @@ var _ = {
 	pickFiles: null,
 	hostSchemes: {},
 	previewSandbox: "",
+	previewWrittenUrls: !1,
+	previewTypes: [],
 	maxPreviews: 500,
 	previewFiles: /* @__PURE__ */ new Set(),
 	topBar: null
