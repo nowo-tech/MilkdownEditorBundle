@@ -49,6 +49,8 @@ final readonly class MilkdownEditorTwig
      * @param HostSchemes $hostSchemes `markdown.host_schemes` for the page's editors (1.9)
      * @param string $previewSandbox `markdown.file_preview_sandbox` tokens, space separated (1.9)
      * @param int $maxPreviews Previews per editor: `markdown.max_references` (1.9)
+     * @param bool $previewWrittenUrls `markdown.file_preview_written_urls` (1.16, spec 212 B)
+     * @param list<string> $previewTypes `markdown.file_preview_types` (1.16, spec 212 B; empty: any)
      */
     public function __construct(
         private MarkdownRendererInterface $renderer,
@@ -58,6 +60,8 @@ final readonly class MilkdownEditorTwig
         private HostSchemes $hostSchemes = new HostSchemes(),
         private string $previewSandbox = '',
         private int $maxPreviews = DocumentProcessor::DEFAULT_MAX_REFERENCES,
+        private bool $previewWrittenUrls = false,
+        private array $previewTypes = [],
     ) {
     }
 
@@ -98,6 +102,13 @@ final readonly class MilkdownEditorTwig
                 if ($this->hostSchemes->urlHosts() !== []) {
                     $data['hostUrlHosts'] = $this->hostSchemes->urlHosts();
                 }
+            }
+            // 1.16 (spec 212 B): only when configured, so other pages keep the same configuration block.
+            if ($this->previewWrittenUrls) {
+                $data['previewWrittenUrls'] = true;
+            }
+            if ($this->previewTypes !== []) {
+                $data['previewTypes'] = $this->previewTypes;
             }
             $json   = json_encode($data, JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES);
             $config = '<script type="application/json" data-nowo-milkdown-config' . $attr . '>' . $json . '</script>';

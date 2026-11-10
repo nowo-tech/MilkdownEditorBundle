@@ -39,6 +39,9 @@ export type Runtime = {
   hostSchemes: import('./host').HostSchemes;
   /** 1.9 (ME-6): extra `sandbox` tokens of preview frames. */
   previewSandbox: string;
+  /** 1.16 (spec 212 B): previews of `url: 'written'` pattern cards, and the types the host can preview (empty: any). */
+  previewWrittenUrls: boolean;
+  previewTypes: readonly string[];
   /** 1.9: how many distinct files may show a preview, and those that do (audit GX-L1). */
   maxPreviews: number;
   previewFiles: Set<string>;
@@ -63,6 +66,8 @@ export const defaultRuntime = (): Runtime => ({
   pickFiles: null,
   hostSchemes: {},
   previewSandbox: '',
+  previewWrittenUrls: false,
+  previewTypes: [],
   maxPreviews: 500,
   previewFiles: new Set(),
   topBar: null,

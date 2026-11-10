@@ -1,4 +1,4 @@
-import { o as e } from "./runtime-CYrUAiqI.js";
+import { o as e } from "./runtime-DrkgxD4y.js";
 // src/Resources/assets/src/dialect/emoji-rule.ts
 var t = [
 	169,

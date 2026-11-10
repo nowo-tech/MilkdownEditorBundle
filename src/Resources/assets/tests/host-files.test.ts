@@ -156,7 +156,7 @@ describe('host references (ME-5)', () => {
       expect(pageHostConfig().hostSchemes).toEqual({});
       config(good, 'n0nce');
       expect(pageNonce()).toBe('n0nce');
-      expect(pageHostConfig()).toEqual({ hostSchemes: { a: { image: null, file: '/{id}', preview: null } }, hostUrlPatterns: [], hostUrlHosts: [], previewSandbox: 'allow-downloads', maxPreviews: 3 });
+      expect(pageHostConfig()).toEqual({ hostSchemes: { a: { image: null, file: '/{id}', preview: null } }, hostUrlPatterns: [], hostUrlHosts: [], previewSandbox: 'allow-downloads', maxPreviews: 3, previewWrittenUrls: false, previewTypes: [] });
     });
 
     it('a page without nonces accepts the block; a data attribute alone never counts', () => {

@@ -58,7 +58,7 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
     private ?FootnoteSalt $footnoteSalt = null;
 
     /**
-     * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, footnotes?: bool, max_footnote_refs?: int, mention_display?: string, max_nesting_level?: int, max_input_length?: int, max_inline_markers?: int, max_references?: int, mark_colors?: list<string>, heading_ids?: bool, image_block?: bool, file_preview_sandbox?: list<string>, host_schemes?: mixed, host_refused_links?: string} $options The `nowo_milkdown_editor.markdown` configuration
+     * @param array{html_input?: string, allow_unsafe_links?: bool, allow_remote_images?: bool, math?: bool, footnotes?: bool, max_footnote_refs?: int, mention_display?: string, max_nesting_level?: int, max_input_length?: int, max_inline_markers?: int, max_references?: int, mark_colors?: list<string>, heading_ids?: bool, image_block?: bool, file_preview_sandbox?: list<string>, file_preview_written_urls?: bool, file_preview_types?: list<string>, host_schemes?: mixed, host_refused_links?: string} $options The `nowo_milkdown_editor.markdown` configuration
      * @param PageResolverInterface $pages Page link resolver (per viewer)
      * @param UserResolverInterface $users Mention resolver
      * @param IconResolverInterface $icons Icon allowlist and sprite
@@ -175,7 +175,7 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
                 $this->options['max_references'] ?? DocumentProcessor::DEFAULT_MAX_REFERENCES,
                 $this->hostSchemes,
                 $this->sources ?? new TemplateHostFileResolver($this->hostSchemes),
-                $this->previews ?? new TemplateFilePreviewResolver($this->hostSchemes),
+                $this->previews ?? new TemplateFilePreviewResolver($this->hostSchemes, ($this->options['file_preview_written_urls'] ?? false) === true, $this->options['file_preview_types'] ?? []),
                 $this->options['image_block'] ?? false,
                 $this->renderContext,
                 ($this->options['host_refused_links'] ?? 'text') === 'hidden',

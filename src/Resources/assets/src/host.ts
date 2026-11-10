@@ -268,10 +268,14 @@ export function hostUrl(value: unknown, kind: HostKind, schemes: HostSchemes): s
     if (!match || match.url === 'written') return undefined;
     reference = match.reference;
   }
-  if (!reference) return null;
+  return reference ? templateUrl(reference, kind, schemes) : null;
+}
+
+/** The template URL of a valid `scheme:id` reference for `kind` (`image` falls back to `file`), or null. */
+function templateUrl(reference: string, kind: HostKind, schemes: HostSchemes): string | null {
   const [scheme, id] = reference.split(/:(.*)/s) as [string, string];
-  const templates = schemes[scheme]!;
-  const template = templates[kind] ?? (kind === 'image' ? templates.file : null);
+  const templates = schemes[scheme];
+  const template = templates ? (templates[kind] ?? (kind === 'image' ? templates.file : null)) : null;
   return template ? safeUrl(template.split('{id}').join(encodeURIComponent(id))) || null : null;
 }
 
@@ -283,4 +287,37 @@ export function hostUrl(value: unknown, kind: HostKind, schemes: HostSchemes): s
 export function targetUrl(value: unknown, kind: HostKind, schemes: HostSchemes): string {
   const host = hostUrl(value, kind, schemes);
   return host === undefined ? safeUrl(value) : (host ?? '');
+}
+
+/**
+ * The preview frame URL of a file card's `href`: the scheme's `preview` template of a host reference (a `scheme:` value
+ * or a `url: 'resolved'` pattern), and 1.16 (spec 212 B), with `written`, also of a `url: 'written'` pattern. Always the
+ * host's template URL built from the validated id, never the author's URL: a written URL that matches no pattern, or
+ * a scheme without a `preview` template, gets no preview.
+ *
+ * @param value - The card's `href` as written
+ * @param schemes - Host schemes (with their URL patterns)
+ * @param written - `markdown.file_preview_written_urls`
+ * @returns The URL, or null (no preview)
+ */
+export function previewUrl(value: unknown, schemes: HostSchemes, written = false): string | null {
+  const url = hostUrl(value, 'preview', schemes);
+  if (url !== undefined) return url;
+  if (!written) return null;
+  const match = matchHostUrl(value, schemes);
+  return match?.url === 'written' && match.reference ? templateUrl(match.reference, 'preview', schemes) : null;
+}
+
+/** The longest list of `markdown.file_preview_types` the editor reads. */
+const MAX_PREVIEW_TYPES = 100;
+const PREVIEW_TYPE = /^(?:[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/(?:\*|[a-z0-9][a-z0-9!#$&^_.+-]{0,126})|\.[a-z0-9]{1,8})$/;
+
+/**
+ * 1.16 (spec 212 B): `markdown.file_preview_types` — MIME types (`text/csv`), families (`text/*`) and extensions (`.csv`),
+ * lower case; anything else is dropped (`FileCard::previewTypes()` in PHP).
+ */
+export function parsePreviewTypes(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const out = value.filter((t): t is string => typeof t === 'string').map((t) => t.trim().toLowerCase()).filter((t) => PREVIEW_TYPE.test(t));
+  return [...new Set(out)].slice(0, MAX_PREVIEW_TYPES);
 }

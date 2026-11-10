@@ -331,6 +331,8 @@ export const leafDirectiveView = $view(leafDirectiveSchema.node, (ctx) => (node)
     const card = fileCard(node.attrs.label as string, decodeAttributes(node.attrs.attributes), {
       hostSchemes: runtime.hostSchemes,
       previewSandbox: runtime.previewSandbox,
+      previewWrittenUrls: runtime.previewWrittenUrls,
+      previewTypes: runtime.previewTypes,
       label: (key) => t(runtime, `file.${key}`),
       // At most `max_references` distinct files per editor, like the renderer (audit GX-L1).
       allowPreview: (href) => {

@@ -10,6 +10,7 @@ use Nowo\MilkdownEditorBundle\Markdown\HostSchemes;
 use Nowo\MilkdownEditorBundle\Markdown\MilkdownMarkdownRenderer;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\AllowlistIconResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TablerCatalog;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateFilePreviewResolver;
 use Nowo\MilkdownEditorBundle\Twig\MilkdownEditorTwig;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\FileLocator;
@@ -69,7 +70,7 @@ final class NowoMilkdownEditorExtension extends Extension implements PrependExte
      */
     public function load(array $configs, ContainerBuilder $container): void
     {
-        /** @var array{default_profile: string, profiles: array<string, array<string, mixed>>, markdown: array<string, mixed>&array{icon_sprite_url: ?string, icons: list<string>, icon_catalog: bool, max_input_length: int, mark_colors: list<string>, max_references: int, host_schemes: array<string, array{image?: ?string, file?: ?string, preview?: ?string}>, host_image_origins: list<string>, host_url_patterns: list<array{pattern: string, scheme: string, url: string}>, host_url_hosts: list<string>, file_preview_sandbox: list<string>}} $config */
+        /** @var array{default_profile: string, profiles: array<string, array<string, mixed>>, markdown: array<string, mixed>&array{icon_sprite_url: ?string, icons: list<string>, icon_catalog: bool, max_input_length: int, mark_colors: list<string>, max_references: int, host_schemes: array<string, array{image?: ?string, file?: ?string, preview?: ?string}>, host_image_origins: list<string>, host_url_patterns: list<array{pattern: string, scheme: string, url: string}>, host_url_hosts: list<string>, file_preview_sandbox: list<string>, file_preview_written_urls: bool, file_preview_types: list<string>}} $config */
         $config                               = $this->processConfiguration(new Configuration(), $configs);
         $config['markdown']['host_url_hosts'] = self::urlHosts($config['markdown']['host_url_hosts'], $container);
 
@@ -84,6 +85,9 @@ final class NowoMilkdownEditorExtension extends Extension implements PrependExte
             ->setArgument('$imageOrigins', $config['markdown']['host_image_origins'])
             ->setArgument('$urlPatterns', $config['markdown']['host_url_patterns'])
             ->setArgument('$urlHosts', $config['markdown']['host_url_hosts']);
+        $container->getDefinition(TemplateFilePreviewResolver::class)
+            ->setArgument('$writtenUrls', $config['markdown']['file_preview_written_urls'])
+            ->setArgument('$types', $config['markdown']['file_preview_types']);
         $container->getDefinition(AllowlistIconResolver::class)
             ->setArgument('$spriteUrl', $config['markdown']['icon_sprite_url'])
             ->setArgument('$icons', $config['markdown']['icons'])
@@ -97,7 +101,9 @@ final class NowoMilkdownEditorExtension extends Extension implements PrependExte
             ->setArgument('$markColors', $config['markdown']['mark_colors']);
         $container->getDefinition(MilkdownEditorTwig::class)
             ->setArgument('$previewSandbox', implode(' ', $config['markdown']['file_preview_sandbox']))
-            ->setArgument('$maxPreviews', $config['markdown']['max_references']);
+            ->setArgument('$maxPreviews', $config['markdown']['max_references'])
+            ->setArgument('$previewWrittenUrls', $config['markdown']['file_preview_written_urls'])
+            ->setArgument('$previewTypes', $config['markdown']['file_preview_types']);
     }
 
     /**

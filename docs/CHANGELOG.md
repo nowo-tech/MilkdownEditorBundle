@@ -31,6 +31,35 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+Target 1.16.0. File previews for `url: written` patterns and a list of the types the host can preview (Symfony Beacon
+spec 212 block B). Both are opt-in: without them nothing changes. See [UPGRADING](UPGRADING.md#unreleased).
+
+### Added
+
+- **`markdown.file_preview_written_urls` (default `false`):** a file card in *preview* view whose `href` matches a
+  `host_url_patterns` entry with `url: written` (for example `/files/<uuid>/original`) gets a preview frame in the
+  editor too, and in the default `TemplateFilePreviewResolver`. The frame always loads the `preview` template of the
+  pattern's scheme built from the matched, validated id — **never the written URL** — so a URL that matches no pattern,
+  a scheme without a `preview` template, `javascript:` / `data:` values and other hosts are never framed. A host
+  `FilePreviewResolverInterface` keeps deciding on its own on the read side (it already received those cards).
+- **`markdown.file_preview_types` (default `[]`: any):** the MIME types (`text/csv`), families (`text/*`) and extensions
+  (`.csv`) the host can preview, lower-cased and validated (at most 100). In the editor and in the default resolver a
+  card of another type stays a card, so a PDF the host cannot draw is no longer framed as an empty page. The extension
+  of the link's file (else of the name) or the card's MIME type decides; the host's preview endpoint stays the
+  authority. New `FileCard::previewable()`; editor `previewUrl()`, `parsePreviewTypes()` (`host.ts`) and
+  `isPreviewable()` (`dialect/file-card.ts`).
+- The page configuration block of `nowo_milkdown_editor_assets()` carries `previewWrittenUrls` / `previewTypes` only when
+  they are set (pages without them get the same block as before); as with the other host options, the editor reads
+  them only from that nonce-stamped block or a host's own `createEditor()` call, never from a widget's JSON (audit
+  GX-L2). Frames keep the 1.9 rules: the `sandbox` of `file_preview_sandbox` (never `allow-scripts` with
+  `allow-same-origin`), `loading="lazy"` plus loading near the viewport, `referrerpolicy="no-referrer"`, the per-editor
+  cap.
+
+### Changed
+
+- `TemplateFilePreviewResolver` takes two optional constructor arguments (`$writtenUrls`, `$types`) and
+  `MilkdownEditorTwig` two (`$previewWrittenUrls`, `$previewTypes`); the defaults keep the 1.15 behaviour. Assets rebuilt.
+
 ### Documentation
 
 - USAGE: new section "Using it from a DDD / hexagonal application" (where the bundle sits in a hexagonal host, the ports, events and DTOs to build an anti-corruption layer on, and the known limitations).

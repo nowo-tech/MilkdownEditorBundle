@@ -4,7 +4,7 @@
  * category (from the link target first, see {@link fileKind}) and size text; both are tested against `tests/Fixtures/file-cards.json`.
  */
 import { glyph } from '../ui/icons';
-import { hostUrl, targetUrl, type HostSchemes } from '../host';
+import { previewUrl, targetUrl, type HostSchemes } from '../host';
 
 /** Frames waiting to come near the viewport, and how near (audit GX-L1: `loading="lazy"` did not hold in the editor). */
 const waiting = new WeakMap<Element, string>();
@@ -135,6 +135,26 @@ export function formatSize(value: string | number | undefined): string {
   return `${rounded} ${units[unit]}`;
 }
 
+/**
+ * 1.16 (spec 212 B): whether a card is of a type the host can preview (`FileCard::previewable()` in PHP). An empty list
+ * accepts every card (as before 1.16). Otherwise the extension of the link's file (else of the name) must be listed as
+ * `.ext`, or the card's MIME type (without parameters) as itself or its `family/*`. The host's preview endpoint stays
+ * the authority: the list only keeps the editor from framing a type the host would not draw.
+ *
+ * @param types - Parsed `file_preview_types`
+ * @param name - The file name (label)
+ * @param type - The card's `type`
+ * @param href - The card's `href` as written
+ */
+export function isPreviewable(types: readonly string[], name: string, type = '', href = ''): boolean {
+  if (!types.length) return true;
+  const ext = hrefExtension(href) || extensionOf(name);
+  if (ext && types.includes(`.${ext}`)) return true;
+  const mime = (type.split(';', 1)[0] ?? '').trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9!#$&^_.+-]*\/[a-z0-9][a-z0-9!#$&^_.+-]*$/.test(mime)) return false;
+  return types.includes(mime) || types.includes(`${mime.split('/', 1)[0]}/*`);
+}
+
 /** Views of a file (1.9, ME-6); `card` is the default and the fallback. */
 export const FILE_VIEWS = ['link', 'icon', 'card', 'preview'] as const;
 export type FileView = (typeof FILE_VIEWS)[number];
@@ -176,6 +196,10 @@ export type FileCardContext = {
   label?: (key: 'open' | 'download') => string;
   /** Whether this file may still show a preview (the per-editor cap, audit GX-L1); without it, yes. */
   allowPreview?: (href: string) => boolean;
+  /** 1.16 (spec 212 B, `markdown.file_preview_written_urls`): `url: 'written'` patterns get the scheme's preview too. */
+  previewWrittenUrls?: boolean;
+  /** 1.16 (spec 212 B, `markdown.file_preview_types`): the types the host can preview; empty or missing: any. */
+  previewTypes?: readonly string[];
 };
 
 const DEFAULT_CONTEXT: FileCardContext = { hostSchemes: {}, previewSandbox: '' };
@@ -184,7 +208,9 @@ const DEFAULT_CONTEXT: FileCardContext = { hostSchemes: {}, previewSandbox: '' }
  * A `::file` directive in its view, built with DOM APIs (no `innerHTML`; 1.9: `view="link|icon|card|preview"`). The
  * target is the host reference resolved through its `file` template or a safe URL; without one there is no link. A
  * preview needs the scheme's `preview` template (the host endpoint checks the viewer); without it the card is shown.
- * Links open in a new tab from the editor.
+ * 1.16 (spec 212 B): with `previewWrittenUrls`, a card whose `href` matches a `url: 'written'` URL pattern previews the
+ * scheme's `preview` template URL of the matched id (never the written URL), and with `previewTypes` only the listed
+ * types get a frame ({@link isPreviewable}). Links open in a new tab from the editor.
  *
  * @param label - The file name (the directive label)
  * @param attributes - `href`, `size`, `type`, `view`, `height`
@@ -242,7 +268,10 @@ export function fileCard(label: string, attributes: Record<string, string>, cont
     inner.append(meta);
   }
 
-  const candidate = view === 'preview' && href ? hostUrl(attributes.href ?? '', 'preview', context.hostSchemes) : null;
+  const candidate =
+    view === 'preview' && href && isPreviewable(context.previewTypes ?? [], name, attributes.type ?? '', attributes.href ?? '')
+      ? previewUrl(attributes.href ?? '', context.hostSchemes, context.previewWrittenUrls === true)
+      : null;
   const preview = candidate && (context.allowPreview?.(attributes.href ?? '') ?? true) ? candidate : null;
   if (preview) {
     const figure = document.createElement('figure');

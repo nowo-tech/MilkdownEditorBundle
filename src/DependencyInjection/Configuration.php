@@ -19,6 +19,7 @@ use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use function array_filter;
 use function array_key_exists;
 use function array_map;
+use function count;
 use function implode;
 use function in_array;
 use function is_array;
@@ -29,7 +30,9 @@ use function str_contains;
 use function str_ends_with;
 use function str_starts_with;
 use function strlen;
+use function strtolower;
 use function substr_count;
+use function trim;
 
 /**
  * Configuration tree of `nowo_milkdown_editor` (REQ-CFG-001 / REQ-SF-006).
@@ -268,6 +271,23 @@ final class Configuration implements ConfigurationInterface
                     ->validate()
                         ->ifTrue(static fn (array $v): bool => array_filter($v, static fn (mixed $t): bool => !in_array($t, FileCard::SANDBOX_TOKENS, true)) !== [] || (in_array('allow-scripts', $v, true) && (in_array('allow-same-origin', $v, true) || in_array('allow-popups-to-escape-sandbox', $v, true))))
                         ->thenInvalid('file_preview_sandbox accepts ' . implode(', ', FileCard::SANDBOX_TOKENS) . ', never allow-scripts with allow-same-origin or allow-popups-to-escape-sandbox (%s).')
+                    ->end()
+                ->end()
+                ->booleanNode('file_preview_written_urls')
+                    ->info('1.16 (spec 212 B): file cards whose href matches a host_url_patterns entry with url: written also get a preview, in the editor and in the default FilePreviewResolverInterface: the preview template of the pattern\'s scheme with the matched id, never the written URL. A host FilePreviewResolverInterface decides on its own (it already receives those cards).')
+                    ->defaultFalse()
+                ->end()
+                ->arrayNode('file_preview_types')
+                    ->info('1.16 (spec 212 B): the file types the host can preview — MIME types (text/csv), families (text/*) and extensions (.csv); empty (default): any. A card of another type stays a card in the editor and in the default FilePreviewResolverInterface, so a type the host cannot draw is never framed empty. The host\'s preview endpoint stays the authority.')
+                    ->scalarPrototype()->end()
+                    ->defaultValue([])
+                    ->beforeNormalization()
+                        ->ifArray()
+                        ->then(static fn (array $v): array => array_map(static fn (mixed $t): mixed => is_string($t) ? strtolower(trim($t)) : $t, $v))
+                    ->end()
+                    ->validate()
+                        ->ifTrue(static fn (array $v): bool => count($v) > FileCard::MAX_PREVIEW_TYPES || array_filter($v, static fn (mixed $t): bool => !is_string($t) || preg_match(FileCard::PREVIEW_TYPE_PATTERN, $t) !== 1) !== [])
+                        ->thenInvalid('file_preview_types accepts at most ' . FileCard::MAX_PREVIEW_TYPES . ' MIME types (type/subtype), families (type/*) or extensions (.ext) (%s).')
                     ->end()
                 ->end()
                 ->arrayNode('mark_colors')

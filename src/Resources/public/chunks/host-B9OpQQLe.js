@@ -154,20 +154,35 @@ function S(e, t) {
 	let i = r[1].toLowerCase();
 	return Object.prototype.hasOwnProperty.call(t, i) ? `${i}:${r[2]}` : null;
 }
-function C(t, n, r) {
-	let i;
-	if (x(t, r)) i = S(t, r);
+function C(e, t, n) {
+	let r;
+	if (x(e, n)) r = S(e, n);
 	else {
-		let e = v(t, r);
-		if (!e || e.url === "written") return;
-		i = e.reference;
+		let t = v(e, n);
+		if (!t || t.url === "written") return;
+		r = t.reference;
 	}
-	if (!i) return null;
-	let [a, o] = i.split(/:(.*)/s), s = r[a], c = s[n] ?? (n === "image" ? s.file : null);
-	return c && e(c.split("{id}").join(encodeURIComponent(o))) || null;
+	return r ? w(r, t, n) : null;
 }
 function w(t, n, r) {
+	let [i, a] = t.split(/:(.*)/s), o = r[i], s = o ? o[n] ?? (n === "image" ? o.file : null) : null;
+	return s && e(s.split("{id}").join(encodeURIComponent(a))) || null;
+}
+function T(t, n, r) {
 	let i = C(t, n, r);
 	return i === void 0 ? e(t) : i ?? "";
 }
-export { b as a, x as i, S as n, w as o, C as r, _ as s, r as t };
+function E(e, t, n = !1) {
+	let r = C(e, "preview", t);
+	if (r !== void 0) return r;
+	if (!n) return null;
+	let i = v(e, t);
+	return i?.url === "written" && i.reference ? w(i.reference, "preview", t) : null;
+}
+var D = 100, O = /^(?:[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/(?:\*|[a-z0-9][a-z0-9!#$&^_.+-]{0,126})|\.[a-z0-9]{1,8})$/;
+function k(e) {
+	if (!Array.isArray(e)) return [];
+	let t = e.filter((e) => typeof e == "string").map((e) => e.trim().toLowerCase()).filter((e) => O.test(e));
+	return [...new Set(t)].slice(0, D);
+}
+export { k as a, _ as c, b as i, S as n, E as o, x as r, T as s, r as t };

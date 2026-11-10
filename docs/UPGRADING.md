@@ -41,6 +41,34 @@ interfaces and `window.NowoMilkdownEditor`.
 
 ## Unreleased
 
+Target 1.16.0, from **1.15.1**:
+
+```bash
+composer update nowo-tech/milkdown-editor-bundle
+php bin/console assets:install
+```
+
+Nothing to do: both new options are off by default and the output is the same as 1.15. To show previews of cards whose
+`href` matches a `url: written` pattern (spec 212 block B), declare the scheme's `preview` template, turn the option on
+and list what your preview endpoint can draw:
+
+```yaml
+nowo_milkdown_editor:
+    markdown:
+        host_schemes:
+            app-file: { image: '/files/{id}/preview', file: '/files/{id}/original', preview: '/files/{id}/embed' }
+        host_url_patterns:
+            - { pattern: '^/files/(?<id>[0-9a-f-]{36})/(?:original|preview)$', scheme: app-file, url: written }
+        file_preview_written_urls: true
+        file_preview_types: [text/csv, .csv, text/plain, .txt, text/markdown, .md, application/json, .json]
+```
+
+The editor then frames `/files/<uuid>/embed` (never the written URL); your endpoint keeps checking the viewer and
+answering 404 for what it cannot preview, and the page's CSP needs `frame-src` for that origin (`'self'` when it is
+same-origin). A host `FilePreviewResolverInterface` is not affected by `file_preview_written_urls` (it already receives
+those cards on the read side) and decides the types itself; keep `file_preview_types` in step with it so the editor and
+the read view agree.
+
 ## To 1.15.1
 
 From **1.15.0**:

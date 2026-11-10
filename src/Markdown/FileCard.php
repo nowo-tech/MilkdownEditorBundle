@@ -68,6 +68,12 @@ final class FileCard
     public const MIN_HEIGHT     = 160;
     public const MAX_HEIGHT     = 1200;
 
+    /** 1.16 (spec 212 B): an entry of `file_preview_types` (lower case): `type/subtype`, `type/*` or `.ext`. */
+    public const PREVIEW_TYPE_PATTERN = '~^(?:[a-z0-9][a-z0-9!#$&^_.+-]{0,126}/(?:\*|[a-z0-9][a-z0-9!#$&^_.+-]{0,126})|\.[a-z0-9]{1,8})$~D';
+
+    /** 1.16: the longest `file_preview_types` list. */
+    public const MAX_PREVIEW_TYPES = 100;
+
     /** `sandbox` tokens a host may add to preview frames; `allow-scripts` never with `allow-same-origin` or `allow-popups-to-escape-sandbox`. */
     public const SANDBOX_TOKENS = ['allow-scripts', 'allow-same-origin', 'allow-popups', 'allow-popups-to-escape-sandbox', 'allow-downloads'];
 
@@ -206,6 +212,34 @@ final class FileCard
         $clean = trim(mb_substr($clean, 0, self::MAX_NAME));
 
         return $clean !== '' ? $clean : 'file';
+    }
+
+    /**
+     * 1.16 (spec 212 B): whether a card is of a type the host can preview (`file_preview_types`; the editor's
+     * `isPreviewable()`). An empty list accepts every card. Otherwise the extension of the link's file (else of the name)
+     * must be listed as `.ext`, or the MIME type (without parameters) as itself or its `type/*`.
+     *
+     * @param list<string> $types The lower-case `file_preview_types`
+     * @param string $name The file name
+     * @param string $type The card's MIME type ('' when unknown)
+     * @param string $href The card's `href` as written
+     */
+    public static function previewable(array $types, string $name, string $type = '', string $href = ''): bool
+    {
+        if ($types === []) {
+            return true;
+        }
+        $extension = self::hrefExtension($href);
+        $extension = $extension !== '' ? $extension : self::extension($name);
+        if ($extension !== '' && in_array('.' . $extension, $types, true)) {
+            return true;
+        }
+        $mime = strtolower(trim(explode(';', $type, 2)[0]));
+        if (preg_match('~^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$~D', $mime) !== 1) {
+            return false;
+        }
+
+        return in_array($mime, $types, true) || in_array(explode('/', $mime, 2)[0] . '/*', $types, true);
     }
 
     /** The lower-case extension (letters and digits, at most 8), or ''. */
