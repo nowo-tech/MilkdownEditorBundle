@@ -4,6 +4,7 @@
 
 - [General procedure](#general-procedure)
 - [Unreleased](#unreleased)
+- [To 1.16.1](#to-1161)
 - [To 1.16.0](#to-1160)
 - [To 1.15.1](#to-1151)
 - [To 1.15.0](#to-1150)
@@ -41,6 +42,14 @@ names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialec
 interfaces and `window.NowoMilkdownEditor`.
 
 ## Unreleased
+
+## To 1.16.1
+
+From **1.16.0**:
+
+```bash
+composer update nowo-tech/milkdown-editor-bundle
+```
 
 To **1.16.1** (patch): `composer update nowo-tech/milkdown-editor-bundle`; no configuration change. The bundle
 registers `Nowo\MilkdownEditorBundle\EventListener\WorkerBoundaryResetListener`, which resets the Markdown renderer's
