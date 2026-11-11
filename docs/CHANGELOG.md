@@ -32,6 +32,24 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+Target: 1.16.1 (patch).
+
+### Fixed
+
+- **Footnote counters kept across requests when the services resetter does not run (1.2.1 – 1.16.0):**
+  `FootnoteSalt::$renders` (the per-page render counter that salts footnote ids) was cleared only by `kernel.reset`.
+  With the stock Symfony kernel the services resetter runs before every request (also with
+  `FRANKENPHP_RESET_KERNEL=false`) and Messenger resets services between messages by default, so stock setups are not
+  affected. A host that removes or bypasses `services_resetter` (or drives `http_kernel` directly), a
+  `messenger:consume --no-reset` consumer or a long-running console command kept counting: the same Markdown got other
+  footnote ids on every later render (stored HTML and ETags changed for an unchanged document) and the counter map grew
+  for the life of the process. No content or user data leaked (the salt is an HMAC). New
+  `EventListener\WorkerBoundaryResetListener` resets the renderer at the main `kernel.request` and `kernel.terminate`,
+  Messenger `WorkerMessageReceived` / `Handled` / `Failed` and `console.command` / `console.terminate` (renderer
+  reference `IGNORE_ON_UNINITIALIZED_REFERENCE`: a boundary never builds it). `kernel.reset` stays. Test:
+  `KeptAliveWorkerTest` (one kernel without the resetter: 1,000 HTTP requests and 500 message / command units
+  alternating two users' notes, ids stable per note, memory margin 2 MiB).
+
 ## [1.16.0] - 2026-11-10
 
 Target 1.16.0. File previews for `url: written` patterns and a list of the types the host can preview (Symfony Beacon
