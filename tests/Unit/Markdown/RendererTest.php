@@ -126,7 +126,7 @@ final class RendererTest extends TestCase
         yield 'local image kept' => ['![a](/files/a.png)', '<p><img src="/files/a.png" alt="a" /></p>'];
         yield 'code keeps tokens' => ['`@ada [[wiki:' . self::ID . ']]`', '<p><code>@ada [[wiki:' . self::ID . ']]</code></p>'];
         yield 'mermaid fence' => ["```mermaid\ngraph TD\n```", "<pre><code class=\"language-mermaid\">graph TD\n</code></pre>"];
-        yield 'gfm' => ["| a |\n|---|\n| b |\n\n- [x] done", "<table>\n<thead>\n<tr>\n<th>a</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>b</td>\n</tr>\n</tbody>\n</table>\n<ul>\n<li><input checked=\"\" disabled=\"\" type=\"checkbox\" aria-label=\"Done\"> done</li>\n</ul>"];
+        yield 'gfm' => ["| a |\n|---|\n| b |\n\n- [x] done", "<table>\n<thead>\n<tr>\n<th>a</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>b</td>\n</tr>\n</tbody>\n</table>\n<ul>\n<li class=\"nowo-milkdown-task\" data-checked=\"true\"><input type=\"checkbox\" class=\"nowo-milkdown-task__box\" disabled=\"\" checked=\"\" aria-label=\"Done\"><div class=\"nowo-milkdown-task__content\">done</div></li>\n</ul>"];
     }
 
     #[Test]
@@ -241,7 +241,7 @@ final class RendererTest extends TestCase
                 return 'es';
             }
         };
-        self::assertStringContainsString('<input disabled="" type="checkbox" aria-label="Hecho">', $this->renderer(translator: $translator)->render('- [ ] tarea'));
+        self::assertStringContainsString('<input type="checkbox" class="nowo-milkdown-task__box" disabled="" aria-label="Hecho">', $this->renderer(translator: $translator)->render('- [ ] tarea'));
     }
 
     #[Test]

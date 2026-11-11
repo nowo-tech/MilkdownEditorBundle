@@ -14,6 +14,7 @@
   - [Previews](#previews)
 - [Collaboration](#collaboration)
 - [Rendering Markdown in PHP](#rendering-markdown-in-php)
+  - [Read-only parity (1.17)](#read-only-parity-117)
 - [Using it from a DDD / hexagonal application](#using-it-from-a-ddd--hexagonal-application)
 - [Rendering Mermaid and math on read pages](#rendering-mermaid-and-math-on-read-pages)
 - [JavaScript API and Stimulus](#javascript-api-and-stimulus)
@@ -482,6 +483,21 @@ Raw HTML is escaped (or stripped), unsafe link schemes are dropped and remote im
 `allow_remote_images` is on. Documents over `max_input_length` bytes or with more than `max_inline_markers` inline
 delimiters render as escaped plain text (a parser-cost bound, see [SECURITY](SECURITY.md#parser-cost)). A resolver that throws is logged (`warning`, no content) and its references render as
 not visible.
+
+### Read-only parity (1.17)
+
+The server render and the read-only editor draw task lists and callouts with the same markup and classes, so a host
+can show the server body first and swap in the read-only editor without anything moving (WikiBundle
+`read_view.seamless_swap`).
+
+| Block | Server render and read-only editor |
+|---|---|
+| Task item | `li.nowo-milkdown-task[data-checked="true\|false"]` > `input.nowo-milkdown-task__box[type=checkbox][disabled]` (+ `checked`, `aria-label`) + `div.nowo-milkdown-task__content` |
+| Callout | `div.nowo-md-callout.nowo-md-callout--<info\|success\|warning\|danger>[role=note]`; with an icon also `.nowo-md-callout--icon`, the icon `.nowo-md-callout__icon` (emoji: `.nowo-md-callout__emoji[data-emoji]`) and the content in `.nowo-md-callout__body` |
+
+The editor keeps its own classes on top (`.nowo-milkdown-directive--callout`, `data-item-type="task"`), and has no
+header controls while read-only. A host sanitiser keeps `<input>` with exactly
+`TaskMarkerRenderer::CHECKBOX_ATTRIBUTES` (`type="checkbox"`, `class`, `disabled`, `checked`, `aria-label`).
 
 ## Using it from a DDD / hexagonal application
 

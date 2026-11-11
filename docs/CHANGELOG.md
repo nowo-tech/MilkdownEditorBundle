@@ -33,6 +33,35 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+Target: 1.17.0 (minor). Read-only parity with the server render (Symfony Beacon wiki UX review 2026-11-11, items 7a (c)
+and 8). See [UPGRADING](UPGRADING.md#to-1170).
+
+### Changed
+
+- **Task items in the PHP render use the editor's markup:** `MilkdownMarkdownRenderer` rendered a GFM task item as
+  `<li><input disabled type="checkbox" aria-label> text</li>`, so a host that shows the server body and then swaps in
+  the read-only editor (WikiBundle `read_view.seamless_swap`) saw it change (bullets, no box, no strike-through). It
+  now renders the read-only editor's structure: `li.nowo-milkdown-task[data-checked="true|false"]` >
+  `input.nowo-milkdown-task__box` + `div.nowo-milkdown-task__content`, and the stylesheet's task rules apply to both.
+  New `Markdown\TaskItemRenderer` (`ITEM_CLASS`, `CONTENT_CLASS`). The checkbox is built from a fixed attribute set,
+  `TaskMarkerRenderer::CHECKBOX_ATTRIBUTES` (`type="checkbox"`, `class`, `disabled`, `checked` for a done task,
+  `aria-label`); node data attributes no longer reach it. This is a fix, on by default, with no option: the HTML of
+  documents with task lists changes (stored or cached HTML and ETags of those documents change once re-rendered).
+- **Read-only callouts look like the server render:** read-only, a container directive has no header: no callout type
+  `<select>`, no icon button (it used to be shown disabled), no alignment `<select>`, no details summary field. A
+  callout gets the server classes (`nowo-md-callout nowo-md-callout--<type>`) and, with an icon, the decorative icon
+  (`.nowo-md-callout__icon`, emoji or allowlisted / catalog Tabler icon) before its content
+  (`.nowo-md-callout__body`, `.nowo-md-callout--icon`); a details block shows its summary as text
+  (`.nowo-milkdown-directive__summary`). Editing mode is unchanged.
+
+### Fixed
+
+- **Task checkboxes could be toggled in a read-only editor:** the checkbox is now disabled while the editor is
+  read-only and a `change` there does not edit the document.
+- **Header and checkbox follow `setReadonly()`:** Crepe's `setReadonly()` does not redraw node views; a small plugin
+  (`plugins/editable.ts`) repaints the container headers and task checkboxes when the editor switches between
+  read-only and editable (collaboration starts read-only and becomes editable once connected).
+
 ## [1.16.1] - 2026-11-11
 
 Target: 1.16.1 (patch).
