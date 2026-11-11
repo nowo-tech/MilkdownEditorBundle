@@ -42,6 +42,10 @@ interfaces and `window.NowoMilkdownEditor`.
 
 ## Unreleased
 
+To **1.16.1** (patch): `composer update nowo-tech/milkdown-editor-bundle`; no configuration change. The bundle
+registers `Nowo\MilkdownEditorBundle\EventListener\WorkerBoundaryResetListener`, which resets the Markdown renderer's
+footnote counters at every request, Messenger message and console command boundary.
+
 ## To 1.16.0
 
 From **1.15.1**:

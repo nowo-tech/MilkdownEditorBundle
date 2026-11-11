@@ -11,6 +11,7 @@ use League\CommonMark\Extension\Footnote\FootnoteExtension;
 use League\CommonMark\Extension\GithubFlavoredMarkdownExtension;
 use League\CommonMark\Extension\TaskList\TaskListItemMarker;
 use League\CommonMark\MarkdownConverter;
+use Nowo\MilkdownEditorBundle\EventListener\WorkerBoundaryResetListener;
 use Nowo\MilkdownEditorBundle\Markdown\Directive\DirectiveRendererInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\FilePreviewResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\HostFileResolverInterface;
@@ -107,7 +108,8 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
     }
 
     /**
-     * Forgets the per-request footnote render counters (`kernel.reset`).
+     * Forgets the per-request footnote render counters: `kernel.reset` and every request / Messenger / console boundary
+     * ({@see WorkerBoundaryResetListener}). The converter and the salt object are built from configuration and kept.
      */
     public function reset(): void
     {

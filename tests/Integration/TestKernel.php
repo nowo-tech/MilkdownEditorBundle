@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\MilkdownEditorBundle\Tests\Integration;
 
+use Nowo\MilkdownEditorBundle\Markdown\MarkdownRendererInterface;
 use Nowo\MilkdownEditorBundle\NowoMilkdownEditorBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
@@ -13,11 +14,17 @@ use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Kernel;
+use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 use Twig\Extra\TwigExtraBundle\TwigExtraBundle;
 
+use function assert;
+
 /**
- * Minimal kernel: FrameworkBundle (forms, assets, translator), Twig, Twig Extra and the bundle.
+ * Minimal kernel: FrameworkBundle (forms, assets, translator), Twig, Twig Extra and the bundle; one route that renders
+ * a user's Markdown (worker tests).
  */
 final class TestKernel extends Kernel
 {
@@ -81,5 +88,22 @@ final class TestKernel extends Kernel
         ]);
         $container->loadFromExtension('twig', ['strict_variables' => true, 'default_path' => '%kernel.project_dir%/templates']);
         $container->loadFromExtension('nowo_milkdown_editor', $this->bundleConfig);
+    }
+
+    /**
+     * Renders the Markdown note of `?user=` (the worker test's page).
+     */
+    public function note(Request $request): Response
+    {
+        $renderer = $this->getContainer()->get(MarkdownRendererInterface::class);
+        assert($renderer instanceof MarkdownRendererInterface);
+        $user = $request->query->getString('user');
+
+        return new Response($renderer->render('Note of ' . $user . '[^1].' . "\n\n" . '[^1]: Private to ' . $user . '.'));
+    }
+
+    protected function configureRoutes(RoutingConfigurator $routes): void
+    {
+        $routes->add('note', '/note')->controller('kernel::note');
     }
 }

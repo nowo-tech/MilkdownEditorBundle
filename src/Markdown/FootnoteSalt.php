@@ -23,7 +23,8 @@ use function substr;
  * render count and the Markdown (`count . "\0" . markdown`). It reveals nothing about the source, two documents
  * collide only with probability 2^-48, and the counter is inside the HMAC, so the boundary between salt and label is
  * always the 13th character. Only footnote nodes are renamed (after orphans were restored as text, before numbering):
- * user text and links are never touched. The counter is cleared on `kernel.reset` (worker-safe).
+ * user text and links are never touched. The counter is cleared at every request / Messenger / console boundary
+ * (`WorkerBoundaryResetListener`, 1.16.1) and on `kernel.reset` (worker-safe, also without the services resetter).
  */
 final class FootnoteSalt implements ResetInterface
 {
@@ -91,7 +92,7 @@ final class FootnoteSalt implements ResetInterface
     }
 
     /**
-     * Forgets the documents rendered in this request (`kernel.reset`).
+     * Forgets the documents rendered in this request (boundary listener and `kernel.reset`).
      */
     public function reset(): void
     {

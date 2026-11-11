@@ -6,6 +6,7 @@ use Nowo\MilkdownEditorBundle\Csp\CspNonceProviderInterface;
 use Nowo\MilkdownEditorBundle\Csp\RequestAttributeCspNonceProvider;
 use Nowo\MilkdownEditorBundle\Diff\MarkdownDiffRenderer;
 use Nowo\MilkdownEditorBundle\Diff\MarkdownDiffRendererInterface;
+use Nowo\MilkdownEditorBundle\EventListener\WorkerBoundaryResetListener;
 use Nowo\MilkdownEditorBundle\Form\MilkdownEditorType;
 use Nowo\MilkdownEditorBundle\Markdown\Directive\DirectiveRendererInterface;
 use Nowo\MilkdownEditorBundle\Markdown\HostSchemes;
@@ -27,7 +28,9 @@ use Nowo\MilkdownEditorBundle\ProfileRegistry;
 use Nowo\MilkdownEditorBundle\Twig\MilkdownEditorTwig;
 use Nowo\MilkdownEditorBundle\Twig\MilkdownViewTwig;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Component\HttpKernel\KernelEvents;
 
+use function Symfony\Component\DependencyInjection\Loader\Configurator\iterator;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
@@ -87,6 +90,15 @@ return static function (ContainerConfigurator $container): void {
         // 1.2.1: per-request footnote render counters (FootnoteSalt) are cleared between requests (worker mode).
         ->tag('kernel.reset', ['method' => 'reset']);
     $services->alias(MarkdownRendererInterface::class, MilkdownMarkdownRenderer::class)->public();
+
+    // 1.16.1 (REQ-RUNTIME-002): the footnote counters are also cleared where kernel.reset does not run (no services
+    // resetter, `messenger:consume --no-reset`, long console commands). An uninitialized renderer is skipped.
+    $boundary = $services->set(WorkerBoundaryResetListener::class)
+        ->args([iterator([service(MilkdownMarkdownRenderer::class)->ignoreOnUninitialized()])])
+        ->tag('kernel.event_listener', ['event' => KernelEvents::REQUEST, 'method' => 'onKernelRequest', 'priority' => WorkerBoundaryResetListener::PRIORITY]);
+    foreach (WorkerBoundaryResetListener::EVENTS as $event) {
+        $boundary->tag('kernel.event_listener', ['event' => $event, 'method' => 'onBoundary', 'priority' => WorkerBoundaryResetListener::PRIORITY]);
+    }
 
     // 1.6: rendered diff of two versions; the same renderer (per-viewer resolvers), nothing cached.
     $services->set(MarkdownDiffRenderer::class)
