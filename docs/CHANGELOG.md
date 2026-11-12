@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format foll
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.17.0] - 2026-11-12](#1170---2026-11-12)
 - [[1.16.1] - 2026-11-11](#1161---2026-11-11)
 - [[1.16.0] - 2026-11-10](#1160---2026-11-10)
 - [[1.15.1] - 2026-11-09](#1151---2026-11-09)
@@ -32,6 +33,8 @@ All notable changes to this project are documented in this file. The format foll
 - [[1.0.0] - 2026-10-31](#100---2026-10-31)
 
 ## [Unreleased]
+
+## [1.17.0] - 2026-11-12
 
 Target: 1.17.0 (minor). Read-only parity with the server render (Symfony Beacon wiki UX review 2026-11-11, items 7a (c)
 and 8). See [UPGRADING](UPGRADING.md#to-1170).
