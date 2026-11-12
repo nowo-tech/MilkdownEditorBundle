@@ -298,7 +298,7 @@ test.describe('Shift+Tab while waiting', () => {
     await fakeHub(page, null);
     await open(page, '&connect_timeout=30000');
     await page.evaluate((markup) => {
-      document.querySelector('header.demo-nav')?.remove();
+      document.querySelector('header.nowo-ui-header')?.remove();
       const before = document.createElement('div');
       before.innerHTML = markup;
       document.body.prepend(before);

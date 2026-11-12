@@ -2,18 +2,25 @@
 
 {% block title %}{{ 'demo.collab.heading'|trans }}{% endblock %}
 
-{% block body %}
-    <h1>{{ 'demo.collab.heading'|trans }}</h1>
-    <p class="demo-lead">{{ 'demo.collab.lead'|trans }}</p>
+{% block nowo_ui_page_header %}
+    {{ include(nowo_ui_partial('page_header'), {
+        title: 'demo.collab.heading'|trans,
+        intro: 'demo.collab.lead'|trans,
+    }) }}
+{% endblock %}
 
+{% block body %}
     {{ form_start(form) }}
+        {{ form_errors(form) }}
         {{ form_rest(form) }}
-    {{ form_end(form) }}
+    {{ form_end(form, {render_rest: false}) }}
 
     {% if saved %}
-        <section class="demo-preview">
-            <h2>{{ 'demo.markdown'|trans }}</h2>
-            <pre class="demo-source" data-testid="saved">{{ saved.body }}</pre>
+        <section class="nowo-ui-card demo-preview">
+            <div class="nowo-ui-card__body">
+                <h2 class="nowo-ui-card__title">{{ 'demo.markdown'|trans }}</h2>
+                <pre class="nowo-ui-code-block nowo-ui-code-block--wrap demo-source" data-testid="saved">{{ saved.body }}</pre>
+            </div>
         </section>
     {% endif %}
 {% endblock %}

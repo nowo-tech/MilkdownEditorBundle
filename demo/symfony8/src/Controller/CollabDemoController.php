@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use Nowo\MilkdownEditorBundle\Form\MilkdownEditorType;
+use App\Form\MilkdownDemoType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -46,10 +45,9 @@ final class CollabDemoController extends AbstractController
         if ($request->query->has('connect_timeout')) {
             $collaboration['connect_timeout_ms'] = $request->query->getInt('connect_timeout');
         }
-        $form = $this->createFormBuilder(['body' => self::BODY])
-            ->add('body', MilkdownEditorType::class, ['label' => 'demo.body', 'profile' => 'wiki', 'collaboration' => $collaboration])
-            ->add('save', SubmitType::class, ['label' => 'demo.save'])
-            ->getForm();
+        $form = $this->createForm(MilkdownDemoType::class, ['body' => self::BODY], [
+            'editors' => ['body' => ['label' => 'demo.body', 'profile' => 'wiki', 'collaboration' => $collaboration]],
+        ]);
         $form->handleRequest($request);
 
         return $this->render('demo/collab.html.twig', [

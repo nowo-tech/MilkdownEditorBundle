@@ -4,15 +4,21 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use Nowo\MilkdownEditorBundle\Form\MilkdownEditorType;
+use App\Form\MilkdownDemoType;
+use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Profiler\Profiler;
 use Symfony\Component\Routing\Attribute\Route;
+
+use function is_string;
+
+use const JSON_THROW_ON_ERROR;
+use const LOCK_EX;
+use const LOCK_UN;
 
 /**
  * 1.11 demo: a small host with a stored log, to race a session save against a peer's update for real: requests are
@@ -23,11 +29,11 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final class CollabLogDemoController extends AbstractController
 {
-    private const FIELD = '_nowo_milkdown_collab';
-    private const SEQ_FIELD = '_nowo_milkdown_collab_seq';
+    private const FIELD       = '_nowo_milkdown_collab';
+    private const SEQ_FIELD   = '_nowo_milkdown_collab_seq';
     private const EPOCH_FIELD = '_nowo_milkdown_collab_epoch';
-    private const DOC = '[a-z0-9-]{1,40}';
-    private const EMPTY = ['body' => 'Original body', 'updates' => [], 'seq' => 0, 'saved' => 0, 'claim' => null, 'revisions' => [], 'epoch' => 'first'];
+    private const DOC         = '[a-z0-9-]{1,40}';
+    private const EMPTY       = ['body' => 'Original body', 'updates' => [], 'seq' => 0, 'saved' => 0, 'claim' => null, 'revisions' => [], 'epoch' => 'first'];
 
     public function __construct(
         #[Autowire(service: 'profiler')]
@@ -50,10 +56,9 @@ final class CollabLogDemoController extends AbstractController
         if ($request->query->has('connect_timeout')) {
             $collaboration['connect_timeout_ms'] = $request->query->getInt('connect_timeout');
         }
-        $form = $this->createFormBuilder(['body' => $this->locked($doc, static fn (array $log): array => [$log, $log['body']])])
-            ->add('body', MilkdownEditorType::class, ['label' => 'demo.body', 'profile' => 'wiki', 'collaboration' => $collaboration])
-            ->add('save', SubmitType::class, ['label' => 'demo.save'])
-            ->getForm();
+        $form = $this->createForm(MilkdownDemoType::class, ['body' => $this->locked($doc, static fn (array $log): array => [$log, $log['body']])], [
+            'editors' => ['body' => ['label' => 'demo.body', 'profile' => 'wiki', 'collaboration' => $collaboration]],
+        ]);
         $form->handleRequest($request);
         $status = Response::HTTP_OK;
         if ($form->isSubmitted() && $form->isValid()) {
@@ -101,7 +106,7 @@ final class CollabLogDemoController extends AbstractController
     public function token(Request $request, string $doc): Response
     {
         $client = (string) $request->headers->get('X-Nowo-Collab-Client');
-        $sent = $request->headers->get('X-Nowo-Collab-Epoch');
+        $sent   = $request->headers->get('X-Nowo-Collab-Epoch');
         $this->locked($doc, static function (array $log) use ($client, $sent): array {
             if ($log['updates'] === [] && ($sent === null || $sent === $log['epoch'])) {
                 $log['claim'] ??= $client;
@@ -135,9 +140,9 @@ final class CollabLogDemoController extends AbstractController
             if (isset($body['e']) && $body['e'] !== $log['epoch']) {
                 return [$log, null];
             }
-            $previous        = $log['seq'];
+            $previous = $log['seq'];
             // Like a shared auto-increment: growing, with gaps.
-            $log['seq']     += random_int(1, 3);
+            $log['seq'] += random_int(1, 3);
             $log['updates'][] = ['s' => $log['seq'], 'd' => (string) ($body['d'] ?? '')];
 
             return [$log, ['s' => $log['seq'], 'p' => $previous]];
@@ -170,7 +175,7 @@ final class CollabLogDemoController extends AbstractController
         $path = sys_get_temp_dir() . '/milkdown-demo-log-' . $doc . '.json';
         $file = fopen($path, 'c+');
         if ($file === false) {
-            throw new \RuntimeException('Cannot open the demo log.');
+            throw new RuntimeException('Cannot open the demo log.');
         }
         flock($file, LOCK_EX);
         try {

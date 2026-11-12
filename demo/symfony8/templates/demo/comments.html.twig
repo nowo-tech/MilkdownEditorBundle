@@ -2,10 +2,14 @@
 
 {% block title %}{{ 'demo.comments.heading'|trans }}{% endblock %}
 
-{% block body %}
-    <h1>{{ 'demo.comments.heading'|trans }}</h1>
-    <p class="demo-lead">{{ 'demo.comments.lead'|trans }}</p>
+{% block nowo_ui_page_header %}
+    {{ include(nowo_ui_partial('page_header'), {
+        title: 'demo.comments.heading'|trans,
+        intro: 'demo.comments.lead'|trans,
+    }) }}
+{% endblock %}
 
+{% block body %}
     {{ form_start(form) }}
         {{ form_row(form.body) }}
     {{ form_end(form, {render_rest: false}) }}

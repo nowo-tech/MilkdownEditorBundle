@@ -2,14 +2,18 @@
 
 {% block title %}{{ 'demo.collab.heading'|trans }}{% endblock %}
 
+{% block nowo_ui_page_header %}
+    {{ include(nowo_ui_partial('page_header'), {title: 'demo.collab.heading'|trans}) }}
+{% endblock %}
+
 {% block body %}
-    <h1>{{ 'demo.collab.heading'|trans }}</h1>
     {% if status == 302 %}
         <p data-testid="save-result">saved</p>
     {% else %}
         {{ form_start(form) }}
+            {{ form_errors(form) }}
             {{ form_rest(form) }}
-        {{ form_end(form) }}
+        {{ form_end(form, {render_rest: false}) }}
         {% if status == 409 %}<p data-testid="save-result">conflict</p>{% endif %}
     {% endif %}
 {% endblock %}
