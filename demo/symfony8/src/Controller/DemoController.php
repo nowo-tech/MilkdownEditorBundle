@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Demo\DemoDirectory;
-use Nowo\MilkdownEditorBundle\Form\MilkdownEditorType;
+use App\Form\MilkdownDemoType;
+use finfo;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Form\Extension\Core\Type\SubmitType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -20,6 +19,15 @@ use Symfony\Component\HttpKernel\Profiler\Profiler;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+
+use function array_slice;
+use function in_array;
+use function is_string;
+
+use const ENT_QUOTES;
+use const ENT_SUBSTITUTE;
+use const FILEINFO_MIME_TYPE;
+use const PATHINFO_EXTENSION;
 
 /**
  * Demo pages: the editor (wiki and comment profiles), the rendered preview and the JSON endpoints the editor calls
@@ -64,11 +72,11 @@ final class DemoController extends AbstractController
 
     /** Sniffed document types => stored extension. */
     private const DOCUMENTS = [
-        'application/pdf' => 'pdf',
-        'text/plain'      => 'txt',
-        'text/csv'        => 'csv',
-        'application/csv' => 'csv',
-        'application/zip' => 'zip',
+        'application/pdf'                                                         => 'pdf',
+        'text/plain'                                                              => 'txt',
+        'text/csv'                                                                => 'csv',
+        'application/csv'                                                         => 'csv',
+        'application/zip'                                                         => 'zip',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'       => 'xlsx',
     ];
@@ -89,24 +97,25 @@ final class DemoController extends AbstractController
         if ($request->query->get('devtools') === '0') {
             $this->profiler?->disable();
         }
-        $form = $this->createFormBuilder(['title' => 'Release process', 'body' => self::SAMPLE, 'comment' => 'Thanks @grace :tabler-star:'])
-            ->add('title', TextType::class, ['label' => 'demo.title'])
-            ->add('body', MilkdownEditorType::class, [
-                'label'             => 'demo.body',
-                'profile'           => 'wiki',
-                'theme'             => $request->query->get('theme') === 'dark' ? 'dark' : 'auto',
-                'suggestions'       => ['@' => '/api/users', '[[' => '/api/pages'],
-                'link_title_url'    => '/api/pages/titles',
-                'upload_url'        => '/api/upload',
-                'upload_csrf_token' => $this->csrf->getToken('milkdown_upload')->getValue(),
-            ])
-            ->add('comment', MilkdownEditorType::class, [
-                'label'       => 'demo.comment',
-                'profile'     => 'comment',
-                'suggestions' => ['@' => '/api/users'],
-            ])
-            ->add('save', SubmitType::class, ['label' => 'demo.save'])
-            ->getForm();
+        $form = $this->createForm(MilkdownDemoType::class, ['title' => 'Release process', 'body' => self::SAMPLE, 'comment' => 'Thanks @grace :tabler-star:'], [
+            'with_title' => true,
+            'editors'    => [
+                'body' => [
+                    'label'             => 'demo.body',
+                    'profile'           => 'wiki',
+                    'theme'             => $request->query->get('theme') === 'dark' ? 'dark' : 'auto',
+                    'suggestions'       => ['@' => '/api/users', '[[' => '/api/pages'],
+                    'link_title_url'    => '/api/pages/titles',
+                    'upload_url'        => '/api/upload',
+                    'upload_csrf_token' => $this->csrf->getToken('milkdown_upload')->getValue(),
+                ],
+                'comment' => [
+                    'label'       => 'demo.comment',
+                    'profile'     => 'comment',
+                    'suggestions' => ['@' => '/api/users'],
+                ],
+            ],
+        ]);
         $form->handleRequest($request);
 
         return $this->render('demo/home.html.twig', [
@@ -125,8 +134,8 @@ final class DemoController extends AbstractController
     #[Route('/api/pages/titles', name: 'demo_api_page_titles', methods: ['GET'])]
     public function titles(Request $request): JsonResponse
     {
-        $ids  = array_slice(array_filter(explode(',', $request->query->getString('ids'))), 0, 50);
-        $out  = [];
+        $ids = array_slice(array_filter(explode(',', $request->query->getString('ids'))), 0, 50);
+        $out = [];
         foreach ($this->directory->resolvePages($ids) as $id => $page) {
             $out[] = ['id' => $id, 'title' => $page->title, 'url' => $page->url, 'visible' => true];
         }
@@ -163,7 +172,7 @@ final class DemoController extends AbstractController
             return $this->json(['error' => 'Invalid file'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         // The sniffed type of the bytes (fileinfo), never the client's Content-Type nor the file name.
-        $mime      = (string) (new \finfo(\FILEINFO_MIME_TYPE))->file($file->getPathname());
+        $mime      = (string) (new finfo(FILEINFO_MIME_TYPE))->file($file->getPathname());
         $extension = self::IMAGES[$mime] ?? self::DOCUMENTS[$mime] ?? null;
         if ($extension === null) {
             return $this->json(['error' => 'Type not allowed'], Response::HTTP_UNSUPPORTED_MEDIA_TYPE);
@@ -200,7 +209,7 @@ final class DemoController extends AbstractController
         if (!is_file($path)) {
             throw $this->createNotFoundException();
         }
-        $extension = pathinfo($name, \PATHINFO_EXTENSION);
+        $extension = pathinfo($name, PATHINFO_EXTENSION);
         $type      = array_search($extension, self::IMAGES, true) ?: array_search($extension, self::DOCUMENTS, true) ?: 'application/octet-stream';
         $image     = in_array($extension, self::IMAGES, true);
         $response  = new BinaryFileResponse($path, 200, ['Content-Type' => $type]);
@@ -221,15 +230,16 @@ final class DemoController extends AbstractController
         if ($request->query->get('devtools') === '0') {
             $this->profiler?->disable();
         }
-        $form = $this->createFormBuilder(['body' => "Host files\n\n![broken](demo-file:..)\n\n"])
-            ->add('body', MilkdownEditorType::class, [
-                'label'             => 'demo.body',
-                'profile'           => 'files',
-                'upload_url'        => '/api/upload?reference=1',
-                'upload_csrf_token' => $this->csrf->getToken('milkdown_upload')->getValue(),
-            ])
-            ->add('save', SubmitType::class, ['label' => 'demo.save'])
-            ->getForm();
+        $form = $this->createForm(MilkdownDemoType::class, ['body' => "Host files\n\n![broken](demo-file:..)\n\n"], [
+            'editors' => [
+                'body' => [
+                    'label'             => 'demo.body',
+                    'profile'           => 'files',
+                    'upload_url'        => '/api/upload?reference=1',
+                    'upload_csrf_token' => $this->csrf->getToken('milkdown_upload')->getValue(),
+                ],
+            ],
+        ]);
         $form->handleRequest($request);
 
         return $this->render('demo/files.html.twig', [
@@ -253,7 +263,7 @@ final class DemoController extends AbstractController
         }
         $text = (string) file_get_contents($path, false, null, 0, 65536);
 
-        return new Response('<!doctype html><html lang="en"><title>Preview</title><pre>' . htmlspecialchars($text, \ENT_QUOTES | \ENT_SUBSTITUTE) . '</pre></html>', 200, [
+        return new Response('<!doctype html><html lang="en"><title>Preview</title><pre>' . htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE) . '</pre></html>', 200, [
             'Content-Type'            => 'text/html; charset=UTF-8',
             'Content-Security-Policy' => "sandbox; default-src 'none'; frame-ancestors 'self'",
             'X-Content-Type-Options'  => 'nosniff',
@@ -278,12 +288,15 @@ final class DemoController extends AbstractController
             $this->profiler?->disable();
         }
         $field = static fn (string $label): array => ['label' => $label, 'profile' => 'wiki', 'action_bar_insert' => []];
-        $form  = $this->createFormBuilder(['transformed' => "# Transformed\n\nRight-click this paragraph.", 'sticky' => "# Sticky\n\nRight-click this paragraph.", 'dialog' => "# Dialog\n\nRight-click this paragraph."])
-            ->add('transformed', MilkdownEditorType::class, $field('demo.layers.transformed'))
-            ->add('sticky', MilkdownEditorType::class, $field('demo.layers.sticky'))
-            ->add('dialog', MilkdownEditorType::class, $field('demo.layers.dialog'))
-            ->getForm();
+        $form  = $this->createForm(MilkdownDemoType::class, ['transformed' => "# Transformed\n\nRight-click this paragraph.", 'sticky' => "# Sticky\n\nRight-click this paragraph.", 'dialog' => "# Dialog\n\nRight-click this paragraph."], [
+            'submit'  => false,
+            'editors' => [
+                'transformed' => $field('demo.layers.transformed'),
+                'sticky'      => $field('demo.layers.sticky'),
+                'dialog'      => $field('demo.layers.dialog'),
+            ],
+        ]);
 
-        return $this->render('demo/layers.html.twig', ['form' => $form->createView()]);
+        return $this->render('demo/layers.html.twig', ['form' => $form]);
     }
 }

@@ -1,27 +1,30 @@
 {% extends 'base.html.twig' %}
 
-{% block body %}
-    <h1>{{ 'demo.heading'|trans }}</h1>
-    <p class="demo-lead">{{ 'demo.lead'|trans }}</p>
+{% block nowo_ui_page_header %}
+    {{ include(nowo_ui_partial('page_header'), {
+        title: 'demo.heading'|trans,
+        intro: 'demo.lead'|trans,
+    }) }}
+{% endblock %}
 
+{% block body %}
     {{ form_start(form) }}
-        {% for child in form %}
-            {% if not child.rendered %}
-                {{ form_row(child) }}
-            {% endif %}
-        {% endfor %}
-    {{ form_end(form) }}
+        {{ form_errors(form) }}
+        {{ form_rest(form) }}
+    {{ form_end(form, {render_rest: false}) }}
 
     {% if saved %}
-        <section class="demo-preview" aria-labelledby="preview-heading">
-            <h2 id="preview-heading">{{ 'demo.preview'|trans }}</h2>
-            <article class="nowo-md" data-preview>{{ saved.body|milkdown_markdown }}</article>
-            {# 1.5: the read-view "Copy as Markdown" button (the demo's readers may read the whole page). #}
-            {{ nowo_milkdown_copy_markdown(saved.body) }}
-            {# 1.5.1: the icon-only variant (accessible name from the visually hidden label). #}
-            {{ nowo_milkdown_copy_markdown(saved.body, {icon: 'only'}) }}
-            <h3>{{ 'demo.markdown'|trans }}</h3>
-            <pre class="demo-source">{{ saved.body }}</pre>
+        <section class="nowo-ui-card demo-preview" aria-labelledby="preview-heading">
+            <div class="nowo-ui-card__body">
+                <h2 id="preview-heading" class="nowo-ui-card__title">{{ 'demo.preview'|trans }}</h2>
+                <article class="nowo-md" data-preview>{{ saved.body|milkdown_markdown }}</article>
+                {# 1.5: the read-view "Copy as Markdown" button (the demo's readers may read the whole page). #}
+                {{ nowo_milkdown_copy_markdown(saved.body) }}
+                {# 1.5.1: the icon-only variant (accessible name from the visually hidden label). #}
+                {{ nowo_milkdown_copy_markdown(saved.body, {icon: 'only'}) }}
+                <h3>{{ 'demo.markdown'|trans }}</h3>
+                <pre class="nowo-ui-code-block nowo-ui-code-block--wrap demo-source">{{ saved.body }}</pre>
+            </div>
         </section>
     {% endif %}
 {% endblock %}

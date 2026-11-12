@@ -1,0 +1,12 @@
+# CSRF: stateless tokens; FormKit forms render the CSRF field (security-csrf provides the token manager).
+framework:
+    form:
+        csrf_protection:
+            token_id: submit
+
+    csrf_protection:
+        enabled: true
+        stateless_token_ids:
+            - submit
+            - authenticate
+            - logout

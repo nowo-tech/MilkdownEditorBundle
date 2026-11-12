@@ -34,6 +34,10 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Changed
+
+- Demo uses the UiKit base style and FormKit forms (REQ-DEMO-014/015).
+
 ## [1.17.0] - 2026-11-12
 
 Target: 1.17.0 (minor). Read-only parity with the server render (Symfony Beacon wiki UX review 2026-11-11, items 7a (c)
