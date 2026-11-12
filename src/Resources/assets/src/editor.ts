@@ -22,6 +22,7 @@ import { directives } from './nodes/directives';
 import { hostLinkSchema, imageAttributesSchema, imageLiftRemark, imageView } from './nodes/image';
 import { inlineRefs, mentionNameView } from './nodes/inline-refs';
 import { taskListView } from './nodes/task-list';
+import { editableWatchPlugin } from './plugins/editable';
 import { editableAttributes, watchControls } from './plugins/a11y';
 import { keyboardPlugin } from './plugins/keyboard';
 import { suggestPlugin } from './plugins/suggest';
@@ -276,6 +277,7 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     .use(directives)
     .use(imageAttributesSchema)
     .use(taskListView)
+    .use(editableWatchPlugin)
     .use(suggestPlugin((ctx) => buildTriggers(ctx, { options, runtime, remember: pages.remember, rememberUser: users.remember })))
     .use(keyboardPlugin)
     .use($prose(() => fileDrop.plugin));

@@ -607,7 +607,7 @@ describe('callout icons (1.7)', () => {
     expect(picker()).toBeNull();
   });
 
-  it('works with emoji only without icons; unresolved names show as text; readonly disables it', async () => {
+  it('works with emoji only without icons; unresolved names show as text; readonly has no button', async () => {
     handle = await editor(':::callout{icon="rocket" type="info"}\nText\n:::\n');
     expect(button(handle).querySelector('.nowo-milkdown-directive__icon-name')?.textContent).toBe('rocket');
     button(handle).click();
@@ -616,7 +616,7 @@ describe('callout icons (1.7)', () => {
     keydown(search(), 'Escape');
     await handle.destroy();
     handle = await editor(':::callout{type="info"}\nText\n:::\n', { readonly: true });
-    expect(button(handle).disabled).toBe(true);
+    expect(handle.root.querySelector('.nowo-milkdown-directive__icon')).toBeNull();
     const v = view(handle);
     const node = v.state.doc.firstChild!;
     const b = calloutIconButton(defaultRuntime(), {}, v, () => 0);

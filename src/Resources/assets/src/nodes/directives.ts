@@ -24,6 +24,7 @@ import { iconSvg, pickerAvailable, runtimeCtx, t, type Runtime } from '../runtim
 import { glyph } from '../ui/icons';
 import { catalogEntries, lazyIcons } from '../icons/open';
 import { fileCard } from '../dialect/file-card';
+import { onEditableChange } from '../plugins/editable';
 
 const nameOf = (node: MdNode): string => (typeof node.name === 'string' && isDirectiveName(node.name) ? node.name : 'div');
 const isLabel = (node: MdNode | undefined): boolean => node?.type === 'paragraph' && node.data?.directiveLabel === true;
@@ -285,18 +286,71 @@ export function buildHeader(runtime: Runtime, node: PmNode, view: EditorView, ge
   return header;
 }
 
+/**
+ * 1.17 (Wiki UX review item 7): read-only, a container has no header controls and looks like the server render
+ * (`DialectRenderer`). A callout gets the `.nowo-md-callout` classes and, with an icon, the decorative icon before
+ * `.nowo-md-callout__body`; a details block shows its summary as text; the other names show nothing.
+ */
+export function readOnlyChrome(runtime: Runtime, node: PmNode, dom: HTMLElement, contentDOM: HTMLElement): HTMLElement | null {
+  const attributes = decodeAttributes(node.attrs.attributes);
+  const name = node.attrs.name as string;
+  if (name === 'details') {
+    dom.classList.add('nowo-md-details');
+    const summary = document.createElement('div');
+    summary.className = 'nowo-milkdown-directive__summary';
+    summary.contentEditable = 'false';
+    summary.textContent = attributes.summary ?? (node.attrs.label || '…');
+    return summary;
+  }
+  if (name !== 'callout') return null;
+  dom.classList.add('nowo-md-callout', `nowo-md-callout--${calloutType(attributes)}`);
+  const icon = calloutIcon(attributes);
+  let art: Element | null = null;
+  if (icon?.kind === 'emoji') {
+    art = document.createElement('span');
+    art.className = 'nowo-md-callout__icon nowo-md-callout__emoji';
+    art.setAttribute('data-emoji', icon.value);
+  } else if (icon) {
+    const svg = iconSvg(runtime, icon.name);
+    if (svg) {
+      svg.setAttribute('class', 'nowo-md-icon nowo-md-callout__icon');
+      art = svg;
+      if (!runtime.icons.has(icon.name) || !runtime.spriteUrl) {
+        const drop = (): void => {
+          svg.remove();
+          dom.classList.remove('nowo-md-callout--icon');
+          contentDOM.classList.remove('nowo-md-callout__body');
+        };
+        void lazyIcons
+          .catalog()
+          .then((m) => {
+            if (!m.hasIcon(icon.name)) drop();
+          })
+          .catch(drop);
+      }
+    }
+  }
+  if (!art) return null;
+  art.setAttribute('aria-hidden', 'true');
+  art.setAttribute('contenteditable', 'false');
+  dom.classList.add('nowo-md-callout--icon');
+  contentDOM.classList.add('nowo-md-callout__body');
+  return art as HTMLElement;
+}
+
 export const containerDirectiveView = $view(containerDirectiveSchema.node, (ctx) => (initial, view, getPos) => {
   const runtime = ctx.get(runtimeCtx.key);
   const dom = document.createElement('div');
   const contentDOM = document.createElement('div');
-  contentDOM.className = 'nowo-milkdown-directive__content';
-  let header = buildHeader(runtime, initial, view, getPos);
+  let current = initial;
+  let header: HTMLElement | null = null;
   const paint = (node: PmNode): void => {
     const attributes = decodeAttributes(node.attrs.attributes);
     const name = node.attrs.name as string;
     const text = name === 'align' ? textColor(attributes) : null;
     const bg = name === 'align' ? blockBackground(attributes) : null;
     dom.className = `nowo-milkdown-directive nowo-milkdown-directive--${name}${text ? ` nowo-milkdown-color--${text}` : ''}${bg ? ` nowo-milkdown-bg--${bg}` : ''}`;
+    contentDOM.className = 'nowo-milkdown-directive__content';
     dom.dataset.directive = name;
     if (name === 'callout') {
       dom.dataset.type = calloutType(attributes);
@@ -305,22 +359,26 @@ export const containerDirectiveView = $view(containerDirectiveSchema.node, (ctx)
     } else if (name === 'align') {
       dom.dataset.align = alignment(attributes);
     }
+    const next = view.editable ? buildHeader(runtime, node, view, getPos) : readOnlyChrome(runtime, node, dom, contentDOM);
+    if (header) header.remove();
+    header = next;
+    if (header) dom.insertBefore(header, contentDOM);
   };
+  dom.append(contentDOM);
   paint(initial);
-  dom.append(header, contentDOM);
+  const stop = onEditableChange(view, () => paint(current));
   return {
     dom,
     contentDOM,
     update: (node: PmNode) => {
       if (node.type.name !== 'containerDirective' || node.attrs.name !== initial.attrs.name) return false;
+      current = node;
       paint(node);
-      const next = buildHeader(runtime, node, view, getPos);
-      header.replaceWith(next);
-      header = next;
       return true;
     },
-    stopEvent: (event: Event) => header.contains(event.target as Node),
+    stopEvent: (event: Event) => header?.contains(event.target as Node) ?? false,
     ignoreMutation: (mutation: { target: Node }) => !contentDOM.contains(mutation.target),
+    destroy: stop,
   };
 });
 

@@ -380,8 +380,9 @@
   }
 }
 
-/* Task items */
-.nowo-milkdown .ProseMirror li.nowo-milkdown-task {
+/* Task items (editor and, 1.17, rendered HTML: the same markup, see TaskItemRenderer) */
+.nowo-milkdown .ProseMirror li.nowo-milkdown-task,
+li.nowo-milkdown-task {
   list-style: none;
   display: flex;
   gap: 0.5rem;
@@ -658,6 +659,10 @@
 }
 .nowo-md-details > summary {
   cursor: pointer;
+  font-weight: 600;
+}
+/* 1.17: the summary of a details block in the read-only editor (no header controls). */
+.nowo-milkdown-directive__summary {
   font-weight: 600;
 }
 .nowo-milkdown-directive[data-align='center'] .nowo-milkdown-directive__content,

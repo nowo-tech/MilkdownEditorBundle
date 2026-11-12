@@ -4,6 +4,7 @@
 
 - [General procedure](#general-procedure)
 - [Unreleased](#unreleased)
+- [To 1.17.0](#to-1170)
 - [To 1.16.1](#to-1161)
 - [To 1.16.0](#to-1160)
 - [To 1.15.1](#to-1151)
@@ -42,6 +43,52 @@ names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialec
 interfaces and `window.NowoMilkdownEditor`.
 
 ## Unreleased
+
+## To 1.17.0
+
+From **1.16.1**:
+
+```bash
+composer update nowo-tech/milkdown-editor-bundle
+php bin/console assets:install
+```
+
+No configuration change. Two output changes, both fixes that are on by default:
+
+**Task items in the PHP render (`MilkdownMarkdownRenderer`, `|milkdown_markdown`).** Before:
+
+```html
+<li><input disabled="" type="checkbox" aria-label="Done"> Write the spec</li>
+```
+
+From 1.17.0 (the read-only editor's markup; `checked=""` and `data-checked="true"` for a done task):
+
+```html
+<li class="nowo-milkdown-task" data-checked="false"><input type="checkbox" class="nowo-milkdown-task__box" disabled="" aria-label="Done"><div class="nowo-milkdown-task__content">Write the spec</div></li>
+```
+
+- Stored or cached HTML and ETags: HTML rendered before the update keeps the old markup until it is rendered again;
+  once re-rendered, the HTML (and an ETag computed from it) of every document with a task list changes. Documents
+  without task lists render byte for byte as before. Clear or rebuild cached renders if the old and new markup must
+  not be mixed.
+- HTML sanitisers: a host that sanitises the rendered HTML must keep `li[class, data-checked]`, `div[class]` and
+  `<input>` with exactly the attributes of `TaskMarkerRenderer::CHECKBOX_ATTRIBUTES` (`type` = `checkbox`, `class`,
+  `disabled`, `checked`, `aria-label`) — nothing else, no `name`, `value`, `form`, `id`, `style` or `on*`. Raw HTML in
+  Markdown is still escaped (or stripped) by `markdown.html_input` (unless a host sets it to `allow`), so the
+  renderer's checkbox is the only `<input>` it can emit. A sanitiser that drops `<input>` leaves the item without a box
+  (no bullet either).
+- CSS: the bundle's `milkdown-editor.css` styles `li.nowo-milkdown-task` everywhere (it used to be scoped to the
+  editor). A host stylesheet that styled `.contains-task-list` or `li > input[type=checkbox]` in rendered HTML can
+  target `.nowo-milkdown-task`, `.nowo-milkdown-task__box` and `.nowo-milkdown-task__content` instead, the same
+  classes as the editor.
+
+**Read-only editor: container directives without header.** Read-only (`readonly: true`, a version view, a read
+view, collaboration before it connects), callouts, details, alignment and other containers have no
+`.nowo-milkdown-directive__header`. A callout gets `nowo-md-callout nowo-md-callout--<type>` (and
+`nowo-md-callout--icon` with `.nowo-md-callout__icon` before `.nowo-md-callout__body` when it has an icon), so the
+rules a host wrote for the server callout apply to it. A details block shows `.nowo-milkdown-directive__summary`. CSS
+that hid the header in read-only views (for example `.nowo-milkdown .ProseMirror[contenteditable=false]
+.nowo-milkdown-directive__header { display: none }`) can be removed. Editing mode is unchanged.
 
 ## To 1.16.1
 

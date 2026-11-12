@@ -1,11 +1,15 @@
 /**
  * GFM task items rendered with a real, named checkbox (Crepe's list-item feature wraps `<li>` in a `<div>` and
  * breaks list semantics, so the bundle does not use it: lists stay `ul > li`).
+ *
+ * 1.17: read-only, the checkbox is disabled (as in the server render, `TaskItemRenderer`), and it follows the editor
+ * switching between read-only and editable.
  */
 import { listItemSchema } from '@milkdown/kit/preset/commonmark';
 import { $view } from '@milkdown/kit/utils';
 import type { Node as PmNode } from '@milkdown/kit/prose/model';
 import { runtimeCtx, t } from '../runtime';
+import { onEditableChange } from '../plugins/editable';
 
 export const taskListView = $view(listItemSchema.node, (ctx) => (initial, view, getPos) => {
   const runtime = ctx.get(runtimeCtx.key);
@@ -27,7 +31,13 @@ export const taskListView = $view(listItemSchema.node, (ctx) => (initial, view, 
     dom.dataset.checked = String(node.attrs.checked === true);
   };
   paint(initial);
+  const lock = (): void => {
+    box.disabled = !view.editable;
+  };
+  lock();
+  const stop = onEditableChange(view, lock);
   box.addEventListener('change', () => {
+    if (!view.editable) return;
     const pos = getPos();
     if (pos === undefined || pos >= view.state.doc.content.size) return;
     const node = view.state.doc.nodeAt(pos);
@@ -43,6 +53,7 @@ export const taskListView = $view(listItemSchema.node, (ctx) => (initial, view, 
       return true;
     },
     stopEvent: (event: Event) => event.target === box,
+    destroy: stop,
     ignoreMutation: (mutation: { type: string; target: Node }) =>
       mutation.type !== 'selection' && (mutation.target === box || (mutation.target === dom && mutation.type === 'attributes')),
   };
