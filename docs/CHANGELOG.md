@@ -37,6 +37,7 @@ All notable changes to this project are documented in this file. The format foll
 ### Changed
 
 - Demo uses the UiKit base style and FormKit forms (REQ-DEMO-014/015).
+- docs: demo screenshots regenerated on the UiKit base style
 
 ## [1.17.0] - 2026-11-12
 
