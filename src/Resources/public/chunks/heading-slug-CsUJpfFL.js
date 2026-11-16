@@ -35,4 +35,4 @@ function c(e, t) {
 	for (let e = 2; t.has(r); e++) r = `${n}-${e}`;
 	return r;
 }
-export { a, i as c, c as i, n, o, t as r, s, e as t };
+export { o as a, c as i, n, s as o, t as r, i as s, e as t };

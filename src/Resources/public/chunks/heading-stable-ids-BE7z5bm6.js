@@ -1,7 +1,7 @@
 import { ft as e, ot as t, st as n } from "./lib-9QpRoHAM.js";
 import { u as r } from "./lib-DaU_YkmU.js";
 import { n as i } from "./keys-DelLdmIt.js";
-import { i as a, o } from "./heading-slug-rvzS8eP_.js";
+import { a, i as o } from "./heading-slug-CsUJpfFL.js";
 // src/Resources/assets/src/plugins/heading-stable-ids.ts
 var s = new n("nowo-milkdown-heading-stable-ids"), c = "blur";
 function l(e, t) {
@@ -44,11 +44,11 @@ function m(t, n, r) {
 	if (!h && !m && !t.some((e) => e.selectionSet)) return i;
 	let g = new e();
 	t.forEach((e) => g.appendMapping(e.mapping));
-	let _ = u(r.doc), v = _.map((e) => o(e.node.attrs.id)), y = new Set(v.filter((e) => e !== "")), b = l(r.doc, r.selection.head);
+	let _ = u(r.doc), v = _.map((e) => a(e.node.attrs.id)), y = new Set(v.filter((e) => e !== "")), b = l(r.doc, r.selection.head);
 	if (h) {
 		let e = f(t), r = /* @__PURE__ */ new Map();
 		for (let e of u(n.doc)) {
-			let t = o(e.node.attrs.id), n = g.mapResult(e.pos, 1);
+			let t = a(e.node.attrs.id), n = g.mapResult(e.pos, 1);
 			t !== "" && !n.deleted && r.set(n.pos, t);
 		}
 		let s = /* @__PURE__ */ new Map();
@@ -57,16 +57,16 @@ function m(t, n, r) {
 		});
 		for (let [t, n] of s) {
 			if (n.length < 2) continue;
-			let o = n.find((e) => r.get(_[e].pos) === t) ?? n.find((t) => !p(e, _[t])) ?? n[0];
+			let a = n.find((e) => r.get(_[e].pos) === t) ?? n.find((t) => !p(e, _[t])) ?? n[0];
 			for (let t of n) {
-				if (t === o || !p(e, _[t])) continue;
-				let n = a(_[t].node.textContent, y);
+				if (t === a || !p(e, _[t])) continue;
+				let n = o(_[t].node.textContent, y);
 				y.add(n), i.set(_[t].pos, n);
 			}
 		}
 		_.forEach((t, n) => {
 			if (v[n] !== "" || i.has(t.pos) || !p(e, t) || t.node.textContent.trim() === "" || b && b.pos === t.pos) return;
-			let r = a(t.node.textContent, y);
+			let r = o(t.node.textContent, y);
 			y.add(r), i.set(t.pos, r);
 		});
 	}
@@ -82,7 +82,7 @@ function m(t, n, r) {
 			} : null;
 		}
 	}
-	return (x || m) && S && !i.has(S.pos) && o(S.node.attrs.id) === "" && S.node.textContent.trim() !== "" && i.set(S.pos, a(S.node.textContent, y)), i;
+	return (x || m) && S && !i.has(S.pos) && a(S.node.attrs.id) === "" && S.node.textContent.trim() !== "" && i.set(S.pos, o(S.node.textContent, y)), i;
 }
 function h() {
 	return new t({
@@ -107,7 +107,7 @@ function h() {
 					id: t
 				});
 			}
-			return i.setMeta(s, "own").setMeta("addToHistory", !1);
+			return i.setMeta(s, "own"), e.some((e) => e.docChanged && e.getMeta("addToHistory") !== !1) || i.setMeta("addToHistory", !1), i;
 		},
 		view: (e) => {
 			let t = (t) => {

@@ -314,7 +314,8 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   if (blockActionsModule) editor.use(blockActionsModule.blockActionsPlugin(options.features.includes('block_drag')));
   if (colorsModule) editor.use(colorsModule.colorMenuPlugin);
   if (clipboardModule) editor.use(clipboardModule.markdownClipboardPlugin((key, error) => announce(key, {}, error, true)));
-  if (options.features.includes('heading_ids')) editor.use((await import('./plugins/heading-ids')).headingIdsPlugin);
+  // RV-L3 (1.18): DOM heading ids are always unique (the preset's `-#2` rewrite is gone); `heading_ids` keeps its name.
+  editor.use((await import('./plugins/heading-ids')).headingIdsPlugin);
   // 1.18: frozen heading ids (on leave, and unique after a split, paste or drop).
   if (options.features.includes(STABLE_IDS_FEATURE)) editor.use((await import('./plugins/heading-stable-ids')).stableIdsPlugin);
   if (runtime.openLinkPicker) editor.use((await import('./plugins/link-trigger')).linkTriggerPlugin);

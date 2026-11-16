@@ -62,19 +62,21 @@ Output changes that apply to everyone (all follow the contract; most documents a
   `#setup`, and its label is the page title alone (`Title › Section text` with a `SectionResolverInterface`) instead
   of `Title › setup`. The editor chip does the same (`Title › #setup` until the picker told it the section text).
   Cached HTML of documents with such links changes once re-rendered.
-- **The anchor grammar** is the heading id grammar: Unicode anchors parse; anchors the slug never produces (`a--b`,
-  a trailing `-`, more than 90 characters) now stay text. Hand-written links of that form need a new anchor.
+- **The anchor grammar** is the heading id grammar: Unicode anchors parse; an anchor the grammar refuses (`a--b`, a
+  trailing `-`, upper case, more than 90 characters) is dropped: the page link (or a hidden page's placeholder) still
+  renders, without the fragment, and the editor writes it back without the anchor.
 - **A heading ending with ` {#id}`** (a valid id) no longer shows that text: it is the heading's explicit id, with or
   without `markdown.heading_ids`. Write `\{#id}` to keep it as text.
 - **Heading slugs** use the NFC form of the text and drop characters the id grammar refuses (an upper-case letter
   without a lower case, a leading combining mark). Ids of ordinary headings do not change.
-- **Editor DOM ids without `heading_ids`:** repeated headings share `nowo-h-<slug>` (they had the invalid
-  `nowo-h-<slug>-#2`); enable `heading_ids` for unique DOM ids. Nothing is stored differently.
+- **Editor DOM ids** are always unique, with or without `heading_ids`: a repeated heading gets `nowo-h-<slug>-2` (it had
+  the invalid `nowo-h-<slug>-#2`), as in the PHP render. Nothing is stored differently.
 - `DialectRenderer::safeUrl()` keeps `mailto:` URLs without a `?` part (it dropped them).
 
-**Collaboration hosts:** before 1.18 every editor rewrote heading ids from the text after each change, on every peer.
-With `stable_heading_ids`, fold `CollabSchema::VERSION` (2) into your log epoch, so a page's next session starts a new
-log and tabs of an older editor get your `409 log_epoch` answer and reload. Older logs need no migration: their
+**Collaboration hosts (every host that keeps collaboration logs):** fold `CollabSchema::VERSION` (2) into your log
+epoch, whether or not a field uses `stable_heading_ids`, so a page's next session starts a new log and tabs of an older
+editor get your `409 log_epoch` answer and reload. Before 1.18 every editor rewrote heading ids from the text after each
+change, on every peer, and an old tab in a 1.18 session would overwrite ids (and the ids a re-seed computes). Older logs need no migration: their
 `nowo-h-<slug>` attributes are read as `<slug>`, invalid ones as no id.
 
 **With `stable_heading_ids`**, the editor writes `{#id}` when a heading's id differs from its slug: after a rename, and

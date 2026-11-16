@@ -14,6 +14,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 use function html_entity_decode;
+use function microtime;
 use function preg_match;
 use function str_repeat;
 use function strip_tags;
@@ -122,6 +123,16 @@ final class HeadingIdsTest extends TestCase
         self::assertStringContainsString('<h2 id="nowo-h-intro">Other</h2>', $html);
         self::assertStringContainsString('<h2 id="nowo-h-intro-3">Again</h2>', $html);
         self::assertStringContainsString('<h3 id="nowo-h-text-bad-id">Text {#bad id}</h3>', $html);
+    }
+
+    #[Test]
+    public function theSuffixPatternIsLinearOnLongSpaceRuns(): void
+    {
+        $renderer = new MilkdownMarkdownRenderer(['heading_ids' => true, 'max_input_length' => 1_000_000], new NullPageResolver(), new NullUserResolver(), new AllowlistIconResolver(), secret: 's');
+        $start    = microtime(true);
+        $html     = $renderer->render('# a' . str_repeat(' ', 100_000) . "b\n");
+        self::assertLessThan(2.0, microtime(true) - $start);
+        self::assertStringContainsString('<h1 id="nowo-h-a-b">', $html);
     }
 
     #[Test]

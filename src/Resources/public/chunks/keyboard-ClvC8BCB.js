@@ -3,7 +3,7 @@ import { d as r, m as i, u as a } from "./lib-DaU_YkmU.js";
 import { n as o, t as s } from "./dist-BmAqUYId.js";
 import { _ as c, f as l } from "./lib-CXGcDcIc.js";
 import { f as u } from "./dist-DPp-l4A4.js";
-import { a as d, i as f, n as p } from "./runtime-brj4ekaX.js";
+import { a as d, i as f, n as p } from "./runtime-HBK4S0fM.js";
 import { n as m, o as h, r as g, s as _ } from "./host-B9OpQQLe.js";
 import { i as v, n as y, r as b, t as x } from "./layer-ChVHXxrT.js";
 // src/Resources/assets/src/dialect/file-card.ts

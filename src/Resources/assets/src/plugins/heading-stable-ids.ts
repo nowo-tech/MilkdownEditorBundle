@@ -2,7 +2,7 @@
  * 1.18 `stable_heading_ids` (a lazy chunk): heading ids that stay when the text changes (contract §1 Q2).
  *
  * An id is frozen (written into the heading's `id` attribute) only by the peer that caused it, in a local transaction
- * (`addToHistory: false`):
+ * that joins the history step of the change that caused it (a blur or a caret move writes outside the history):
  *
  * - **On parse** (load, seed, Markdown paste): every heading gets its explicit or implicit id (`nodes/heading.ts`).
  * - **On leave**: when the local caret leaves a heading this peer edited and whose id is still empty (a new heading), or
@@ -183,7 +183,12 @@ export function createStableIdsPlugin(): Plugin<StableState> {
         const node = tr.doc.nodeAt(pos);
         if (node?.type.name === 'heading') tr.setNodeMarkup(pos, undefined, { ...node.attrs, id });
       }
-      return tr.setMeta(stableIdsKey, 'own').setMeta('addToHistory', false);
+      tr.setMeta(stableIdsKey, 'own');
+      // RV-M1: after a local document change the ids join its history step (y-prosemirror puts `addToHistory` on the
+      // whole Yjs transaction, so `false` would hide the person's own paste or Enter from undo). Only a blur or a
+      // selection-only move writes outside the history.
+      if (!trs.some((t) => t.docChanged && t.getMeta('addToHistory') !== false)) tr.setMeta('addToHistory', false);
+      return tr;
     },
     view: (view: EditorView) => {
       const blur = (event: FocusEvent): void => {

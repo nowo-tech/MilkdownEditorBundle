@@ -863,8 +863,9 @@ changes:
 - Co-editing: only the peer that made the change writes ids, in a local transaction that is not an undo step; a heading
   another peer is still typing is never given an id; ids from peers are validated whenever they are read. Two peers
   creating the same heading at once can leave a repeated id in the document: nobody rewrites it, and the DOM ids
-  (`heading_ids`) and the PHP render give the later one the next free `-N`. Fold `CollabSchema::VERSION` into your log
-  epoch (see UPGRADING) so tabs of an older editor reload.
+  (`heading_ids`) and the PHP render give the later one the next free `-N`. Every host with collaboration logs folds
+  `CollabSchema::VERSION` into its log epoch, with or without this feature (see UPGRADING), so tabs of an older editor
+  reload. The id writes join the undo step of the change that caused them (a blur or a caret move writes outside it).
 
 ```php
 $builder->add('body', MilkdownEditorType::class, ['features' => ['toolbar', 'heading_ids', 'stable_heading_ids']]);
@@ -937,6 +938,7 @@ $builder->add('body', MilkdownEditorType::class, [
   readable hit, give the same empty answer for "no match" and "not allowed", match titles only, take sections from the
   viewer's render, rate-limit per user and send `Cache-Control: private, no-store`. WikiBundle 1.40 implements both
   endpoints.
+- Collaboration: fold `CollabSchema::VERSION` into the log epoch unconditionally (see UPGRADING).
 - Without a candidates URL (or a cross-origin one) the picker offers external URLs only; without `link_sections` a page
   is linked without a section. Without the feature nothing changes: `[[` keeps the 1.0 suggestion list.
 

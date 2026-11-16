@@ -50,15 +50,16 @@ Target: 1.18.0 (minor). Stable heading ids and a link picker (contract "section 
   run by PHPUnit and Vitest.
 - **Feature `stable_heading_ids`** (opt-in): heading ids are frozen while editing (on parse, when the caret leaves a
   heading this peer edited or the editor loses the focus there, and unique again after a split, paste or drop: the
-  heading that existed before keeps its id). Only local transactions act; ids from peers are validated when read.
+  heading that existed before keeps its id). Only local transactions act, and the id writes join the undo step of the
+  change that caused them; ids from peers are validated when read. An empty heading writes no suffix.
 - **Feature `link_picker`** (opt-in): one picker for the link button (top bar and toolbar), `Mod-k`, `[[`, `/page link`
   and *Edit link…* (context menu): *Wiki page* (grouped search, then *Top of page* or a section) or *External URL*
   (`http`, `https`, `mailto`, checked as typed). Form options `link_sections` (URL template with `{id}`) and
   `link_schemes` (narrows the schemes). Emits `nowo-milkdown:link-picked`. Data from the host (USAGE "Link picker").
 - `Markdown\LinkUrl::check()` (PHP twin of the picker's URL check), `Markdown\HeadingAnchorLinks::decorate()` (a
   "link to this section" anchor on each heading of sanitised read-view HTML, no JavaScript needed),
-  `Resolver\SectionResolverInterface` (optional: `Title › Section` labels), `CollabSchema::VERSION` (2) for hosts that
-  fold it into their collaboration log epoch.
+  `Resolver\SectionResolverInterface` (optional: `Title › Section` labels), `CollabSchema::VERSION` (2), which every
+  host with collaboration logs folds into its log epoch.
 - Demo page `/links` with mock endpoints, translations of the new strings in the 7 locales.
 
 ### Changed
@@ -67,16 +68,17 @@ Target: 1.18.0 (minor). Stable heading ids and a link picker (contract "section 
   `#setup`, which matched no element), in the PHP render and the editor chip.
 - **Their label is `Title › Section text`** when a `SectionResolverInterface` gives the text, otherwise `Title` (it was
   `Title › <raw id>`). The editor chip shows the section text the picker showed, otherwise `Title › #id`.
-- **The anchor grammar is the heading id grammar:** Unicode anchors (`#año`) now parse; an anchor of the old grammar
-  that the slug never produces (`a--b`, a trailing `-`) or longer than 90 characters now stays text.
+- **The anchor grammar is the heading id grammar:** Unicode anchors (`#año`) now parse; an anchor the grammar refuses
+  (`a--b`, a trailing `-`, upper case, more than 90 characters) is dropped and the page link (or a hidden page's
+  placeholder) still renders.
 - **The `{#id}` suffix is read in every render**, with or without `markdown.heading_ids` (a heading ending with
   ` {#valid-id}` no longer shows it as text).
 - **Heading slugs** are taken from the NFC form of the text (PHP with `intl`), drop upper-case letters that have no
   lower case and a leading combining mark (ids that the grammar would refuse).
 - **The editor no longer runs Milkdown's `syncHeadingIdPlugin`**, which rewrote every heading id from its text after
   each change on every peer (remote changes included) and wrote `-#2` for repeats. A heading node keeps its own id;
-  the DOM id is `nowo-h-<id>` or `nowo-h-<slug>`, validated. Without `heading_ids`, repeated headings now share a DOM
-  id (they had `…-#2`, not a valid fragment); `heading_ids` keeps DOM ids unique.
+  the DOM id is `nowo-h-<id>` or `nowo-h-<slug>`, validated, and always unique (a repeated heading gets `-2`, it had
+  the invalid `-#2`), with or without `heading_ids`.
 - `DialectRenderer::safeUrl()` accepts `mailto:` URLs without a `?` header part.
 
 - Demo uses the UiKit base style and FormKit forms (REQ-DEMO-014/015).

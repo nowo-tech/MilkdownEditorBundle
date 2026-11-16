@@ -102,8 +102,11 @@ final class RendererTest extends TestCase
         // 1.18: the fragment is the heading's DOM id; without a section resolver the label is the title alone.
         yield 'page link' => ["See [[wiki:{$id}#setup]].", '<p>See <a class="nowo-md-ref" href="/wiki/install#nowo-h-setup">Install &lt;guide&gt;</a>.</p>'];
         yield 'page link, prefixed anchor' => ["[[wiki:{$id}#nowo-h-año]]", '<p><a class="nowo-md-ref" href="/wiki/install#nowo-h-año">Install &lt;guide&gt;</a></p>'];
-        yield 'page link, invalid anchor stays text' => ["[[wiki:{$id}#Setup]]", "<p>[[wiki:{$id}#Setup]]</p>"];
-        yield 'page link, anchor over 90 characters stays text' => ['[[wiki:' . $id . '#' . str_repeat('a', 91) . ']]', '<p>[[wiki:' . $id . '#' . str_repeat('a', 91) . ']]</p>'];
+        // RV-L2: an invalid anchor is dropped, the link (or a hidden page's placeholder) still renders.
+        yield 'page link, invalid anchor dropped' => ["[[wiki:{$id}#Setup]]", '<p><a class="nowo-md-ref" href="/wiki/install">Install &lt;guide&gt;</a></p>'];
+        yield 'page link, old-grammar anchor dropped' => ["[[wiki:{$id}#a--b]] [[wiki:{$id}#trailing-]]", '<p><a class="nowo-md-ref" href="/wiki/install">Install &lt;guide&gt;</a> <a class="nowo-md-ref" href="/wiki/install">Install &lt;guide&gt;</a></p>'];
+        yield 'page link, anchor over 90 characters dropped' => ['[[wiki:' . $id . '#' . str_repeat('a', 91) . ']]', '<p><a class="nowo-md-ref" href="/wiki/install">Install &lt;guide&gt;</a></p>'];
+        yield 'hidden page, old-grammar anchor: the placeholder' => ['[[wiki:' . self::HIDDEN . '#a--b]]', '<p><span class="nowo-md-ref nowo-md-ref--hidden">Content not visible</span></p>'];
         yield 'a paragraph keeps a trailing {#id}' => ['Text {#setup}', '<p>Text {#setup}</p>'];
         yield 'hidden page' => ['[[wiki:' . self::HIDDEN . ']]', '<p><span class="nowo-md-ref nowo-md-ref--hidden">Content not visible</span></p>'];
         yield 'mentions' => ['Hi @ada, (@grace) @nobody @evil mail ada@example.com', '<p>Hi <a class="nowo-md-mention" href="/users/ada" title="Ada Lovelace">@ada</a>, (<span class="nowo-md-mention" title="Grace">@grace</span>) @nobody <span class="nowo-md-mention" title="Evil">@evil</span> mail <a href="mailto:ada@example.com">ada@example.com</a></p>'];

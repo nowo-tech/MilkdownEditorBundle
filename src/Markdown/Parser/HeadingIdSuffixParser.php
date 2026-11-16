@@ -28,11 +28,11 @@ use function rtrim;
 final class HeadingIdSuffixParser implements InlineParserInterface
 {
     /**
-     * Spaces, then the suffix, at the end of the inline content.
+     * Spaces, then the suffix, at the end of the inline content (a match starts at the first space of a run: linear).
      */
     public function getMatchDefinition(): InlineParserMatch
     {
-        return InlineParserMatch::regex('[ \t]+\{#(' . HeadingIds::ANCHOR . ')\}$')->caseSensitive();
+        return InlineParserMatch::regex('(?<![ \t])[ \t]+\{#(' . HeadingIds::ANCHOR . ')\}$')->caseSensitive();
     }
 
     /**

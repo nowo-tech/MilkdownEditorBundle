@@ -266,6 +266,14 @@ describe('the link picker (M3)', () => {
     expect(handle.getMarkdown()).toBe('A\n');
     keydown(picker()!.querySelector<HTMLInputElement>('[role="combobox"]')!, 'Escape');
     expect(v.state.doc.textContent).toBe('A[[');
+    // RV-I5: closed after another change (a peer's), the brackets go back at the caret.
+    v.dispatch(v.state.tr.setSelection(TextSelection.atEnd(v.state.doc)).insertText('['));
+    const again = v.state.selection.from;
+    v.someProp('handleTextInput', (f) => f(v, again, again, '[', () => v.state.tr.insertText('[')));
+    await until(() => picker() !== null);
+    v.dispatch(v.state.tr.insertText('Z', 1));
+    keydown(picker()!.querySelector<HTMLInputElement>('[role="combobox"]')!, 'Escape');
+    expect(v.state.doc.textContent).toBe('ZA[[[[');
     // Not inside code.
     handle.setMarkdown('`[x`');
     const w = view(handle);

@@ -1,6 +1,6 @@
 import { at as e, ut as t } from "./lib-9QpRoHAM.js";
-import { a as n, l as r } from "./runtime-brj4ekaX.js";
-import { o as i } from "./heading-slug-rvzS8eP_.js";
+import { a as n, l as r } from "./runtime-HBK4S0fM.js";
+import { a as i } from "./heading-slug-CsUJpfFL.js";
 import { n as a } from "./link-titles-Cs1oogn7.js";
 import { i as o, n as s, r as c, t as l } from "./layer-ChVHXxrT.js";
 import { t as u } from "./link-url-Cna7131J.js";

@@ -23,9 +23,11 @@ export const linkTriggerPlugin = $prose(
           view.dispatch(view.state.tr.delete(from - 1, from));
           const doc = view.state.doc;
           runtime.openLinkPicker(view, { tab: 'page' }, () => {
-            // Back where they were typed, unless the document changed meanwhile.
-            if (view.isDestroyed || !view.state.doc.eq(doc)) return;
-            view.dispatch(view.state.tr.insertText('[[', from - 1));
+            if (view.isDestroyed) return;
+            // Back where they were typed; after a change meanwhile (a peer's), at the caret, which the change mapped (RV-I5).
+            const sel = view.state.selection;
+            if (view.state.doc.eq(doc)) view.dispatch(view.state.tr.insertText('[[', from - 1));
+            else if (sel.empty) view.dispatch(view.state.tr.insertText('[[', sel.from));
           });
           return true;
         },

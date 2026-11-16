@@ -17,7 +17,8 @@ use Nowo\MilkdownEditorBundle\Markdown\Node\WikiLink;
  * mentions (start of text, whitespace or `(` before `@`) and Tabler icon shortcodes.
  *
  * 1.18: the anchor of a page link follows the heading id grammar ({@see HeadingIds::ANCHOR}, Unicode, 1–90
- * characters); a leading `nowo-h-` is accepted and dropped. A token whose anchor is too long stays text.
+ * characters); a leading `nowo-h-` is accepted and dropped. An invalid anchor (the old grammar's `a--b`, upper case,
+ * too long) is dropped and the page link still renders (RV-L2).
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  */
@@ -33,7 +34,7 @@ final class DialectInlineParser implements InlineParserInterface
      */
     public function getMatchDefinition(): InlineParserMatch
     {
-        return InlineParserMatch::regex('\[\[wiki:(' . self::UUID . ')(?:#(?:' . HeadingIds::PREFIX . ')?(' . self::ANCHOR . '))?\]\]|@(' . self::HANDLE . ')|:tabler-(' . self::ICON . '):')
+        return InlineParserMatch::regex('\[\[wiki:(' . self::UUID . ')(?:#([^\]\s#]{1,200}))?\]\]|@(' . self::HANDLE . ')|:tabler-(' . self::ICON . '):')
             ->caseSensitive();
     }
 
@@ -47,11 +48,8 @@ final class DialectInlineParser implements InlineParserInterface
         $cursor = $inlineContext->getCursor();
         $m      = $inlineContext->getSubMatches();
         if (($m[0] ?? '') !== '') {
-            $anchor = (string) ($m[1] ?? '');
-            if ($anchor !== '' && !HeadingIds::isValid($anchor)) {
-                return false;
-            }
-            $node = new WikiLink((string) $m[0], $anchor);
+            // RV-L2: an invalid anchor is dropped; the page link (or its placeholder) still renders.
+            $node = new WikiLink((string) $m[0], HeadingIds::normalise((string) ($m[1] ?? '')));
         } elseif (($m[2] ?? '') !== '') {
             $previous = $cursor->peek(-1);
             if ($previous !== null && preg_match('/^[\s(]$/u', $previous) !== 1) {

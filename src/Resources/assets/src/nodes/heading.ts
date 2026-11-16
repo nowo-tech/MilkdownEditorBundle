@@ -36,6 +36,8 @@ export function suffixId(node: PmNode, stable: boolean): string {
   const raw: unknown = node.attrs.id;
   if (!stable && typeof raw === 'string' && raw.startsWith(HEADING_PREFIX)) return '';
   const id = normaliseId(raw);
+  // RV-L1: an empty heading writes no suffix (`# {#x}` would read back as text).
+  if (node.textContent.trim() === '') return '';
   return id !== '' && id !== slug(node.textContent) ? id : '';
 }
 

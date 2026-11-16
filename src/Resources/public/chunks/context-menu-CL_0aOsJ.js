@@ -1,14 +1,14 @@
 import { u as e } from "./lib-DaU_YkmU.js";
 import { at as t, ot as n, st as r, ut as i } from "./lib-9QpRoHAM.js";
 import { a, c as o, i as s, l as c, o as l, r as u, u as d } from "./dist-DPp-l4A4.js";
-import { a as f, i as p } from "./runtime-brj4ekaX.js";
+import { a as f, i as p } from "./runtime-HBK4S0fM.js";
 import { t as m } from "./menu-Dm_n0-h8.js";
-import { a as h, c as g, colorItems as _, i as v, n as y, o as b, r as x, s as S, t as C } from "./colors-BZS_ighP.js";
-import { r as w, s as T, t as E } from "./keyboard-Df1q82rs.js";
-import { t as D } from "./file-view-Gycywi7l.js";
+import { a as h, c as g, colorItems as _, i as v, n as y, o as b, r as x, s as S, t as C } from "./colors-DKOKQK4O.js";
+import { r as w, s as T, t as E } from "./keyboard-ClvC8BCB.js";
+import { t as D } from "./file-view-DgTmhAXq.js";
 import { s as O } from "./host-B9OpQQLe.js";
 import { i as k, n as A, t as j } from "./context-menu-registry-Dw2l9wcD.js";
-import { copyMarkdown as M, markdownIo as N, pasteMarkdown as P } from "./markdown-clipboard-Czd1U6QH.js";
+import { copyMarkdown as M, markdownIo as N, pasteMarkdown as P } from "./markdown-clipboard-BCfpblCg.js";
 // src/Resources/assets/src/plugins/context-menu.ts
 var F = new r("nowo-milkdown-context-menu"), I = () => typeof navigator < "u" && navigator.clipboard ? navigator.clipboard : {};
 function L(e, t, n) {

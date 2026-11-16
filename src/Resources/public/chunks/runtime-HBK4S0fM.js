@@ -1,7 +1,7 @@
 import { n as e } from "./lib-DaU_YkmU.js";
-import { a as t, n, o as r, t as i } from "./heading-slug-rvzS8eP_.js";
+import { a as t } from "./heading-slug-CsUJpfFL.js";
 // src/Resources/assets/src/i18n.ts
-var a = {
+var n = {
 	"editor.label": "Content",
 	"editor.placeholder": "Write, or type / for blocks, [[ to link a page, @ to mention, : for icons",
 	"editor.button": "Editor action",
@@ -243,31 +243,27 @@ var a = {
 	"topbar.hr": "Divider",
 	"topbar.more": "More tools"
 };
-function o(e, t, n = {}) {
-	return (e[t] ?? a[t] ?? t).replace(/\{(\w+)\}/g, (e, t) => t in n ? String(n[t]) : e);
+function r(e, t, r = {}) {
+	return (e[t] ?? n[t] ?? t).replace(/\{(\w+)\}/g, (e, t) => t in r ? String(r[t]) : e);
 }
 // src/Resources/assets/src/dialect/patterns.ts
-var s = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", c = n, l = "[a-zA-Z0-9_](?:[a-zA-Z0-9_.-]{0,38}[a-zA-Z0-9_])?", u = "[a-z0-9]+(?:-[a-z0-9]+)*", d = RegExp(`\\[\\[wiki:(${s})(?:#(?:${i})?(${c}))?\\]\\]|(^|[\\s(])@(${l})|:tabler-(${u}):`, "gu"), f = RegExp(`^${s}$`), p = RegExp(`^${l}$`), m = RegExp(`^${u}$`), h = (e) => f.test(e), g = r, _ = (e) => p.test(e), v = (e) => m.test(e);
-function y(e) {
+var i = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", a = "[a-zA-Z0-9_](?:[a-zA-Z0-9_.-]{0,38}[a-zA-Z0-9_])?", o = "[a-z0-9]+(?:-[a-z0-9]+)*", s = RegExp(`\\[\\[wiki:(${i})(?:#([^\\]\\s#]{1,200}))?\\]\\]|(^|[\\s(])@(${a})|:tabler-(${o}):`, "gu"), c = RegExp(`^${i}$`), l = RegExp(`^${a}$`), u = RegExp(`^${o}$`), d = (e) => c.test(e), f = t, p = (e) => l.test(e), m = (e) => u.test(e);
+function h(e) {
 	let n = [], r = 0;
-	d.lastIndex = 0;
-	for (let i = d.exec(e); i; i = d.exec(e)) {
+	s.lastIndex = 0;
+	for (let i = s.exec(e); i; i = s.exec(e)) {
 		let a = i.index, o;
-		if (i[1]) {
-			if (i[2] !== void 0 && !t(i[2])) continue;
-			o = {
-				type: "wikiRef",
-				pageId: i[1],
-				anchor: i[2] ?? ""
-			};
-		} else i[4] ? (a += i[3].length, o = {
+		i[1] ? o = {
+			type: "wikiRef",
+			pageId: i[1],
+			anchor: t(i[2] ?? "")
+		} : i[4] ? (a += i[3].length, o = {
 			type: "mention",
 			handle: i[4]
 		}) : o = {
 			type: "tablerIcon",
 			name: i[5]
-		};
-		a > r && n.push({
+		}, a > r && n.push({
 			type: "text",
 			value: e.slice(r, a)
 		}), n.push(o), r = i.index + i[0].length;
@@ -277,15 +273,15 @@ function y(e) {
 		value: e.slice(r)
 	}), n;
 }
-var b = {
+var g = {
 	wikiRef: (e) => {
-		let t = r(e.anchor ?? "");
-		return `[[wiki:${e.pageId}${t ? `#${t}` : ""}]]`;
+		let n = t(e.anchor ?? "");
+		return `[[wiki:${e.pageId}${n ? `#${n}` : ""}]]`;
 	},
 	mention: (e) => `@${e.handle}`,
 	tablerIcon: (e) => `:tabler-${e.name}:`
-}, x = () => ({
-	messages: a,
+}, _ = () => ({
+	messages: n,
 	spriteUrl: null,
 	icons: /* @__PURE__ */ new Set(),
 	catalogUrl: null,
@@ -311,11 +307,11 @@ var b = {
 	maxPreviews: 500,
 	previewFiles: /* @__PURE__ */ new Set(),
 	topBar: null,
-	...S(),
+	...v(),
 	openLinkPicker: null,
 	linkPickerPages: !1
 });
-function S() {
+function v() {
 	let e = /* @__PURE__ */ new Map();
 	return {
 		sectionText: (t, n) => e.get(`${t}#${n}`),
@@ -324,17 +320,17 @@ function S() {
 		}
 	};
 }
-var C = e(x(), "nowoMilkdownRuntime"), w = (e, t, n = {}) => o(e.messages, t, n), T = (e) => `tabler-${e.charAt(0)}.svg`;
-function E(e, t) {
-	return e.spriteUrl && e.icons.has(t) ? `${e.spriteUrl}#tabler-${t}` : e.catalogUrl && v(t) ? `${e.catalogUrl}${T(t)}#tabler-${t}` : null;
+var y = e(_(), "nowoMilkdownRuntime"), b = (e, t, n = {}) => r(e.messages, t, n), x = (e) => `tabler-${e.charAt(0)}.svg`;
+function S(e, t) {
+	return e.spriteUrl && e.icons.has(t) ? `${e.spriteUrl}#tabler-${t}` : e.catalogUrl && m(t) ? `${e.catalogUrl}${x(t)}#tabler-${t}` : null;
 }
-var D = (e) => e.icons.size > 0 || e.catalogUrl !== null;
-function O(e, t) {
-	let n = E(e, t);
+var C = (e) => e.icons.size > 0 || e.catalogUrl !== null;
+function w(e, t) {
+	let n = S(e, t);
 	if (!n) return null;
 	let r = "http://www.w3.org/2000/svg", i = document.createElementNS(r, "svg");
 	i.setAttribute("class", "nowo-milkdown-icon"), i.setAttribute("aria-hidden", "true"), i.setAttribute("focusable", "false");
 	let a = document.createElementNS(r, "use");
 	return a.setAttribute("href", n), i.append(a), i;
 }
-export { w as a, v as c, b as d, y as f, C as i, h as l, O as n, u as o, D as r, _ as s, x as t, g as u };
+export { b as a, m as c, g as d, h as f, y as i, d as l, w as n, o, C as r, p as s, _ as t, f as u };

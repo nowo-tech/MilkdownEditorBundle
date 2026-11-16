@@ -18,8 +18,8 @@ export const HEADING_ID_NODE = 'nowoHeadingId';
 /** mdast node type of an escaped literal suffix at the end of heading text (` \{#x}`). */
 export const HEADING_ID_LITERAL_NODE = 'nowoHeadingIdLiteral';
 
-/** A suffix at the end of a text value. */
-export const SUFFIX = new RegExp(`[ \\t]+\\{#(${ID_PATTERN})\\}$`, 'u');
+/** A suffix at the end of a text value (RV-I1: a match starts only at the first space of a run, so it is linear). */
+export const SUFFIX = new RegExp(`(?<![ \\t])[ \\t]+\\{#(${ID_PATTERN})\\}$`, 'u');
 
 type Position = { start?: { offset?: number }; end?: { offset?: number } };
 

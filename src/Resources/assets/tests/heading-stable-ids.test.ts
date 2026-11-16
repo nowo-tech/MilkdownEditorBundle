@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import * as Y from 'yjs';
-import { prosemirrorToYXmlFragment, ySyncPlugin } from 'y-prosemirror';
+import { prosemirrorToYXmlFragment, undo, yUndoPlugin, yUndoPluginKey, ySyncPlugin } from 'y-prosemirror';
 import { editorViewCtx, parserCtx, schemaCtx, serializerCtx } from '@milkdown/kit/core';
 import { AllSelection, EditorState, Plugin, TextSelection } from '@milkdown/kit/prose/state';
 import { EditorView } from '@milkdown/kit/prose/view';
@@ -15,7 +15,7 @@ import { isHeadingId, normaliseId, resolveIds, slug } from '../src/plugins/headi
 import { headingIds } from '../src/plugins/heading-ids';
 import { createStableIdsPlugin, stableIdsKey, BLUR } from '../src/plugins/heading-stable-ids';
 import { remarkNowoDialect, type MdNode } from '../src/dialect/remark-dialect';
-import { mdText } from '../src/dialect/heading-id';
+import { SUFFIX, mdText } from '../src/dialect/heading-id';
 import { selectionMarkdown, markdownIo } from '../src/commands/markdown-clipboard';
 
 type Vectors = {
@@ -120,6 +120,22 @@ describe('the {#id} suffix in the editor (M1)', () => {
     // Without stable ids a nowo-h- attribute is an older editor's generated id, never written.
     expect(handle.getMarkdown()).toBe('# Title\n');
     expect(v.dom.querySelector('h1')!.id).toBe('nowo-h-intro');
+  });
+
+  it('the suffix pattern is linear on long space runs (RV-I1)', () => {
+    const start = performance.now();
+    expect(SUFFIX.exec(`a${' '.repeat(100_000)}b`)).toBeNull();
+    expect(SUFFIX.exec(`a${' '.repeat(100_000)}{#x}`)?.[1]).toBe('x');
+    expect(performance.now() - start).toBeLessThan(500);
+  });
+
+  it('an emptied heading writes no suffix (RV-L1)', async () => {
+    handle = await editor('# Set up {#setup}\n\nText\n', { features: ['stable_heading_ids'] });
+    const v = view(handle);
+    v.dispatch(v.state.tr.delete(1, 1 + 'Set up'.length));
+    expect(headingsOf(v.state.doc)).toEqual([{ text: '', id: 'setup' }]);
+    expect(handle.getMarkdown()).not.toContain('{#');
+    expect(handle.getMarkdown()).not.toContain('&#x20;');
   });
 
   it('copy as Markdown keeps the suffix (same serialiser)', async () => {
@@ -275,7 +291,7 @@ const oldTab = (): Plugin =>
   });
 
 describe('stable ids with two Yjs peers (M2)', () => {
-  async function setup(markdown: string) {
+  async function setup(markdown: string, extraA: Plugin[] = []) {
     handle = await editor('', { features: ['stable_heading_ids'] });
     const io = handle.builder.editor.action((ctx) => ({ schema: ctx.get(schemaCtx), parse: ctx.get(parserCtx), serialize: ctx.get(serializerCtx) }));
     const a = new Y.Doc();
@@ -283,7 +299,7 @@ describe('stable ids with two Yjs peers (M2)', () => {
     prosemirrorToYXmlFragment(io.parse(markdown), a.getXmlFragment('prosemirror'));
     Y.applyUpdate(b, Y.encodeStateAsUpdate(a));
     const relay = link(a, b);
-    const peerA = peer(io.schema, a, [createStableIdsPlugin()]);
+    const peerA = peer(io.schema, a, [createStableIdsPlugin(), ...extraA]);
     const peerB = peer(io.schema, b, [createStableIdsPlugin()]);
     await tick();
     return { io, a, b, relay, peerA, peerB };
@@ -386,6 +402,42 @@ describe('stable ids with two Yjs peers (M2)', () => {
     // Epoch change: the next session re-seeds from Markdown; the ids come back the same.
     expect(headingsOf(io.parse(markdown)).map((h) => h.id)).toEqual(['intro', 'intro-2', 'evil']);
     expect(io.serialize(io.parse(markdown))).toBe('# Introduction {#intro}\n\n# Intro {#intro-2}\n\n# Evil\n');
+  });
+
+  it('undo: a pasted heading is its own undo step (RV-M1)', async () => {
+    const { peerA, peerB, io } = await setup('Body\n', [yUndoPlugin()]);
+    const um = yUndoPluginKey.getState(peerA.state)!.undoManager;
+    peerA.dispatch(peerA.state.tr.insertText('X', 1));
+    um.stopCapturing();
+    const pasted = io.schema.nodes.heading!.create({ level: 2 }, io.schema.text('Pasted'));
+    peerA.dispatch(peerA.state.tr.insert(peerA.state.doc.content.size, pasted));
+    expect(headingsOf(peerA.state.doc)).toEqual([{ text: 'Pasted', id: 'pasted' }]);
+    um.stopCapturing();
+    undo(peerA.state);
+    await tick();
+    expect(peerA.state.doc.textContent).toBe('XBody');
+    expect(peerB.state.doc.textContent).toBe('XBody');
+  });
+
+  it('undo: the Enter that leaves a new heading is its own undo step (RV-M1)', async () => {
+    const { peerA, io } = await setup('Body\n', [yUndoPlugin()]);
+    const um = yUndoPluginKey.getState(peerA.state)!.undoManager;
+    const end = peerA.state.doc.content.size;
+    peerA.dispatch(peerA.state.tr.insert(end, io.schema.nodes.heading!.create({ level: 2 })));
+    peerA.dispatch(peerA.state.tr.setSelection(TextSelection.create(peerA.state.doc, end + 1)));
+    peerA.dispatch(peerA.state.tr.insertText('Title'));
+    um.stopCapturing();
+    const blocks = peerA.state.doc.childCount;
+    const at = peerA.state.selection.from;
+    const enter = peerA.state.tr.split(at, 1, [{ type: io.schema.nodes.paragraph! }]);
+    peerA.dispatch(enter.setSelection(TextSelection.create(enter.doc, at + 2)));
+    expect(peerA.state.doc.childCount).toBe(blocks + 1);
+    expect(headingsOf(peerA.state.doc)).toEqual([{ text: 'Title', id: 'title' }]);
+    um.stopCapturing();
+    undo(peerA.state);
+    await tick();
+    expect(peerA.state.doc.childCount).toBe(blocks);
+    expect(headingsOf(peerA.state.doc).map((h) => h.text)).toEqual(['Title']);
   });
 
   it('acts on local transactions only', () => {

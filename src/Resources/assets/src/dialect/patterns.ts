@@ -8,16 +8,18 @@
  * The PHP renderer (`Nowo\MilkdownEditorBundle\Markdown`) uses the same expressions.
  *
  * 1.18: the anchor is a heading id (Unicode, 1–90 characters, `HeadingIds::ANCHOR` in PHP); a leading `nowo-h-` is
- * accepted and dropped. A token whose anchor is too long stays text.
+ * accepted and dropped. RV-L2: an invalid anchor (the old grammar's `a--b`, upper case, too long) is dropped, the page
+ * link itself still parses (so a hidden page still shows its placeholder).
  */
-import { HEADING_PREFIX, ID_PATTERN, isHeadingId, normaliseId } from '../plugins/heading-slug';
+import { ID_PATTERN, isHeadingId, normaliseId } from '../plugins/heading-slug';
 
 export const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 export const ANCHOR = ID_PATTERN;
 export const HANDLE = '[a-zA-Z0-9_](?:[a-zA-Z0-9_.-]{0,38}[a-zA-Z0-9_])?';
 export const ICON = '[a-z0-9]+(?:-[a-z0-9]+)*';
 
-const TOKEN = new RegExp(`\\[\\[wiki:(${UUID})(?:#(?:${HEADING_PREFIX})?(${ANCHOR}))?\\]\\]|(^|[\\s(])@(${HANDLE})|:tabler-(${ICON}):`, 'gu');
+/** RV-L2: any anchor text up to `]]` is read; an invalid one is dropped and the page link stays a link. */
+const TOKEN = new RegExp(`\\[\\[wiki:(${UUID})(?:#([^\\]\\s#]{1,200}))?\\]\\]|(^|[\\s(])@(${HANDLE})|:tabler-(${ICON}):`, 'gu');
 const UUID_ONLY = new RegExp(`^${UUID}$`);
 const HANDLE_ONLY = new RegExp(`^${HANDLE}$`);
 const ICON_ONLY = new RegExp(`^${ICON}$`);
@@ -49,9 +51,7 @@ export function splitText(value: string): InlineToken[] {
     let start = m.index;
     let node: InlineToken;
     if (m[1]) {
-      // An anchor over the length limit: the whole token stays text.
-      if (m[2] !== undefined && !isHeadingId(m[2])) continue;
-      node = { type: 'wikiRef', pageId: m[1], anchor: m[2] ?? '' };
+      node = { type: 'wikiRef', pageId: m[1], anchor: normaliseId(m[2] ?? '') };
     } else if (m[4]) {
       start += m[3]!.length; // the whitespace or bracket before @ stays text
       node = { type: 'mention', handle: m[4] };

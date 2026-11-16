@@ -1,6 +1,6 @@
 import { M as e, j as t, ot as n, st as r } from "./lib-9QpRoHAM.js";
 import { u as i } from "./lib-DaU_YkmU.js";
-import { o as a, s as o, t as s } from "./heading-slug-rvzS8eP_.js";
+import { a, o, t as s } from "./heading-slug-CsUJpfFL.js";
 // src/Resources/assets/src/plugins/heading-ids.ts
 function c(e) {
 	let t = [];

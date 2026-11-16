@@ -31,7 +31,12 @@ describe('splitText', () => {
   });
 
   it('ignores malformed ids, anchors and markup', () => {
-    expect(splitText(`[[wiki:not-a-uuid]] [[wiki:${ID}#<x>]] [[wiki:${ID.toUpperCase()}]]`).every((n) => n.type === 'text')).toBe(true);
+    expect(splitText(`[[wiki:not-a-uuid]] [[wiki:${ID.toUpperCase()}]] [[wiki:${ID}#a b]]`).every((n) => n.type === 'text')).toBe(true);
+    // RV-L2 (1.18): an invalid anchor is dropped, the page link stays a link (PHP does the same).
+    for (const bad of ['<x>', 'a--b', 'trailing-', 'Upper', 'a'.repeat(91)]) {
+      expect(splitText(`[[wiki:${ID}#${bad}]]`)).toEqual([{ type: 'wikiRef', pageId: ID, anchor: '' }]);
+    }
+    expect(splitText(`[[wiki:${ID}#nowo-h-año]]`)).toEqual([{ type: 'wikiRef', pageId: ID, anchor: 'año' }]);
   });
 
   it('mentions need a boundary (never inside an e-mail address)', () => {
