@@ -38,6 +38,8 @@ All notable changes to this project are documented in this file. The format foll
 
 - Demo uses the UiKit base style and FormKit forms (REQ-DEMO-014/015).
 - docs: demo screenshots regenerated on the UiKit base style
+- Spec Kit inventory refreshed to 145/145 production units with new FRs in the baseline spec (comments, version view, diff, heading ids, task items, insert button, worker reset); README TypeScript coverage corrected to 93.00%.
+- Demo (`layers`, `comments`): remaining form fields are rendered by a child loop before `form_end(form)` (REQ-TWIG-003).
 
 ## [1.17.0] - 2026-11-12
 

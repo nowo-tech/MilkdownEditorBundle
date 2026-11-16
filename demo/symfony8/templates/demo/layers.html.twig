@@ -30,6 +30,7 @@
             {{ form_row(form.dialog) }}
             <button type="button" class="nowo-ui-btn nowo-ui-btn--outline" data-demo-close-dialog>{{ 'demo.layers.close_dialog'|trans }}</button>
         </dialog>
-    {{ form_end(form, {render_rest: false}) }}
+    {% for child in form %}{% if not child.rendered %}{{ form_row(child) }}{% endif %}{% endfor %}
+    {{ form_end(form) }}
     <script src="{{ asset('demo-layers.js') }}" defer></script>
 {% endblock %}
