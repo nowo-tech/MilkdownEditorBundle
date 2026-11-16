@@ -4,6 +4,7 @@
 
 - [General procedure](#general-procedure)
 - [Unreleased](#unreleased)
+- [To 1.18.0](#to-1180)
 - [To 1.17.0](#to-1170)
 - [To 1.16.1](#to-1161)
 - [To 1.16.0](#to-1160)
@@ -43,6 +44,14 @@ names, the form theme block, the `--nowo-milkdown-*` tokens, the Markdown dialec
 interfaces and `window.NowoMilkdownEditor`.
 
 ## Unreleased
+
+## To 1.18.0
+
+From **1.17.0**:
+
+```bash
+composer update nowo-tech/milkdown-editor-bundle
+```
 
 Target **1.18.0**, from **1.17.0**:
 

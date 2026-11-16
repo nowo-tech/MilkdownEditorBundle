@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format foll
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.18.0] - 2026-11-17](#1180---2026-11-17)
 - [[1.17.0] - 2026-11-12](#1170---2026-11-12)
 - [[1.16.1] - 2026-11-11](#1161---2026-11-11)
 - [[1.16.0] - 2026-11-10](#1160---2026-11-10)
@@ -34,8 +35,10 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+## [1.18.0] - 2026-11-17
+
 Target: 1.18.0 (minor). Stable heading ids and a link picker (contract "section anchors and link picker", WikiBundle
-1.40 builds the host side). See [UPGRADING](UPGRADING.md#unreleased).
+1.40 builds the host side). See [UPGRADING](UPGRADING.md#to-1180).
 
 ### Added
 
