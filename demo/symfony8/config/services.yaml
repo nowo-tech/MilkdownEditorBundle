@@ -15,3 +15,4 @@ services:
 
     Nowo\MilkdownEditorBundle\Markdown\Resolver\PageResolverInterface: '@App\Demo\DemoDirectory'
     Nowo\MilkdownEditorBundle\Markdown\Resolver\UserResolverInterface: '@App\Demo\DemoDirectory'
+    Nowo\MilkdownEditorBundle\Markdown\Resolver\SectionResolverInterface: '@App\Demo\DemoSections'

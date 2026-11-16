@@ -51,6 +51,9 @@ This bundle is **FrankenPHP worker mode friendly**. See [docs/FRANKENPHP-WORKER-
   caret; callout icons (`:::callout{icon="bulb"}` or an emoji).
 - **Per-viewer page titles** — chips resolve titles in one batched request; pages the viewer may not read show
   *Content not visible* (editor and renderer alike).
+- **Section links and a link picker** (1.18, opt-in `stable_heading_ids`, `link_picker`) — stable heading ids kept as
+  `## Title {#id}` while co-editing; one picker (link button, Ctrl+K, `[[`) for a wiki page and a section, or an
+  external URL with scheme checks; `[[wiki:<uuid>#<id>]]` links point at the heading and read `Title › Section`.
 - **Uploads** — drop, paste or *Insert file*: multipart POST with the CSRF token in a header, progress and errors in a
   live region, size and type checks before sending.
 - **Accessibility** — every control named, real `ul > li` lists and task checkboxes, contrast-safe tokens and code

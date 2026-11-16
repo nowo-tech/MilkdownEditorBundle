@@ -37,6 +37,44 @@ final class DemoControllerTest extends WebTestCase
     }
 
     #[Test]
+    public function theLinksPageHasThePickerAndSectionAnchorsWithoutJavaScript(): void
+    {
+        $client  = self::createClient();
+        $crawler = $client->request('GET', '/links');
+        self::assertResponseIsSuccessful();
+        $options = json_decode((string) $crawler->filter('[data-nowo-milkdown-options]')->attr('data-nowo-milkdown-options'), true);
+        self::assertContains('link_picker', $options['features']);
+        self::assertContains('stable_heading_ids', $options['features']);
+        self::assertSame('/api/link-candidates/{id}/sections', $options['linkSections']);
+        self::assertSame(['http', 'https', 'mailto'], $options['linkSchemes']);
+        // The read view: a fragment link per heading (no JavaScript needed), and a page link to a section by its text.
+        $preview = $crawler->filter('[data-preview]');
+        self::assertSame('#nowo-h-overview', $preview->filter('h2#nowo-h-overview a.nowo-md-heading-anchor')->attr('href'));
+        self::assertCount(1, $preview->filter('h2#nowo-h-año a.nowo-md-heading-anchor'));
+        $ref = $preview->filter('a.nowo-md-ref');
+        self::assertSame('/pages/5d2c8a1e-7f0b-4a5e-b6c9-2e4d1f0a9b33#nowo-h-setup', $ref->attr('href'));
+        self::assertSame('Installation guide › Set up', $ref->text());
+    }
+
+    #[Test]
+    public function theLinkPickerEndpointsAnswerJson(): void
+    {
+        $client = self::createClient();
+        $client->request('GET', '/api/link-candidates?q=');
+        $data = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertSame([], $data['others']);
+        self::assertNotContains('Secret roadmap', array_column($data['here'], 'label'));
+        $client->request('GET', '/api/link-candidates?q=run');
+        $data = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertSame('Handbook', $data['others'][0]['wiki']);
+        self::assertSame('Incident runbook', $data['others'][0]['pages'][0]['label']);
+        $client->request('GET', '/api/link-candidates/5d2c8a1e-7f0b-4a5e-b6c9-2e4d1f0a9b33/sections');
+        self::assertSame('setup', json_decode((string) $client->getResponse()->getContent(), true)['sections'][1]['id']);
+        $client->request('GET', '/api/link-candidates/c0ffee00-1234-4abc-8def-001122334455/sections');
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    #[Test]
     public function theLayersPageHasThreeEditorsWithoutActionBarButtons(): void
     {
         $client  = self::createClient();

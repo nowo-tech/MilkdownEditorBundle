@@ -25,6 +25,9 @@
 - [Comments](#comments)
 - [Version view and diff](#version-view-and-diff)
 - [Heading ids](#heading-ids)
+  - [Explicit and stable ids (1.18)](#explicit-and-stable-ids-118)
+  - [Section links in the read view (1.18)](#section-links-in-the-read-view-118)
+- [Link picker (1.18)](#link-picker-118)
 - [Keyboard and accessibility](#keyboard-and-accessibility)
 - [Forms in Twig](#forms-in-twig)
 - [Overriding templates](#overriding-templates)
@@ -829,6 +832,113 @@ text in the diff, and heading ids are only unique per block.
 global. Only text and inline code count (mentions, page links, icons and raw HTML do not). Since 1.6 the editor
 prefixes its heading ids even without the feature (Milkdown's default was the bare text; repeats then get `-#2`).
 Ids are unique per document: two editors on one page, or both sides of a diff, can repeat an id.
+
+### Explicit and stable ids (1.18)
+
+A heading can carry its own id, the Pandoc / kramdown suffix:
+
+```markdown
+## Install guide {#setup}
+## Año nuevo {#año}
+## A literal \{#suffix} stays text
+```
+
+- Only spaces + `{#` + an id + `}` at the very end of an ATX or setext heading counts; nothing else (no class, no
+  `key=value`). An id is lower-case Unicode letters, marks and digits joined by single `-`, 1–90 characters (the same
+  grammar as `[[wiki:<uuid>#<id>]]`). A `nowo-h-` prefix is dropped.
+- Ids per document: valid explicit ids are reserved first (the first occurrence wins), then every other heading takes
+  its slug or the lowest free `-N` (`intro`, `intro-2`). At most 1000 headings get an id. PHP (`HeadingIds::resolve()`)
+  and the editor (`resolveIds()`) give the same ids (shared vectors in `tests/Fixtures/heading-ids.json`).
+- The suffix is written back only when the id differs from the slug (a renamed or repeated heading), so ordinary
+  headings stay plain Markdown. Pandoc and MkDocs read the suffix too.
+
+The editor always reads and writes the suffix. With the **`stable_heading_ids`** feature it also keeps ids when the text
+changes:
+
+- On load (and Markdown paste) every heading gets its explicit or implicit id.
+- A new heading gets its slug, made unique, when the caret leaves it (or the editor loses the focus there): the id comes
+  from the finished text. Renaming it later keeps the id and writes `{#old-id}`.
+- After a split, paste or drop, a heading the change touched and whose id repeats another one gets a fresh id; the
+  heading that existed before keeps its id (on a split, the left part).
+- Co-editing: only the peer that made the change writes ids, in a local transaction that is not an undo step; a heading
+  another peer is still typing is never given an id; ids from peers are validated whenever they are read. Two peers
+  creating the same heading at once can leave a repeated id in the document: nobody rewrites it, and the DOM ids
+  (`heading_ids`) and the PHP render give the later one the next free `-N`. Fold `CollabSchema::VERSION` into your log
+  epoch (see UPGRADING) so tabs of an older editor reload.
+
+```php
+$builder->add('body', MilkdownEditorType::class, ['features' => ['toolbar', 'heading_ids', 'stable_heading_ids']]);
+```
+
+### Section links in the read view (1.18)
+
+`[[wiki:<uuid>#setup]]` links to the heading `nowo-h-setup` of that page. Its label is `Title › Section text` when you
+alias the optional `Nowo\MilkdownEditorBundle\Markdown\Resolver\SectionResolverInterface`; otherwise the page title.
+The renderer asks it once per document, only about pages your `PageResolverInterface` resolved for this viewer (a hidden
+page shows *Content not visible*, never an anchor or a section):
+
+```php
+final readonly class WikiSections implements SectionResolverInterface
+{
+    /** @param array<string, list<string>> $anchors page id => bare ids */
+    public function sectionTitles(array $anchors): array
+    {
+        return $this->outline->texts($anchors); // [pageId => [id => 'Section text']]; leave out what is not readable
+    }
+}
+```
+
+A "link to this section" anchor on every heading of your read view, after your sanitizer (no JavaScript needed; with
+UiKit, `data-nowo-ui-clipboard-text` copies the absolute URL):
+
+```php
+$html = HeadingAnchorLinks::decorate($sanitizer->sanitize($html), $translator->trans('heading.anchor_link', [], 'NowoMilkdownEditorBundle'), $pageUrl);
+```
+
+A section that no longer exists leaves the browser at the top of the page (no element has that id). In a DDD host,
+implement `SectionResolverInterface` as an infrastructure adapter over your read side, like the page resolver.
+
+## Link picker (1.18)
+
+The **`link_picker`** feature opens one picker from the link button (top bar and toolbar), `Ctrl+K` / `⌘K`, typing
+`[[`, the `/` *Page link* item and *Edit link…* in the context menu:
+
+- **Wiki page:** search, the current wiki first and other wikis grouped under their name; then *Top of page* or a
+  section. The result is `[[wiki:<uuid>]]` or `[[wiki:<uuid>#<id>]]`.
+- **External URL:** `http`, `https` and `mailto` (narrow them with `link_schemes`); a bare host becomes `https://`.
+  Refused: other schemes, `//host`, user info, controls and bidi characters, `mailto:` with `?`, more than 2048 bytes.
+  The preview shows the host (punycode for an internationalised name). `LinkUrl::check()` runs the same rules in PHP.
+- A selected page link, or the caret in a link, opens the picker with its values. Closing the `[[` picker without a pick
+  types the brackets back. After a pick the widget emits `nowo-milkdown:link-picked`
+  (`{kind: 'page', pageId, anchor}` or `{kind: 'url', href}`).
+
+```php
+$builder->add('body', MilkdownEditorType::class, [
+    'features'       => ['toolbar', 'top_bar', 'link_tooltip', 'heading_ids', 'stable_heading_ids', 'link_picker'],
+    'suggestions'    => ['[[' => '/tools/wiki/spaces/docs/link-candidates'],     // same origin
+    'link_sections'  => '/tools/wiki/spaces/docs/link-candidates/{id}/sections', // same origin, with {id}
+    'link_schemes'   => ['https', 'mailto'],                                     // optional, narrows the default
+    'link_title_url' => '/tools/wiki/page-titles',
+]);
+```
+
+**Host contract** (both GET, JSON, same origin, session cookie; the editor sends `Accept: application/json`):
+
+| Endpoint | Answer |
+|---|---|
+| `suggestions['[[']` + `?q=<query>` | `{"here":[{"id":"<uuid>","label":"Title","url":"/p/…"}],"others":[{"wiki":"<name>","pages":[{"id":…,"label":…,"url":…}]}]}` |
+| `link_sections` with `{id}` = a page UUID | `{"sections":[{"id":"setup","level":2,"text":"Set up"}]}`, or 404 |
+
+- `q` is at most 100 characters, without control or bidi characters; an empty `q` asks for recent or top pages.
+- The editor keeps at most 10 `here` pages, 5 other wikis with 3 pages each (10 in all), 200 sections; invalid UUIDs,
+  invalid ids, levels outside 1–6 and empty texts are dropped; labels are rendered as text; `url` goes through the same
+  `safeUrl()` as the page titles. A plain array of `{id, label, url}` (the 1.0 `[[` answer) is read as `here`.
+- The host decides what the viewer may see: answer only readable pages (and ancestors), name a wiki only when it has a
+  readable hit, give the same empty answer for "no match" and "not allowed", match titles only, take sections from the
+  viewer's render, rate-limit per user and send `Cache-Control: private, no-store`. WikiBundle 1.40 implements both
+  endpoints.
+- Without a candidates URL (or a cross-origin one) the picker offers external URLs only; without `link_sections` a page
+  is linked without a section. Without the feature nothing changes: `[[` keeps the 1.0 suggestion list.
 
 ## Keyboard and accessibility
 
