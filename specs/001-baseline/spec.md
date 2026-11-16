@@ -121,6 +121,21 @@ language without overriding templates.
 - **FR-I18N-001** UI strings in en, es, de, fr, it, nl, pt (`NowoMilkdownEditorBundle` domain), same keys as the
   TypeScript defaults.
 
+- **FR-COMMENT-001** Inline comments (1.6, opt-in `comments`): `CommentAnchor` contract v1 (text quote, offsets, block hint,
+  Yjs relative positions) validated in PHP and TypeScript (`InvalidCommentAnchorException` for hosts to answer 422), host
+  endpoints client, highlight decorations, `handle.comments` API, inert allow-listed comment bodies, avatar URL policy and an
+  optional thread component.
+- **FR-VERSION-001** `version_view` (1.6, opt-in) and `nowo_milkdown_view()`: read-only widget of an old version with a banner.
+- **FR-DIFF-001** Rendered diff (1.6): `nowo_milkdown_diff()` and `MarkdownDiffRendererInterface` compare two documents through
+  the safe renderer, dialect-aware, with a work budget and an escaped line-diff fallback; keyboard navigation of changes.
+- **FR-HEADING-001** Heading ids (1.6, `heading_ids` / `markdown.heading_ids`): `nowo-h-<slug>` with the same slugs in the editor
+  and the PHP renderer.
+- **FR-TASK-001** Task items (1.17): the read-only PHP render uses the editor's markup (`TaskItemRenderer`, fixed attribute
+  set, no raw HTML).
+- **FR-INSERT-002** `insert_button` feature (1.9): a "+" beside the empty line that holds the caret opens the `/` menu.
+- **FR-WORKER-001** `WorkerBoundaryResetListener` (1.16.1): per-page footnote counters are cleared at the main request, Messenger
+  and console boundaries, so a kept-alive worker (kernel reset off) never leaks state between requests.
+
 ### Build
 
 - **FR-BUILD-001** `src/Resources/public/milkdown-editor.js` and its `chunks/` are the Vite ES-module build of
@@ -136,7 +151,7 @@ language without overriding templates.
 - **SC-002** Demo e2e: axe 0 serious / critical (light, dark, suggestion list open), 0 CSP violations under the
   strict nonce policy, Tab leaves the editor, Markdown stable across two saves.
 - **SC-003** Up-front JavaScript ≤ 400 kB gzip with code highlighting loaded on demand (`make bundle-size`).
-- **SC-004** The code inventory maps **79/79** production units ([code-inventory.md](code-inventory.md)).
+- **SC-004** The code inventory maps **145/145** production units ([code-inventory.md](code-inventory.md)).
 
 ## Key entities
 

@@ -12,7 +12,8 @@
 {% block body %}
     {{ form_start(form) }}
         {{ form_row(form.body) }}
-    {{ form_end(form, {render_rest: false}) }}
+    {% for child in form %}{% if not child.rendered %}{{ form_row(child) }}{% endif %}{% endfor %}
+    {{ form_end(form) }}
 
     <section aria-labelledby="version-heading">
         <h2 id="version-heading">{{ 'demo.comments.version'|trans }}</h2>
