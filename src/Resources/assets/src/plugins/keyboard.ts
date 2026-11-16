@@ -10,6 +10,7 @@ import { goToNextCell } from '@milkdown/kit/prose/tables';
 import { liftListItem, sinkListItem } from '@milkdown/kit/prose/schema-list';
 import type { EditorView } from '@milkdown/kit/prose/view';
 import { isSuggestOpen } from './suggest';
+import { runtimeCtx } from '../runtime';
 
 export const keyboardKey = new PluginKey('nowo-milkdown-keyboard');
 
@@ -50,14 +51,26 @@ export function handleTab(view: EditorView, event: KeyboardEvent): boolean {
   return command !== null && command(state, view.dispatch);
 }
 
+/** 1.18: `Mod-k` (Ctrl+K, ⌘K on macOS), the link picker's shortcut. */
+export const isLinkShortcut = (event: KeyboardEvent): boolean =>
+  (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'k';
+
 export const keyboardPlugin = $prose(
-  () =>
+  (ctx) =>
     new Plugin({
       key: keyboardKey,
       view: (view) => {
         const onKey = (event: KeyboardEvent): void => {
           // Before any key handler: the caret the browser moved is the one the key acts on (not during IME input).
           if (!event.isComposing && event.keyCode !== 229) flushSelection(view);
+          // 1.18 `link_picker`: Mod-k opens the picker, before Crepe's and the browser's own handlers.
+          const picker = ctx.get(runtimeCtx.key).openLinkPicker;
+          if (picker && isLinkShortcut(event) && !event.defaultPrevented && !(event.target as HTMLElement | null)?.closest?.('.cm-editor')) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            picker(view);
+            return;
+          }
           if (event.key !== 'Tab' || event.ctrlKey || event.metaKey || event.altKey || event.defaultPrevented) return;
           if (isSuggestOpen(view)) return;
           if ((event.target as HTMLElement | null)?.closest?.('.cm-editor')) return;

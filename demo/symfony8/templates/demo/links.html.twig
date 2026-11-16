@@ -1,0 +1,26 @@
+{% extends 'base.html.twig' %}
+
+{#
+  1.18: the link picker (Ctrl+K, the link button, `[[`) with mock host endpoints, stable heading ids, and the read view
+  with a "link to this section" anchor on each heading (plain fragment links: they work without JavaScript).
+#}
+{% block title %}{{ 'demo.links.heading'|trans }}{% endblock %}
+
+{% block nowo_ui_page_header %}
+    {{ include(nowo_ui_partial('page_header'), {
+        title: 'demo.links.heading'|trans,
+        intro: 'demo.links.lead'|trans,
+    }) }}
+{% endblock %}
+
+{% block body %}
+    {{ form_start(form) }}
+    {% for child in form %}{% if not child.rendered %}{{ form_row(child) }}{% endif %}{% endfor %}
+    {{ form_end(form) }}
+    <section class="nowo-ui-card demo-preview" aria-labelledby="links-preview-heading">
+        <div class="nowo-ui-card__body">
+            <h2 id="links-preview-heading" class="nowo-ui-card__title">{{ 'demo.preview'|trans }}</h2>
+            <article class="nowo-md" data-preview>{{ preview|raw }}</article>
+        </div>
+    </section>
+{% endblock %}

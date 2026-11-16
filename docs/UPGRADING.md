@@ -44,6 +44,45 @@ interfaces and `window.NowoMilkdownEditor`.
 
 ## Unreleased
 
+Target **1.18.0**, from **1.17.0**:
+
+```bash
+composer update nowo-tech/milkdown-editor-bundle
+php bin/console assets:install
+```
+
+No configuration change is needed. The new features are opt-in: `stable_heading_ids` and `link_picker` (editor
+features), `link_sections` / `link_schemes` (form options, sent only with `link_picker`),
+`SectionResolverInterface` (alias it to enable section labels) and `HeadingAnchorLinks::decorate()` (call it on your
+sanitised read view). A field without them sends the same widget JSON as before.
+
+Output changes that apply to everyone (all follow the contract; most documents are not affected):
+
+- **Page links to a section.** `[[wiki:<uuid>#setup]]` renders `href="<page url>#nowo-h-setup"` instead of
+  `#setup`, and its label is the page title alone (`Title › Section text` with a `SectionResolverInterface`) instead
+  of `Title › setup`. The editor chip does the same (`Title › #setup` until the picker told it the section text).
+  Cached HTML of documents with such links changes once re-rendered.
+- **The anchor grammar** is the heading id grammar: Unicode anchors parse; an anchor the grammar refuses (`a--b`, a
+  trailing `-`, upper case, more than 90 characters) is dropped: the page link (or a hidden page's placeholder) still
+  renders, without the fragment, and the editor writes it back without the anchor.
+- **A heading ending with ` {#id}`** (a valid id) no longer shows that text: it is the heading's explicit id, with or
+  without `markdown.heading_ids`. Write `\{#id}` to keep it as text.
+- **Heading slugs** use the NFC form of the text and drop characters the id grammar refuses (an upper-case letter
+  without a lower case, a leading combining mark). Ids of ordinary headings do not change.
+- **Editor DOM ids** are always unique, with or without `heading_ids`: a repeated heading gets `nowo-h-<slug>-2` (it had
+  the invalid `nowo-h-<slug>-#2`), as in the PHP render. Nothing is stored differently.
+- `DialectRenderer::safeUrl()` keeps `mailto:` URLs without a `?` part (it dropped them).
+
+**Collaboration hosts (every host that keeps collaboration logs):** fold `CollabSchema::VERSION` (2) into your log
+epoch, whether or not a field uses `stable_heading_ids`, so a page's next session starts a new log and tabs of an older
+editor get your `409 log_epoch` answer and reload. Before 1.18 every editor rewrote heading ids from the text after each
+change, on every peer, and an old tab in a 1.18 session would overwrite ids (and the ids a re-seed computes). Older logs need no migration: their
+`nowo-h-<slug>` attributes are read as `<slug>`, invalid ones as no id.
+
+**With `stable_heading_ids`**, the editor writes `{#id}` when a heading's id differs from its slug: after a rename, and
+for a repeated heading (`## Intro {#intro-2}`) the first time such a document is saved. Clients that write Markdown
+themselves (API `PUT`) should keep the suffix, or the ids change.
+
 ## To 1.17.0
 
 From **1.16.1**:

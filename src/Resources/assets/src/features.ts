@@ -48,9 +48,22 @@ export async function addFeatures(builder: CrepeBuilder, options: EditorOptions,
     const comments = on.has('comments') && options.comments?.canCreate === true;
     builder.addFeature(
       toolbar,
-      on.has('colors') || comments
+      on.has('colors') || comments || on.has('link_picker')
         ? {
             buildToolbar: (group) => {
+              // 1.18 `link_picker`: the toolbar's link button opens the picker.
+              if (on.has('link_picker')) {
+                for (const g of group.build()) {
+                  for (const item of g.items as { key: string; onRun?: (ctx: import('@milkdown/kit/ctx').Ctx) => void }[]) {
+                    if (item.key !== 'link' || !item.onRun) continue;
+                    const own = item.onRun;
+                    item.onRun = (ctx) => {
+                      if (runtime.openLinkPicker) runtime.openLinkPicker(ctx.get(editorViewCtx));
+                      else own(ctx);
+                    };
+                  }
+                }
+              }
               if (on.has('colors')) {
                 group.addGroup('nowo-color', t(runtime, 'menu.color')).addItem('color', {
                   icon: COLOR_ICON,

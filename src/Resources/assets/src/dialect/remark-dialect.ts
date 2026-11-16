@@ -6,6 +6,7 @@
 import { directive } from 'micromark-extension-directive';
 import { directiveFromMarkdown, directiveToMarkdown } from 'mdast-util-directive';
 import { serialise, splitText } from './patterns';
+import { headingIdHandlers, resolveHeadings, takeSuffixes } from './heading-id';
 
 export type MdNode = {
   type: string;
@@ -108,10 +109,17 @@ export const dropEmptyLineMarkers = (doc: string): string =>
   ).replace(/\n{3,}/g, '\n\n');
 
 /** The remark plugin (works with plain `unified` for tests and through Milkdown's `$remark`). */
-export function remarkNowoDialect(this: Processor): (tree: MdNode) => void {
+export function remarkNowoDialect(this: Processor): (tree: MdNode, file?: { value?: unknown }) => void {
   const data = this.data();
   const parser = this.parser;
-  if (parser) this.parser = (doc, file) => parser(nameAlignContainers(doc), file);
+  // 1.18: the text the tree's positions refer to (the heading suffix check reads it).
+  let parsed: string | null = null;
+  if (parser) {
+    this.parser = (doc, file) => {
+      parsed = nameAlignContainers(doc);
+      return parser(parsed, file);
+    };
+  }
   const compiler = this.compiler;
   if (compiler) {
     this.compiler = (tree, file) => {
@@ -133,7 +141,16 @@ export function remarkNowoDialect(this: Processor): (tree: MdNode) => void {
       wikiRef: (n: { pageId: string; anchor?: string }) => serialise.wikiRef(n),
       mention: (n: { handle: string }) => serialise.mention(n),
       tablerIcon: (n: { name: string }) => serialise.tablerIcon(n),
+      // 1.18: the `{#id}` heading suffix, written verbatim.
+      ...headingIdHandlers,
     },
   });
-  return (tree: MdNode) => transform(tree);
+  return (tree: MdNode, file?: { value?: unknown }) => {
+    // 1.18: heading suffixes first (they need the source of the original text nodes), ids once tokens are split.
+    const source = parsed ?? (typeof file?.value === 'string' ? nameAlignContainers(file.value) : null);
+    parsed = null;
+    takeSuffixes(tree, source);
+    transform(tree);
+    resolveHeadings(tree);
+  };
 }

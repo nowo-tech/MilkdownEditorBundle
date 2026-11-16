@@ -27,3 +27,7 @@ demo.layers.close_dialog: Cerrar
 demo.collab.nav: Colaboración
 demo.collab.heading: Colaboración sin hub
 demo.collab.lead: 'Esta página tiene la colaboración activa y su hub no responde. El editor queda en solo lectura mientras conecta y después permite editar sin colaboración. Guardar en cualquier momento conserva el contenido.'
+demo.links.nav: Enlaces
+demo.links.heading: Enlaces a secciones
+demo.links.lead: 'Ctrl+K, el botón de enlace o [[ abren un único selector: una página de esta wiki o de otra wiki del mismo inquilino, luego una sección, o una URL externa. Renombra un título: su id se mantiene. En la vista previa, cada título tiene un enlace "#" para copiar.'
+demo.links.body: Página

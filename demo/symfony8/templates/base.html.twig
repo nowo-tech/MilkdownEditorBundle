@@ -23,6 +23,7 @@
             <a class="nowo-ui-link" href="{{ path('demo_home', {theme: 'dark'}) }}"{% if _route == 'demo_home' and dark|default(false) %} aria-current="page"{% endif %}>{{ 'demo.dark'|trans }}</a>
             <a class="nowo-ui-link" href="{{ path('demo_comments') }}"{% if _route == 'demo_comments' %} aria-current="page"{% endif %}>{{ 'demo.comments.nav'|trans }}</a>
             <a class="nowo-ui-link" href="{{ path('demo_layers') }}"{% if _route == 'demo_layers' %} aria-current="page"{% endif %}>{{ 'demo.layers.nav'|trans }}</a>
+            <a class="nowo-ui-link" href="{{ path('demo_links') }}"{% if _route == 'demo_links' %} aria-current="page"{% endif %}>{{ 'demo.links.nav'|trans }}</a>
             <a class="nowo-ui-link" href="{{ path('demo_collab') }}"{% if _route == 'demo_collab' %} aria-current="page"{% endif %}>{{ 'demo.collab.nav'|trans }}</a>
         </nav>
         <div class="nowo-ui-header__end">

@@ -151,6 +151,49 @@ final class MilkdownEditorTypeTest extends TypeTestCase
         $this->factory->create(MilkdownEditorType::class, null, ['action_bar_insert' => ['file', 'link']]);
     }
 
+    #[Test]
+    public function theLinkPickerOptionsAreSentOnlyWithTheFeature(): void
+    {
+        $default = $this->factory->create(MilkdownEditorType::class, null, ['link_sections' => '/s/{id}', 'link_schemes' => ['https']])->createView()->vars['milkdown_options'];
+        self::assertIsArray($default);
+        self::assertArrayNotHasKey('linkSections', $default);
+        self::assertArrayNotHasKey('linkSchemes', $default);
+        $on = $this->factory->create(MilkdownEditorType::class, null, ['features' => ['link_picker', 'stable_heading_ids'], 'link_sections' => '/s/{id}/sections', 'link_schemes' => ['mailto', 'https', 'https']])->createView()->vars['milkdown_options'];
+        self::assertIsArray($on);
+        self::assertSame(['link_picker', 'stable_heading_ids'], $on['features']);
+        self::assertSame('/s/{id}/sections', $on['linkSections']);
+        self::assertSame(['https', 'mailto'], $on['linkSchemes']);
+        $plain = $this->factory->create(MilkdownEditorType::class, null, ['features' => ['link_picker']])->createView()->vars['milkdown_options'];
+        self::assertIsArray($plain);
+        self::assertArrayNotHasKey('linkSections', $plain);
+        self::assertSame(['http', 'https', 'mailto'], $plain['linkSchemes']);
+        self::assertSame(['stable_heading_ids', 'link_picker'], array_values(array_intersect(Feature::values(), ['link_picker', 'stable_heading_ids'])));
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>, string}>
+     */
+    public static function invalidLinkOptions(): iterable
+    {
+        yield 'tel is not offered' => [['link_schemes' => ['https', 'tel']], 'may only narrow'];
+        yield 'empty schemes' => [['link_schemes' => []], 'may only narrow'];
+        yield 'sections without {id}' => [['link_sections' => '/s/sections'], 'link_sections'];
+        yield 'protocol-relative sections' => [['link_sections' => '//evil/{id}'], 'link_sections'];
+        yield 'javascript sections' => [['link_sections' => 'javascript:{id}'], 'link_sections'];
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    #[Test]
+    #[DataProvider('invalidLinkOptions')]
+    public function invalidLinkOptionsAreRefused(array $options, string $message): void
+    {
+        $this->expectException(InvalidOptionsException::class);
+        $this->expectExceptionMessage($message);
+        $this->factory->create(MilkdownEditorType::class, null, $options);
+    }
+
     /**
      * @param array<string, mixed> $options
      *

@@ -41,6 +41,10 @@ enum Feature: string
     case ImageBlock = 'image_block';
     /** 1.9: a "+" button beside empty lines opens the `/` menu. */
     case InsertButton = 'insert_button';
+    /** 1.18: heading ids frozen while editing (on parse, when the caret leaves a new heading, unique after a paste). */
+    case StableHeadingIds = 'stable_heading_ids';
+    /** 1.18: one link picker (wiki page + section, or external URL) for the link button, Mod-k and `[[`. */
+    case LinkPicker = 'link_picker';
 
     /**
      * Features enabled when a profile does not list its own.

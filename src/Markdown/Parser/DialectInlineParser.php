@@ -7,6 +7,7 @@ namespace Nowo\MilkdownEditorBundle\Markdown\Parser;
 use League\CommonMark\Parser\Inline\InlineParserInterface;
 use League\CommonMark\Parser\Inline\InlineParserMatch;
 use League\CommonMark\Parser\InlineParserContext;
+use Nowo\MilkdownEditorBundle\Markdown\HeadingIds;
 use Nowo\MilkdownEditorBundle\Markdown\Node\Mention;
 use Nowo\MilkdownEditorBundle\Markdown\Node\TablerIcon;
 use Nowo\MilkdownEditorBundle\Markdown\Node\WikiLink;
@@ -15,12 +16,16 @@ use Nowo\MilkdownEditorBundle\Markdown\Node\WikiLink;
  * Inline tokens of the dialect (the same expressions as the TypeScript `dialect/patterns.ts`): page links by id,
  * mentions (start of text, whitespace or `(` before `@`) and Tabler icon shortcodes.
  *
+ * 1.18: the anchor of a page link follows the heading id grammar ({@see HeadingIds::ANCHOR}, Unicode, 1–90
+ * characters); a leading `nowo-h-` is accepted and dropped. An invalid anchor (the old grammar's `a--b`, upper case,
+ * too long) is dropped and the page link still renders (RV-L2).
+ *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  */
 final class DialectInlineParser implements InlineParserInterface
 {
     public const UUID   = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
-    public const ANCHOR = '[a-z0-9][a-z0-9-]{0,80}';
+    public const ANCHOR = HeadingIds::ANCHOR;
     public const HANDLE = '[a-zA-Z0-9_](?:[a-zA-Z0-9_.-]{0,38}[a-zA-Z0-9_])?';
     public const ICON   = '[a-z0-9]+(?:-[a-z0-9]+)*';
 
@@ -29,7 +34,7 @@ final class DialectInlineParser implements InlineParserInterface
      */
     public function getMatchDefinition(): InlineParserMatch
     {
-        return InlineParserMatch::regex('\[\[wiki:(' . self::UUID . ')(?:#(' . self::ANCHOR . '))?\]\]|@(' . self::HANDLE . ')|:tabler-(' . self::ICON . '):')
+        return InlineParserMatch::regex('\[\[wiki:(' . self::UUID . ')(?:#([^\]\s#]{1,200}))?\]\]|@(' . self::HANDLE . ')|:tabler-(' . self::ICON . '):')
             ->caseSensitive();
     }
 
@@ -43,7 +48,8 @@ final class DialectInlineParser implements InlineParserInterface
         $cursor = $inlineContext->getCursor();
         $m      = $inlineContext->getSubMatches();
         if (($m[0] ?? '') !== '') {
-            $node = new WikiLink((string) $m[0], (string) ($m[1] ?? ''));
+            // RV-L2: an invalid anchor is dropped; the page link (or its placeholder) still renders.
+            $node = new WikiLink((string) $m[0], HeadingIds::normalise((string) ($m[1] ?? '')));
         } elseif (($m[2] ?? '') !== '') {
             $previous = $cursor->peek(-1);
             if ($previous !== null && preg_match('/^[\s(]$/u', $previous) !== 1) {

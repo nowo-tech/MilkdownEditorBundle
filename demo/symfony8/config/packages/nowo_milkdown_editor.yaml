@@ -22,12 +22,18 @@ nowo_milkdown_editor:
             upload_max_size: 2097152
             upload_accept_images: ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
             upload_accept_files: ['application/pdf', 'text/csv', '.csv', 'text/plain', '.txt']
+        # 1.18: stable heading ids and the link picker (demo /links).
+        links:
+            features: [toolbar, top_bar, link_tooltip, placeholder, cursor, slash_menu, context_menu, heading_ids, stable_heading_ids, link_picker]
+            min_height: 14rem
         comment:
             features: [toolbar, link_tooltip, placeholder, cursor]
             min_height: 6rem
             icon_sprite_url: /tabler-sprite.svg
             icons: *icons
     markdown:
+        # 1.18: heading ids (with the `{#id}` suffix) for the read view's section links.
+        heading_ids: true
         icon_sprite_url: /tabler-sprite.svg
         icons: *icons
         icon_catalog: true

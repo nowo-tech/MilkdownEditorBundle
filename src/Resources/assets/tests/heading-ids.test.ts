@@ -6,7 +6,7 @@ import { editor } from './helpers';
 import type { MilkdownEditorHandle } from '../src/editor';
 import { slug, slugs } from '../src/plugins/heading-ids';
 
-const vectors = JSON.parse(readFileSync(resolve(__dirname, '../../../../tests/Fixtures/heading-slugs.json'), 'utf8')) as {
+const vectors = JSON.parse(readFileSync(resolve(__dirname, '../../../../tests/Fixtures/heading-ids.json'), 'utf8')) as {
   slug: [string, string][];
   unique: { texts: string[]; slugs: string[] }[];
 };
@@ -34,8 +34,9 @@ describe('heading ids (1.6, shared vectors with PHP)', () => {
     expect(dom().querySelector('h1')!.id).toBe('nowo-h-other');
     await handle.destroy();
     handle = await editor('# Comments drawer\n\n# Comments drawer\n', { features: [] });
-    // Off: Milkdown's own heading ids, now always prefixed (audit DW-M2: a heading never takes a host id).
-    expect([...dom().querySelectorAll('h1')].map((h) => h.id)).toEqual(['nowo-h-comments-drawer', 'nowo-h-comments-drawer-#2']);
+    // Off: always prefixed (audit DW-M2: a heading never takes a host id) and, since 1.18 (RV-L3), always unique: the
+    // preset's `-#2` rewrite is gone (it rewrote ids on every peer and was not a valid fragment).
+    expect([...dom().querySelectorAll('h1')].map((h) => h.id)).toEqual(['nowo-h-comments-drawer', 'nowo-h-comments-drawer-2']);
     expect(handle.getMarkdown()).not.toContain('nowo-h-');
   });
 });

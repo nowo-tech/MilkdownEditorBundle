@@ -34,7 +34,52 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+Target: 1.18.0 (minor). Stable heading ids and a link picker (contract "section anchors and link picker", WikiBundle
+1.40 builds the host side). See [UPGRADING](UPGRADING.md#unreleased).
+
+### Added
+
+- **`{#id}` heading suffix** (`## Install guide {#setup}`, the Pandoc / kramdown form): read by the PHP renderer
+  (`Markdown\Parser\HeadingIdSuffixParser`, keeps the id in `$heading->data['nowo_heading_id']`) and by the editor
+  (`dialect/heading-id.ts`), written back verbatim (never escaped) only when the id differs from the heading's slug.
+  Only spaces + `{#` + an id + `}` at the very end of a heading counts; a literal `{#x}` there is written `\{#x}`.
+- **One id grammar** (`HeadingIds::ANCHOR`, TS `ID_PATTERN`): Unicode lower-case letters, marks and digits joined by
+  single `-`, 1–90 characters; also the anchor of `[[wiki:<uuid>#<id>]]` (a `nowo-h-` prefix is accepted and dropped).
+  `HeadingIds::isValid()`, `normalise()`, `resolve()` (explicit ids reserved first, then slugs with the lowest free
+  `-N`, linear, at most `MAX_IDS` = 1000 headings) and the TS twins; shared vectors in `tests/Fixtures/heading-ids.json`
+  run by PHPUnit and Vitest.
+- **Feature `stable_heading_ids`** (opt-in): heading ids are frozen while editing (on parse, when the caret leaves a
+  heading this peer edited or the editor loses the focus there, and unique again after a split, paste or drop: the
+  heading that existed before keeps its id). Only local transactions act, and the id writes join the undo step of the
+  change that caused them; ids from peers are validated when read. An empty heading writes no suffix.
+- **Feature `link_picker`** (opt-in): one picker for the link button (top bar and toolbar), `Mod-k`, `[[`, `/page link`
+  and *Edit link…* (context menu): *Wiki page* (grouped search, then *Top of page* or a section) or *External URL*
+  (`http`, `https`, `mailto`, checked as typed). Form options `link_sections` (URL template with `{id}`) and
+  `link_schemes` (narrows the schemes). Emits `nowo-milkdown:link-picked`. Data from the host (USAGE "Link picker").
+- `Markdown\LinkUrl::check()` (PHP twin of the picker's URL check), `Markdown\HeadingAnchorLinks::decorate()` (a
+  "link to this section" anchor on each heading of sanitised read-view HTML, no JavaScript needed),
+  `Resolver\SectionResolverInterface` (optional: `Title › Section` labels), `CollabSchema::VERSION` (2), which every
+  host with collaboration logs folds into its log epoch.
+- Demo page `/links` with mock endpoints, translations of the new strings in the 7 locales.
+
 ### Changed
+
+- **Page links to a section point at the heading:** `[[wiki:<uuid>#setup]]` renders `href="…#nowo-h-setup"` (it was
+  `#setup`, which matched no element), in the PHP render and the editor chip.
+- **Their label is `Title › Section text`** when a `SectionResolverInterface` gives the text, otherwise `Title` (it was
+  `Title › <raw id>`). The editor chip shows the section text the picker showed, otherwise `Title › #id`.
+- **The anchor grammar is the heading id grammar:** Unicode anchors (`#año`) now parse; an anchor the grammar refuses
+  (`a--b`, a trailing `-`, upper case, more than 90 characters) is dropped and the page link (or a hidden page's
+  placeholder) still renders.
+- **The `{#id}` suffix is read in every render**, with or without `markdown.heading_ids` (a heading ending with
+  ` {#valid-id}` no longer shows it as text).
+- **Heading slugs** are taken from the NFC form of the text (PHP with `intl`), drop upper-case letters that have no
+  lower case and a leading combining mark (ids that the grammar would refuse).
+- **The editor no longer runs Milkdown's `syncHeadingIdPlugin`**, which rewrote every heading id from its text after
+  each change on every peer (remote changes included) and wrote `-#2` for repeats. A heading node keeps its own id;
+  the DOM id is `nowo-h-<id>` or `nowo-h-<slug>`, validated, and always unique (a repeated heading gets `-2`, it had
+  the invalid `-#2`), with or without `heading_ids`.
+- `DialectRenderer::safeUrl()` accepts `mailto:` URLs without a `?` header part.
 
 - Demo uses the UiKit base style and FormKit forms (REQ-DEMO-014/015).
 - docs: demo screenshots regenerated on the UiKit base style

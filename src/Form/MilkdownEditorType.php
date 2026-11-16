@@ -9,6 +9,7 @@ use Nowo\MilkdownEditorBundle\DependencyInjection\Configuration;
 use Nowo\MilkdownEditorBundle\Feature;
 use Nowo\MilkdownEditorBundle\Form\DataTransformer\MarkdownNewlineTransformer;
 use Nowo\MilkdownEditorBundle\Markdown\HostSchemes;
+use Nowo\MilkdownEditorBundle\Markdown\LinkUrl;
 use Nowo\MilkdownEditorBundle\Markdown\MilkdownMarkdownRenderer;
 use Nowo\MilkdownEditorBundle\ProfileRegistry;
 use Nowo\MilkdownEditorBundle\Theme;
@@ -27,7 +28,6 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 use function array_filter;
 use function array_key_exists;
 use function array_keys;
-use function array_unique;
 use function array_values;
 use function class_exists;
 use function implode;
@@ -39,6 +39,7 @@ use function is_string;
 use function mb_substr;
 use function preg_match;
 use function sprintf;
+use function str_contains;
 use function strlen;
 
 /**
@@ -49,7 +50,9 @@ use function strlen;
  * URL), `link_title_url`, `icon_sprite_url`, `icons`, `upload_url`, `upload_csrf_token`, `upload_max_size`,
  * `upload_accept`, `upload_accept_images`, `upload_accept_files` (1.8), `action_bar_insert` (1.8), `collaboration`,
  * `csp_nonce`, `max_length` (bytes; with symfony/validator a `Length` constraint is
- * added, by default the renderer's `max_input_length`, so oversized Markdown is rejected when it is written).
+ * added, by default the renderer's `max_input_length`, so oversized Markdown is rejected when it is written),
+ * `link_sections` and `link_schemes` (1.18, `link_picker`: the sections URL template with `{id}`, and the schemes an
+ * external link may use, a subset of `http`, `https`, `mailto`).
  *
  * @extends AbstractType<string>
  *
@@ -124,7 +127,12 @@ final class MilkdownEditorType extends AbstractType
             'image.align_center', 'image.align_right', 'image.hidden', 'menu.image_edit',
         ],
         'insert_button' => ['insert.button'],
-        'file_cards'    => [
+        'link_picker'   => [
+            'menu.link_edit', 'link.picker', 'link.tab_page', 'link.tab_url', 'link.search', 'link.search_sections',
+            'link.pages', 'link.here', 'link.sections', 'link.section_top', 'link.back', 'link.empty', 'link.count',
+            'link.failed', 'link.url', 'link.text', 'link.insert', 'link.invalid', 'link.preview', 'link.preview_relative',
+        ],
+        'file_cards' => [
             'file.open', 'file.download', 'file.view.link', 'file.view.icon', 'file.view.card', 'file.view.preview',
             'file.height.s', 'file.height.m', 'file.height.l', 'menu.file_view', 'menu.file_height', 'slash.file_link',
             'slash.file_icon', 'slash.file_preview',
@@ -262,6 +270,13 @@ final class MilkdownEditorType extends AbstractType
         if (is_string($options['user_title_url'])) {
             $view->vars['milkdown_options']['userTitleUrl'] = $options['user_title_url'];
         }
+        // 1.18 `link_picker`: only with the feature, so other fields keep the same widget JSON.
+        if (in_array('link_picker', $features, true)) {
+            if (is_string($options['link_sections'])) {
+                $view->vars['milkdown_options']['linkSections'] = $options['link_sections'];
+            }
+            $view->vars['milkdown_options']['linkSchemes'] = $options['link_schemes'];
+        }
     }
 
     /**
@@ -300,6 +315,8 @@ final class MilkdownEditorType extends AbstractType
             'upload_accept_images' => static fn (Options $o): array => $profile($o)['upload_accept_images'] ?? [],
             'upload_accept_files'  => static fn (Options $o): array => $profile($o)['upload_accept_files'] ?? [],
             'user_title_url'       => null,
+            'link_sections'        => null,
+            'link_schemes'         => LinkUrl::SCHEMES,
             'comments'             => null,
             'version'              => null,
             'attr'                 => ['rows' => 12],
@@ -338,6 +355,18 @@ final class MilkdownEditorType extends AbstractType
             }
 
             return array_values(array_filter(Configuration::ACTION_BAR_INSERT, static fn (string $b): bool => in_array($b, $value, true)));
+        });
+        $resolver->setAllowedTypes('link_sections', ['null', 'string']);
+        $resolver->setAllowedValues('link_sections', static fn (?string $value): bool => $value === null || (str_contains($value, '{id}') && preg_match('#^(?:/(?![/\\\\])|https?://)#i', $value) === 1));
+        $resolver->setAllowedTypes('link_schemes', 'string[]');
+        $resolver->setNormalizer('link_schemes', static function (Options $o, array $value): array {
+            $schemes = array_values(array_filter(LinkUrl::SCHEMES, static fn (string $s): bool => in_array($s, $value, true)));
+            $unknown = array_filter($value, static fn (mixed $s): bool => !in_array($s, LinkUrl::SCHEMES, true));
+            if ($schemes === [] || $unknown !== []) {
+                throw new InvalidOptionsException(sprintf('The "link_schemes" option may only narrow the defaults: a non-empty subset of %s.', implode(', ', LinkUrl::SCHEMES)));
+            }
+
+            return $schemes;
         });
         $resolver->setAllowedTypes('comments', ['null', 'array']);
         $resolver->setAllowedTypes('version', ['null', 'array']);

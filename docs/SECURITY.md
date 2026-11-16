@@ -155,6 +155,28 @@ The host owns its endpoints (candidates, titles, uploads, collaboration), authen
   text, which a heading could use to take over a host element id); the read-side ids (`markdown.heading_ids`) are
   prefixed too, so headings never clobber host ids or globals. Ids are unique per document only: two editors on one
   page, or both sides of a diff, can repeat one.
+- **Heading ids and section links (1.18; re-verification pending).** Ids are only ever `nowo-h-` + the id grammar
+  (lower-case Unicode letters, marks, digits and single `-`, 1–90 characters), at most 1000 per document, so a heading
+  cannot clobber host ids or globals. The `{#id}` suffix parser accepts nothing but `{#<id>}` at the very end of a
+  heading (linear patterns, anchored at the end). Editor heading attributes and page-link anchors that come from Yjs
+  peers or pasted HTML are validated whenever they are read (DOM, decorations, serialiser) and count as empty
+  otherwise; nothing is written back. Without `stable_heading_ids` pasted HTML ids are dropped. A hidden page's
+  placeholder writes no href, anchor or section text; `SectionResolverInterface` is asked only about pages that
+  resolved for the viewer, its text is escaped, and a failure falls back to the title (logged, no content).
+  `HeadingAnchorLinks::decorate()` runs after the host's sanitizer, re-validates every id, escapes the label and
+  passes the page URL through `safeUrl()`; a PCRE failure returns the HTML unchanged. With `stable_heading_ids` only the
+  local peer writes ids, in local transactions (Yjs-binding transactions are never acted on), so no peer rewrites
+  another peer's ids.
+- **Link picker (1.18; re-verification pending).** External targets go through one check (`ui/link-url.ts`, PHP
+  `LinkUrl`): `http`, `https`, `mailto` only (a field can narrow them), no `javascript:` / `data:` / `vbscript:` /
+  `file:` or any other scheme, no protocol-relative forms, no user info (`user@host`, a phishing vector), no control,
+  bidi, zero-width or white-space characters, no `mailto:` header part (`?`), at most 2048 bytes; the preview shows the
+  punycode host. The renderer's `safeUrl()` (which now keeps `mailto:` without `?`) and the host sanitizer stay the final
+  gates. Candidate and section answers are validated (UUIDs, ids, levels, lengths, counts) and rendered with
+  `textContent` only; the candidates and sections URLs must be same-origin (otherwise the picker offers external URLs
+  only); the query sent is cut to 100 characters without control or bidi characters. What a viewer may find is the
+  host's decision (USAGE "Link picker": readable pages and ancestors only, same answer for "no match" and "not
+  allowed", title-only matching, per-user rate limit, `Cache-Control: private, no-store`).
 - **Comment panel container (1.6).** `comments.container` resolves to the first match **outside** any editor, read
   view (`.nowo-md`) or contenteditable region, and `comments.mount()` refuses such elements, so page content can
   neither receive the panel nor get its text saved into the Markdown.
@@ -347,6 +369,7 @@ host's token in `X-CSRF-Token`; the host validates it.
 | 2026-11-08 | 1.13.0: `host_url_patterns`, `ContextualHostFileResolverInterface`, `host_refused_links` (Beacon request after WikiBundle Appendix IF) | Appendix IJ at `a2560e7`: **Pass-Low** (IJ-L1; IJ-I1 to IJ-I3) |
 | 2026-11-08 | IJ fixes: fail closed on PCRE errors and long URLs (IJ-L1), stricter patterns (IJ-I1), one classification per URL and document (IJ-I2), URL normalisation and `host_url_hosts` (IJ-I3) | Delta IJ at `51f3606`: **Pass** (IJ-I10 Info: crafted URLs that browsers normalise — default port, userinfo, dot segments — still match no pattern) |
 | 2026-11-08 | 1.14.0: `host_url_hosts` env placeholders, validated at service build, invalid values throw | Appendix IK at `fed6d92`: **Pass** (IK-I1 to IK-I3 Info, fixed with the IJ-I10 hardening in the follow-up commit); Delta IK at `a52c088`: **Pass** (IK-I7, IK-I8 Info open: percent-encoded hosts, leading-zero ports, trailing slash after the variant) |
+| 2026-11-16 | Unreleased (1.18.0): `{#id}` suffix and id grammar, `stable_heading_ids`, `link_picker`, `LinkUrl`, `HeadingAnchorLinks`, `SectionResolverInterface`, `safeUrl()` with `mailto:` | **Re-verification pending** (no audit yet) |
 | 2026-11-08 | Unreleased (1.14.1): IK-I7 (percent-encoded hosts, leading-zero ports) and IK-I8 (one trailing slash) hardening in `HostSchemes` and `host.ts`; IK2-L1 (tabs and newlines inside the URL removed before matching) | Delta IK2 at `8b91eb9`: **Pass-Low** (IK2-L1 pre-existing since 1.13, fixed in the follow-up commit; IK2-I1 documented under "What remains"; IK2-I2) |
 
 **2026-10-30 — Pass (good)** after remediation (REQ-SEC-004). Method: independent read-only review of `src/` (PHP

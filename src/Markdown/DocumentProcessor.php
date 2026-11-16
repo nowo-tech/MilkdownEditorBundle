@@ -23,6 +23,8 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\HostFileResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\PageResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\RenderContextProviderInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\ResolvedFile;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\ResolvedPage;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\SectionResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\UserResolverInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -32,11 +34,13 @@ use function array_flip;
 use function array_intersect_key;
 use function array_key_exists;
 use function array_keys;
+use function array_map;
 use function array_slice;
 use function array_values;
 use function count;
 use function is_string;
 use function str_ends_with;
+use function strval;
 use function trim;
 
 /**
@@ -75,6 +79,7 @@ final readonly class DocumentProcessor
      * @param bool $imageBlock Standalone images become figures with caption, width and alignment (1.9)
      * @param RenderContextProviderInterface|null $renderContext The render's context for a contextual host file resolver (1.13)
      * @param bool $hideRefusedLinks A refused `scheme:` link renders *Content not visible* instead of its text (1.13, `host_refused_links: hidden`)
+     * @param SectionResolverInterface|null $sections Section texts of `[[wiki:<uuid>#<id>]]` links to resolved pages (1.18; null: none)
      */
     public function __construct(
         private PageResolverInterface $pages,
@@ -89,6 +94,7 @@ final readonly class DocumentProcessor
         private bool $imageBlock = false,
         private ?RenderContextProviderInterface $renderContext = null,
         private bool $hideRefusedLinks = false,
+        private ?SectionResolverInterface $sections = null,
     ) {
     }
 
@@ -140,6 +146,7 @@ final readonly class DocumentProcessor
                     $link->page = $found[$id] ?? null;
                 }
             }
+            $this->resolveSections($links);
         }
         if ($mentions !== []) {
             $handles = array_slice(array_map('strval', array_keys($mentions)), 0, $this->maxReferences);
@@ -168,6 +175,47 @@ final readonly class DocumentProcessor
         }
         $cards = $fileCardsOwned ? [] : array_values(array_filter($leaves, static fn (LeafDirective $l): bool => $l->name === FileCard::NAME));
         $this->resolveHosted($hosted, $cards, $values);
+    }
+
+    /**
+     * 1.18: the section texts of links with an anchor, only for pages that resolved for this viewer, in one call (at most
+     * `max_references` anchors). A hidden page is never asked about.
+     *
+     * @param array<string, list<WikiLink>> $links
+     */
+    private function resolveSections(array $links): void
+    {
+        if (!$this->sections instanceof SectionResolverInterface) {
+            return;
+        }
+        $anchors = [];
+        $count   = 0;
+        foreach ($links as $id => $nodes) {
+            foreach ($nodes as $link) {
+                if ($link->anchor === '' || !$link->page instanceof ResolvedPage || isset($anchors[$id][$link->anchor]) || $count >= $this->maxReferences) {
+                    continue;
+                }
+                $anchors[$id][$link->anchor] = true;
+                ++$count;
+            }
+        }
+        if ($anchors === []) {
+            return;
+        }
+        try {
+            $titles = $this->sections->sectionTitles(array_map(static fn (array $ids): array => array_map(strval(...), array_keys($ids)), $anchors));
+        } catch (Throwable $e) {
+            $this->logger?->warning('Milkdown renderer: the {kind} resolver failed; references render as not visible.', ['kind' => 'section', 'exception' => $e::class]);
+            $titles = [];
+        }
+        foreach ($links as $id => $nodes) {
+            foreach ($nodes as $link) {
+                $text = isset($anchors[$id][$link->anchor]) ? ($titles[$id][$link->anchor] ?? null) : null;
+                if (is_string($text) && trim($text) !== '') {
+                    $link->section = $text;
+                }
+            }
+        }
     }
 
     /**

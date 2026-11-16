@@ -183,6 +183,8 @@ export class ContextMenuView {
         // 1.9 (ME-5): a host reference opens through its template.
         const href = targetUrl(String(link.mark.attrs.href ?? ''), 'file', runtime.hostSchemes);
         groups.push([
+          // 1.18 `link_picker`: edit the link in the picker.
+          ...(runtime.openLinkPicker ? [item('link_edit', () => runtime.openLinkPicker?.(view))] : []),
           item('link_open', () => window.open(href, '_blank', 'noopener,noreferrer'), { disabled: href === '' }),
           item('link_copy', () => void cb.writeText?.(href), { disabled: href === '' || !cb.writeText }),
           // On the state the runner restores, never on positions computed when the menu opened (CZ-I9.1).
@@ -197,6 +199,10 @@ export class ContextMenuView {
             }),
           ),
         ]);
+      }
+      // 1.18 `link_picker`: a selected page link opens in the picker.
+      if (!link && runtime.openLinkPicker && state.selection instanceof NodeSelection && state.selection.node.type.name === 'wikiRef') {
+        groups.push([item('link_edit', () => runtime.openLinkPicker?.(view))]);
       }
       if (tabContext(state) === 'table') {
         groups.push([

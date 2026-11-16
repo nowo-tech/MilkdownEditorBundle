@@ -65,7 +65,8 @@ export function buildTriggers(ctx: Ctx, deps: Deps): SuggestTrigger[] {
   const mentionUrl = options.suggestions['@'];
   const iconUrl = options.suggestions[':'];
 
-  if (pageUrl) {
+  // 1.18 `link_picker`: `[[` opens the picker instead (plugins/link-trigger.ts).
+  if (pageUrl && !options.features.includes('link_picker')) {
     triggers.push({
       name: 'page',
       match: /\[\[([^\]\n]{0,60})$/,
@@ -198,7 +199,10 @@ export function slashItems(ctx: Ctx, options: EditorOptions, runtime: Runtime): 
   ];
   if (options.features.includes('mermaid')) out.push(block('mermaid', type('code_block', { language: 'mermaid' })));
   if (options.features.includes('math')) out.push(block('math', type('code_block', { language: 'LaTeX' })));
-  if (options.suggestions['[[']) out.push(block('page_link', text('[[')));
+  if (options.suggestions['[[']) {
+    // 1.18 `link_picker`: the picker on its page tab.
+    out.push(block('page_link', options.features.includes('link_picker') ? (view) => (runtime.openLinkPicker ? runtime.openLinkPicker(view, { tab: 'page' }) : text('[[')(view)) : text('[[')));
+  }
   if (options.suggestions['@']) out.push(block('mention', text('@')));
   // 1.8: *Image or file…* opens the file picker; the files upload at the caret (keyboard path of drag and drop).
   const pick = runtime.pickFiles;

@@ -27,8 +27,10 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\ResolvedUser;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 use function in_array;
+use function str_contains;
 use function str_ends_with;
 use function strlen;
+use function strpos;
 use function substr;
 
 use const ENT_HTML5;
@@ -97,8 +99,9 @@ final readonly class DialectRenderer implements NodeRendererInterface
     }
 
     /**
-     * Keeps relative URLs and http(s) URLs; anything else (javascript:, data:…) becomes ''. Leading and trailing C0
-     * controls / spaces and inner tabs / newlines are removed first, as browsers do when they parse a URL.
+     * Keeps relative URLs, http(s) URLs and (1.18) `mailto:` URLs without a `?` header part; anything else
+     * (javascript:, data:…) becomes ''. Leading and trailing C0 controls / spaces and inner tabs / newlines are removed
+     * first, as browsers do when they parse a URL.
      */
     public static function safeUrl(string $url): string
     {
@@ -107,10 +110,32 @@ final readonly class DialectRenderer implements NodeRendererInterface
             return ''; // protocol-relative (`//host`, `/\host`, `\\host`): another origin
         }
         if (preg_match('~^([^/?#]*):~', $url, $m) === 1) {
+            if (preg_match('~^mailto$~i', $m[1]) === 1) {
+                return !str_contains($url, '?') ? $url : '';
+            }
+
             return preg_match('~^https?$~i', $m[1]) === 1 ? $url : '';
         }
 
         return $url;
+    }
+
+    /**
+     * 1.18: `$url` pointing at the heading `$anchor` (`#nowo-h-<id>`, replacing a fragment `$url` already has); the URL
+     * itself when the anchor is empty or invalid.
+     *
+     * @param string $url A safe URL
+     * @param string $anchor A bare heading id
+     */
+    public static function withFragment(string $url, string $anchor): string
+    {
+        $anchor = HeadingIds::normalise($anchor);
+        if ($anchor === '') {
+            return $url;
+        }
+        $hash = strpos($url, '#');
+
+        return ($hash === false ? $url : substr($url, 0, $hash)) . '#' . HeadingIds::PREFIX . $anchor;
     }
 
     /**
@@ -149,12 +174,14 @@ final readonly class DialectRenderer implements NodeRendererInterface
         if (!$page instanceof ResolvedPage) {
             return '<span class="nowo-md-ref nowo-md-ref--hidden">' . self::e($this->hidden()) . '</span>';
         }
-        $title = self::e($page->title . ($node->anchor !== '' ? ' › ' . $node->anchor : ''));
+        // 1.18: `Title › Section text` when the host resolved the section, the title alone otherwise (never the raw id);
+        // the fragment is the heading's DOM id.
+        $title = self::e($page->title . ($node->anchor !== '' && $node->section !== null ? ' › ' . $node->section : ''));
         if ($url === '') {
             return '<span class="nowo-md-ref">' . $title . '</span>';
         }
 
-        return '<a class="nowo-md-ref" href="' . self::e($url . ($node->anchor !== '' ? '#' . $node->anchor : '')) . '">' . $title . '</a>';
+        return '<a class="nowo-md-ref" href="' . self::e(self::withFragment($url, $node->anchor)) . '">' . $title . '</a>';
     }
 
     private function mention(Mention $node): string

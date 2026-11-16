@@ -27,3 +27,7 @@ demo.layers.close_dialog: Close
 demo.collab.nav: Collaboration
 demo.collab.heading: Collaboration without a hub
 demo.collab.lead: 'This page has collaboration on and its hub does not answer. The editor stays read-only while it connects, then lets you edit without collaboration. Saving at any moment keeps the content.'
+demo.links.nav: Links
+demo.links.heading: Links to sections
+demo.links.lead: 'Ctrl+K, the link button or [[ open one picker: a page of this wiki or another wiki of the same tenant, then a section, or an external URL. Rename a heading: its id stays. In the preview, each heading has a "#" link to copy.'
+demo.links.body: Page

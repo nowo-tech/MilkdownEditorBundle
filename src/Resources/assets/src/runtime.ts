@@ -45,6 +45,14 @@ export type Runtime = {
   /** 1.9: how many distinct files may show a preview, and those that do (audit GX-L1). */
   maxPreviews: number;
   previewFiles: Set<string>;
+  /** 1.18: the text of a page's section the link picker showed (`Title › Section` chips); undefined when unknown. */
+  sectionText: (pageId: string, id: string) => string | undefined;
+  /** 1.18: remembers a section text seen in the link picker. */
+  rememberSection: (pageId: string, id: string, text: string) => void;
+  /** 1.18 `link_picker`: opens the link picker (null without the feature or when read-only). */
+  openLinkPicker: ((view: import('@milkdown/kit/prose/view').EditorView, init?: import('./ui/link-picker').PickerInit, onCancel?: () => void) => void) | null;
+  /** 1.18 `link_picker`: whether the picker offers wiki pages (the host gave a candidates URL). */
+  linkPickerPages: boolean;
   /** MUX-41 `top_bar`: the controls of Crepe's top bar (filled when it renders), null without the feature. */
   topBar: import('./features/top-bar').TopBarEntry[] | null;
 };
@@ -71,7 +79,22 @@ export const defaultRuntime = (): Runtime => ({
   maxPreviews: 500,
   previewFiles: new Set(),
   topBar: null,
+  ...sectionMemory(),
+  openLinkPicker: null,
+  linkPickerPages: false,
 });
+
+/** 1.18: per-editor memory of section texts (bounded: the picker shows at most a few hundred). */
+export function sectionMemory(): Pick<Runtime, 'sectionText' | 'rememberSection'> {
+  const texts = new Map<string, string>();
+  return {
+    sectionText: (pageId, id) => texts.get(`${pageId}#${id}`),
+    rememberSection: (pageId, id, text) => {
+      if (texts.size >= 500) texts.delete(texts.keys().next().value as string);
+      texts.set(`${pageId}#${id}`, text);
+    },
+  };
+}
 
 export const runtimeCtx = $ctx<Runtime, 'nowoMilkdownRuntime'>(defaultRuntime(), 'nowoMilkdownRuntime');
 
