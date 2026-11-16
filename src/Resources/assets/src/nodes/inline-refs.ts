@@ -4,9 +4,24 @@
 import { $nodeSchema, $remark, $view } from '@milkdown/kit/utils';
 import type { Node as PmNode } from '@milkdown/kit/prose/model';
 import { remarkNowoDialect } from '../dialect/remark-dialect';
-import { isAnchor, isHandle, isIconName, isUuid } from '../dialect/patterns';
+import { isHandle, isIconName, isUuid, normaliseAnchor } from '../dialect/patterns';
+import { HEADING_PREFIX } from '../plugins/heading-slug';
 import { iconSvg, runtimeCtx, t } from '../runtime';
 import { lazyIcons } from '../icons/open';
+
+/**
+ * 1.18: a page URL pointing at a heading (`#nowo-h-<id>`, replacing any fragment the URL has).
+ *
+ * @param url - A safe page URL
+ * @param anchor - A bare heading id ('' for none)
+ * @returns The URL with the fragment
+ */
+export function withFragment(url: string, anchor: string): string {
+  const id = normaliseAnchor(anchor);
+  if (!id) return url;
+  const hash = url.indexOf('#');
+  return `${hash === -1 ? url : url.slice(0, hash)}#${HEADING_PREFIX}${id}`;
+}
 
 export const dialectRemark = $remark('nowoDialect', () => remarkNowoDialect as never);
 
@@ -22,16 +37,17 @@ export const wikiRefSchema = $nodeSchema('wikiRef', () => ({
       getAttrs: (dom) => {
         const el = dom as HTMLElement;
         const id = el.dataset.wikiRef ?? '';
-        const anchor = el.dataset.anchor ?? '';
-        return isUuid(id) && isAnchor(anchor) ? { pageId: id, anchor } : false;
+        const raw = el.dataset.anchor ?? '';
+        const anchor = normaliseAnchor(raw);
+        return isUuid(id) && (raw === '' || anchor !== '') ? { pageId: id, anchor } : false;
       },
     },
   ],
-  toDOM: (node: PmNode) => ['a', { 'data-wiki-ref': node.attrs.pageId, 'data-anchor': node.attrs.anchor }, `[[wiki:${node.attrs.pageId}]]`],
+  toDOM: (node: PmNode) => ['a', { 'data-wiki-ref': node.attrs.pageId, 'data-anchor': normaliseAnchor(node.attrs.anchor) }, `[[wiki:${node.attrs.pageId}]]`],
   parseMarkdown: {
     match: ({ type }) => type === 'wikiRef',
     runner: (state, node, type) => {
-      state.addNode(type, { pageId: node.pageId as string, anchor: (node.anchor as string) ?? '' });
+      state.addNode(type, { pageId: node.pageId as string, anchor: normaliseAnchor(node.anchor) });
     },
   },
   toMarkdown: {
@@ -48,7 +64,9 @@ export const wikiRefView = $view(wikiRefSchema.node, (ctx) => (node) => {
   dom.className = 'nowo-milkdown-ref';
   dom.contentEditable = 'false';
   dom.dataset.wikiRef = node.attrs.pageId;
-  if (node.attrs.anchor) dom.dataset.anchor = node.attrs.anchor;
+  // 1.18: the anchor may come from a peer: only a valid id is used.
+  const anchor = normaliseAnchor(node.attrs.anchor);
+  if (anchor) dom.dataset.anchor = anchor;
   const icon = iconSvg(runtime, 'file-text');
   if (icon) dom.append(icon);
   const label = document.createElement('span');
@@ -57,8 +75,10 @@ export const wikiRefView = $view(wikiRefSchema.node, (ctx) => (node) => {
   dom.append(label);
   void runtime.resolvePage(node.attrs.pageId).then((info) => {
     if (info.visible) {
-      label.textContent = info.title + (node.attrs.anchor ? ` › ${node.attrs.anchor}` : '');
-      if (info.url) dom.href = info.url + (node.attrs.anchor ? `#${node.attrs.anchor}` : '');
+      // 1.18: `Title › Section` when the picker told the section's text, `Title › #id` otherwise (editors see the source).
+      const section = anchor ? runtime.sectionText?.(node.attrs.pageId, anchor) : undefined;
+      label.textContent = info.title + (anchor ? ` › ${section || `#${anchor}`}` : '');
+      if (info.url) dom.href = withFragment(info.url, anchor);
     } else {
       dom.classList.add('nowo-milkdown-ref--hidden');
       label.textContent = t(runtime, 'ref.hidden');

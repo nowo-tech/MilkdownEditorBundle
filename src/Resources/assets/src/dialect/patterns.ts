@@ -6,20 +6,26 @@
  *   :tabler-<name>:                            Tabler icon from the committed sprite (allowlisted names only)
  *
  * The PHP renderer (`Nowo\MilkdownEditorBundle\Markdown`) uses the same expressions.
+ *
+ * 1.18: the anchor is a heading id (Unicode, 1–90 characters, `HeadingIds::ANCHOR` in PHP); a leading `nowo-h-` is
+ * accepted and dropped. A token whose anchor is too long stays text.
  */
+import { HEADING_PREFIX, ID_PATTERN, isHeadingId, normaliseId } from '../plugins/heading-slug';
+
 export const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
-export const ANCHOR = '[a-z0-9][a-z0-9-]{0,80}';
+export const ANCHOR = ID_PATTERN;
 export const HANDLE = '[a-zA-Z0-9_](?:[a-zA-Z0-9_.-]{0,38}[a-zA-Z0-9_])?';
 export const ICON = '[a-z0-9]+(?:-[a-z0-9]+)*';
 
-const TOKEN = new RegExp(`\\[\\[wiki:(${UUID})(?:#(${ANCHOR}))?\\]\\]|(^|[\\s(])@(${HANDLE})|:tabler-(${ICON}):`, 'g');
+const TOKEN = new RegExp(`\\[\\[wiki:(${UUID})(?:#(?:${HEADING_PREFIX})?(${ANCHOR}))?\\]\\]|(^|[\\s(])@(${HANDLE})|:tabler-(${ICON}):`, 'gu');
 const UUID_ONLY = new RegExp(`^${UUID}$`);
-const ANCHOR_ONLY = new RegExp(`^${ANCHOR}$`);
 const HANDLE_ONLY = new RegExp(`^${HANDLE}$`);
 const ICON_ONLY = new RegExp(`^${ICON}$`);
 
 export const isUuid = (value: string): boolean => UUID_ONLY.test(value);
-export const isAnchor = (value: string): boolean => value === '' || ANCHOR_ONLY.test(value);
+export const isAnchor = (value: string): boolean => value === '' || isHeadingId(value);
+/** 1.18: the bare anchor of an untrusted value (`nowo-h-` dropped), '' when invalid. */
+export const normaliseAnchor = normaliseId;
 export const isHandle = (value: string): boolean => HANDLE_ONLY.test(value);
 export const isIconName = (value: string): boolean => ICON_ONLY.test(value);
 
@@ -43,6 +49,8 @@ export function splitText(value: string): InlineToken[] {
     let start = m.index;
     let node: InlineToken;
     if (m[1]) {
+      // An anchor over the length limit: the whole token stays text.
+      if (m[2] !== undefined && !isHeadingId(m[2])) continue;
       node = { type: 'wikiRef', pageId: m[1], anchor: m[2] ?? '' };
     } else if (m[4]) {
       start += m[3]!.length; // the whitespace or bracket before @ stays text
@@ -60,7 +68,11 @@ export function splitText(value: string): InlineToken[] {
 
 /** Markdown source of each dialect node (written verbatim, never escaped). */
 export const serialise = {
-  wikiRef: (n: { pageId: string; anchor?: string }): string => `[[wiki:${n.pageId}${n.anchor ? `#${n.anchor}` : ''}]]`,
+  // 1.18: a node attribute can come from a peer: only a valid anchor is written.
+  wikiRef: (n: { pageId: string; anchor?: string }): string => {
+    const anchor = normaliseId(n.anchor ?? '');
+    return `[[wiki:${n.pageId}${anchor ? `#${anchor}` : ''}]]`;
+  },
   mention: (n: { handle: string }): string => `@${n.handle}`,
   tablerIcon: (n: { name: string }): string => `:tabler-${n.name}:`,
 };

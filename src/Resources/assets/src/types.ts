@@ -28,7 +28,9 @@ export type Feature =
   | 'heading_ids'
   | 'file_cards'
   | 'image_block'
-  | 'insert_button';
+  | 'insert_button'
+  | 'stable_heading_ids'
+  | 'link_picker';
 
 export const FEATURES: readonly Feature[] = [
   'toolbar',
@@ -53,6 +55,8 @@ export const FEATURES: readonly Feature[] = [
   'file_cards',
   'image_block',
   'insert_button',
+  'stable_heading_ids',
+  'link_picker',
 ];
 
 /** Buttons of the action bar (1.8 `action_bar_insert`). */
@@ -179,6 +183,10 @@ export type EditorOptions = {
   comments: CommentsOptions | null;
   /** `version_view` banner (1.6); null when the feature is off. */
   version: VersionOptions | null;
+  /** 1.18 `link_picker`: sections URL template with `{id}` (same origin); null: no section step. */
+  linkSections: string | null;
+  /** 1.18 `link_picker`: schemes an external link may use (`http`, `https`, `mailto`, narrowed by the field). */
+  linkSchemes: string[];
   nonce: string;
   messages: Messages;
 };

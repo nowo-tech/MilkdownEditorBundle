@@ -18,9 +18,12 @@ final class WikiLink extends AbstractInline
     /** The resolved page (null: not visible to the viewer or unknown). */
     public ?ResolvedPage $page = null;
 
+    /** 1.18: the text of the linked section (`SectionResolverInterface`; null: none, the label is the title alone). */
+    public ?string $section = null;
+
     /**
      * @param string $pageId Page UUID (lower case)
-     * @param string $anchor Heading anchor ('' for none)
+     * @param string $anchor Bare heading id (no `nowo-h-` prefix; '' for none)
      */
     public function __construct(public readonly string $pageId, public readonly string $anchor = '')
     {

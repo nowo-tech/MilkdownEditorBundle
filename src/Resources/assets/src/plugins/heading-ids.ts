@@ -2,13 +2,17 @@
  * `heading_ids` (1.6): DOM ids on headings, the same slugs as the PHP renderer (`markdown.heading_ids`,
  * `HeadingIds`), prefixed with `nowo-h-` so a heading never clobbers a host element id or a global. Node
  * decorations only: nothing is stored in the Markdown.
+ *
+ * 1.18: a heading's own id (its `{#id}` suffix, or the frozen id of `stable_heading_ids`) is reserved first; the others
+ * take their slug or the next free `-N`, so the DOM ids are always unique and match the PHP renderer. Ids from peers are
+ * validated when they are read.
  */
 import { Plugin, PluginKey, type EditorState } from '@milkdown/kit/prose/state';
 import { Decoration, DecorationSet } from '@milkdown/kit/prose/view';
 import { $prose } from '@milkdown/kit/utils';
-import { HEADING_PREFIX, slugs } from './heading-slug';
+import { HEADING_PREFIX, MAX_IDS, normaliseId, resolveIds } from './heading-slug';
 
-export { HEADING_PREFIX, MAX_SLUG, slug, slugs } from './heading-slug';
+export { HEADING_PREFIX, MAX_SLUG, resolveIds, slug, slugs } from './heading-slug';
 
 /**
  * Heading ids of a document, by position.
@@ -17,12 +21,13 @@ export { HEADING_PREFIX, MAX_SLUG, slug, slugs } from './heading-slug';
  * @returns Position → id
  */
 export function headingIds(state: EditorState): Map<number, string> {
-  const found: { pos: number; text: string }[] = [];
+  const found: { pos: number; text: string; explicit: string }[] = [];
   state.doc.descendants((node, pos) => {
-    if (node.type.name === 'heading') found.push({ pos, text: node.textContent });
+    if (found.length >= MAX_IDS) return false;
+    if (node.type.name === 'heading') found.push({ pos, text: node.textContent, explicit: normaliseId(node.attrs.id) });
     return node.isBlock;
   });
-  const ids = slugs(found.map((h) => h.text));
+  const ids = resolveIds(found);
   return new Map(found.map((h, i) => [h.pos, HEADING_PREFIX + ids[i]!]));
 }
 

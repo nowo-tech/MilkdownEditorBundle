@@ -19,6 +19,7 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\HostFileResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\IconResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\PageResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\RenderContextProviderInterface;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\SectionResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateFilePreviewResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateHostFileResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\UserResolverInterface;
@@ -72,6 +73,7 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
      * @param HostFileResolverInterface|null $sources Resolves host references per viewer (1.9; null: the templates)
      * @param FilePreviewResolverInterface|null $previews Previews of `view="preview"` file cards (1.9; null: the templates)
      * @param RenderContextProviderInterface|null $renderContext The render's context for a contextual host file resolver (1.13)
+     * @param SectionResolverInterface|null $sections Section texts of `[[wiki:<uuid>#<id>]]` labels (1.18; null: the title alone)
      */
     public function __construct(
         private readonly array $options,
@@ -86,6 +88,7 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
         private readonly ?HostFileResolverInterface $sources = null,
         private readonly ?FilePreviewResolverInterface $previews = null,
         private readonly ?RenderContextProviderInterface $renderContext = null,
+        private readonly ?SectionResolverInterface $sections = null,
     ) {
     }
 
@@ -184,6 +187,7 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
                 $this->options['image_block'] ?? false,
                 $this->renderContext,
                 ($this->options['host_refused_links'] ?? 'text') === 'hidden',
+                $this->sections,
             ),
             $math,
         ));

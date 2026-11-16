@@ -12,6 +12,7 @@
 import type { CrepeBuilder } from '@milkdown/crepe/builder';
 import { topBar } from '@milkdown/crepe/feature/top-bar';
 import type { Ctx } from '@milkdown/kit/ctx';
+import { editorViewCtx } from '@milkdown/kit/core';
 import { t, type Runtime } from '../runtime';
 import { glyph } from '../ui/icons';
 import { Menu, type MenuGroups, type MenuItem } from '../ui/menu';
@@ -103,6 +104,14 @@ export function addTopBar(builder: CrepeBuilder, runtime: Runtime): TopBarEntry[
             entry.options = selector.options.map((o) => ({ label: o.label, run: o.onSelect }));
             entry.current = (ctx) => selector.activeLabel(ctx);
           } else {
+            // 1.18 `link_picker`: the link button opens the picker (Crepe's own link toggle otherwise).
+            if (item.key === 'link' && item.onRun) {
+              const own = item.onRun;
+              item.onRun = (ctx) => {
+                if (runtime.openLinkPicker) runtime.openLinkPicker(ctx.get(editorViewCtx));
+                else own(ctx);
+              };
+            }
             entry.run = item.onRun;
           }
           entries.push(entry);

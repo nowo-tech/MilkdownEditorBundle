@@ -9,14 +9,14 @@
  */
 import { CrepeBuilder } from '@milkdown/crepe/builder';
 import { editorViewCtx, editorViewOptionsCtx } from '@milkdown/kit/core';
-import { headingIdGenerator } from '@milkdown/kit/preset/commonmark';
+import { headingIdGenerator, headingSchema, syncHeadingIdPlugin } from '@milkdown/kit/preset/commonmark';
 import { uploadConfig } from '@milkdown/kit/plugin/upload';
 import { $prose, replaceAll } from '@milkdown/kit/utils';
 import type { EditorView } from '@milkdown/kit/prose/view';
 import { addFeatures } from './features';
 import { createPageResolver } from './link-titles';
 import { createUserResolver } from './user-names';
-import { pageHostConfig, parseOptions } from './options';
+import { pageHostConfig, parseOptions, sameOrigin } from './options';
 import { parsePreviewTypes, withUrlPatterns } from './host';
 import { directives } from './nodes/directives';
 import { hostLinkSchema, imageAttributesSchema, imageLiftRemark, imageView } from './nodes/image';
@@ -30,11 +30,12 @@ import { defaultRuntime, pickerAvailable, runtimeCtx, t, type Runtime } from './
 import { glyph } from './ui/icons';
 import { assetUrl } from './assets';
 import { openPickerAtCaret } from './icons/open';
-import { buildTriggers, slashItems } from './triggers';
+import { buildTriggers, fetchJson, slashItems } from './triggers';
 import { insertItems, type InsertItem } from './commands/insert';
 import { createFileDrop } from './plugins/file-drop';
 import { insertButtonPlugin } from './plugins/insert-button';
 import { HEADING_PREFIX, slug } from './plugins/heading-slug';
+import { STABLE_IDS_FEATURE, extendHeading } from './nodes/heading';
 import type { EditorOptions } from './types';
 import type { MercureProvider } from './collab/mercure-provider';
 import type { CommentsApi, CommentsHost, ThreadUi, YjsAnchors } from './comments/index';
@@ -194,6 +195,16 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
     previewTypes: parsePreviewTypes(options.previewTypes),
     maxPreviews: options.maxPreviews,
   };
+  // 1.18 `link_picker`: one picker for the link button, Mod-k, `[[` and *Edit link* (a lazy chunk, loaded on first use).
+  if (options.features.includes('link_picker') && !options.readonly) {
+    const pageCandidates = options.suggestions['[['];
+    const candidatesUrl = pageCandidates && sameOrigin(pageCandidates) ? pageCandidates : null;
+    runtime.linkPickerPages = candidatesUrl !== null;
+    runtime.openLinkPicker = (view, init, onCancel) =>
+      void import('./commands/link').then((m) =>
+        m.openLinkPicker(view, runtime, { root, candidatesUrl, sectionsUrl: options.linkSections, schemes: options.linkSchemes, fetcher: fetchJson }, init, onCancel),
+      );
+  }
   root.classList.add('nowo-milkdown');
   root.dataset.theme = options.theme;
   root.style.setProperty('--nowo-milkdown-min-height', options.minHeight);
@@ -230,6 +241,9 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   // 1.10: with collaboration too the editor starts on the field's content, read-only until the wait is over.
   const builder = new CrepeBuilder({ root: surface, defaultValue: initial });
   const editor = builder.editor;
+  // 1.18: the preset rewrote every heading id from its text after each change, on every peer (remote changes included),
+  // with `-#2` duplicates; ids are now kept in the node (and in the Markdown when they differ from the slug).
+  await editor.remove(syncHeadingIdPlugin);
   const collabModule = options.collaboration ? await import('./collab/index') : null;
   // 1.3: the context menu is a lazy chunk, loaded only when the field enables it.
   const contextMenuModule = options.features.includes('context_menu') ? await import('./plugins/context-menu') : null;
@@ -250,6 +264,8 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
       // Editor heading ids are always prefixed (`nowo-h-<slug>`): Milkdown's default id is the bare heading text, which
       // a heading could use to take over a host element id, e.g. the comments drawer (audit DW-M2).
       ctx.set(headingIdGenerator.key, (node) => HEADING_PREFIX + slug(node.textContent));
+      // 1.18: the heading node reads and writes the `{#id}` suffix and validates its id attribute (nodes/heading.ts).
+      ctx.update(headingSchema.key, extendHeading);
       ctx.update(editorViewOptionsCtx, (prev) => ({
         ...prev,
         attributes: { ...editableAttributes(options.label || t(runtime, 'editor.label'), label?.id ?? null, options.readonly), id: `nowo-milkdown-${++sequence}` },
@@ -299,6 +315,9 @@ export async function createEditor(root: HTMLElement, overrides: Partial<EditorO
   if (colorsModule) editor.use(colorsModule.colorMenuPlugin);
   if (clipboardModule) editor.use(clipboardModule.markdownClipboardPlugin((key, error) => announce(key, {}, error, true)));
   if (options.features.includes('heading_ids')) editor.use((await import('./plugins/heading-ids')).headingIdsPlugin);
+  // 1.18: frozen heading ids (on leave, and unique after a split, paste or drop).
+  if (options.features.includes(STABLE_IDS_FEATURE)) editor.use((await import('./plugins/heading-stable-ids')).stableIdsPlugin);
+  if (runtime.openLinkPicker) editor.use((await import('./plugins/link-trigger')).linkTriggerPlugin);
   if (commentsModule && commentsHost) commentsModule.useComments(editor, commentsHost, () => threadUi);
   await addFeatures(builder, options, runtime);
 

@@ -20,6 +20,7 @@ use Nowo\MilkdownEditorBundle\Markdown\Resolver\NullPageResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\NullUserResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\PageResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\RenderContextProviderInterface;
+use Nowo\MilkdownEditorBundle\Markdown\Resolver\SectionResolverInterface;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TablerCatalog;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateFilePreviewResolver;
 use Nowo\MilkdownEditorBundle\Markdown\Resolver\TemplateHostFileResolver;
@@ -85,6 +86,8 @@ return static function (ContainerConfigurator $container): void {
             '$previews'           => service(FilePreviewResolverInterface::class),
             // 1.13: alias RenderContextProviderInterface to a host service to give contextual resolvers the render's context.
             '$renderContext' => service(RenderContextProviderInterface::class)->nullOnInvalid(),
+            // 1.18: alias SectionResolverInterface to a host service for `Title › Section` labels of page links.
+            '$sections' => service(SectionResolverInterface::class)->nullOnInvalid(),
         ])
         ->tag('monolog.logger', ['channel' => 'nowo_milkdown_editor'])
         // 1.2.1: per-request footnote render counters (FootnoteSalt) are cleared between requests (worker mode).

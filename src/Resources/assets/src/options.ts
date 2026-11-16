@@ -3,6 +3,7 @@
  */
 import { isIconName } from './dialect/patterns';
 import { parseHostSchemes, parsePreviewTypes } from './host';
+import { linkSchemes } from './ui/link-url';
 import { FEATURES, type ActionBarInsert, type CollaborationOptions, type CommentsOptions, type EditorOptions, type Feature, type Theme, type Trigger, type UploadOptions } from './types';
 
 export const DEFAULT_FEATURES: Feature[] = ['toolbar', 'link_tooltip', 'table', 'code_mirror', 'placeholder', 'cursor', 'slash_menu'];
@@ -125,6 +126,17 @@ export function commentsOptions(value: unknown, on: boolean): CommentsOptions | 
 }
 
 /**
+ * 1.18: the `link_sections` template: a same-origin URL with `{id}`, or null.
+ *
+ * @param value - The JSON value
+ * @returns The template, or null
+ */
+export function linkSectionsUrl(value: unknown): string | null {
+  const url = strOrNull(value);
+  return url !== null && url.includes('{id}') && url.length <= 2048 && sameOrigin(url.replace('{id}', 'x')) ? url : null;
+}
+
+/**
  * Parses and validates the widget JSON; invalid values fall back to safe defaults.
  *
  * @param raw - The `data-nowo-milkdown-options` attribute
@@ -176,6 +188,9 @@ export function parseOptions(raw: string | undefined | null): EditorOptions {
     userTitleUrl: strOrNull(data.userTitleUrl),
     comments: commentsOptions(data.comments, features.includes('comments')),
     version: versionOn ? { label: str(version.label).slice(0, 200), restore: version.restore !== false, copy: version.copy !== false } : null,
+    // 1.18 `link_picker`: sent only with the feature.
+    linkSections: features.includes('link_picker') ? linkSectionsUrl(data.linkSections) : null,
+    linkSchemes: linkSchemes(data.linkSchemes),
     nonce: str(data.nonce) || pageNonce(),
     messages,
   };

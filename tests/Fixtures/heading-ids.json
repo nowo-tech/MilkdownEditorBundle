@@ -1,0 +1,282 @@
+{
+ "_comment": "1.18 shared vectors: PHPUnit (HeadingIdsTest) and Vitest (heading-stable-ids.test.ts) run the same cases.",
+ "slug": [
+  [
+   "Install the bundle",
+   "install-the-bundle"
+  ],
+  [
+   "  Hello, World!  ",
+   "hello-world"
+  ],
+  [
+   "Instalación rápida",
+   "instalación-rápida"
+  ],
+  [
+   "日本語の見出し",
+   "日本語の見出し"
+  ],
+  [
+   "C++ & C#",
+   "c-c"
+  ],
+  [
+   "!!!",
+   "section"
+  ],
+  [
+   "",
+   "section"
+  ],
+  [
+   "Ünïcödé — ok",
+   "ünïcödé-ok"
+  ],
+  [
+   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  [
+   "Version 1.6.0",
+   "version-1-6-0"
+  ],
+  [
+   "emoji 🎉 party",
+   "emoji-party"
+  ],
+  [
+   "ŞĞİ",
+   "şği̇"
+  ],
+  [
+   "Café au lait",
+   "café-au-lait"
+  ],
+  [
+   "́accent first",
+   "accent-first"
+  ],
+  [
+   "Aϒb",
+   "a-b"
+  ],
+  [
+   "Año nuevo",
+   "año-nuevo"
+  ]
+ ],
+ "unique": [
+  {
+   "texts": [
+    "Intro",
+    "Intro",
+    "Intro-2",
+    "Intro"
+   ],
+   "slugs": [
+    "intro",
+    "intro-2",
+    "intro-2-2",
+    "intro-3"
+   ]
+  }
+ ],
+ "resolve": [
+  {
+   "headings": [
+    {
+     "text": "Intro",
+     "explicit": ""
+    },
+    {
+     "text": "Other",
+     "explicit": "intro"
+    }
+   ],
+   "ids": [
+    "intro-2",
+    "intro"
+   ]
+  },
+  {
+   "headings": [
+    {
+     "text": "A",
+     "explicit": "x"
+    },
+    {
+     "text": "B",
+     "explicit": "x"
+    },
+    {
+     "text": "C",
+     "explicit": ""
+    }
+   ],
+   "ids": [
+    "x",
+    "x-2",
+    "c"
+   ]
+  },
+  {
+   "headings": [
+    {
+     "text": "Setup",
+     "explicit": "Not Valid"
+    },
+    {
+     "text": "Setup",
+     "explicit": ""
+    }
+   ],
+   "ids": [
+    "setup",
+    "setup-2"
+   ]
+  },
+  {
+   "headings": [
+    {
+     "text": "Install",
+     "explicit": "nowo-h-setup"
+    }
+   ],
+   "ids": [
+    "setup"
+   ]
+  },
+  {
+   "headings": [
+    {
+     "text": "Intro",
+     "explicit": ""
+    },
+    {
+     "text": "Intro",
+     "explicit": ""
+    },
+    {
+     "text": "Intro",
+     "explicit": "intro-2"
+    }
+   ],
+   "ids": [
+    "intro",
+    "intro-3",
+    "intro-2"
+   ]
+  },
+  {
+   "headings": [
+    {
+     "text": "Überblick",
+     "explicit": "überblick-alt"
+    }
+   ],
+   "ids": [
+    "überblick-alt"
+   ]
+  }
+ ],
+ "valid": [
+  "setup",
+  "año",
+  "überblick",
+  "日本語",
+  "a-b-c",
+  "x2",
+  "2024",
+  "şği̇",
+  "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+ ],
+ "invalid": [
+  "",
+  "Setup",
+  "a--b",
+  "-a",
+  "a-",
+  "a_b",
+  "a b",
+  "a.b",
+  "́a",
+  "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "nowo-h-",
+  "x\"y",
+  "<x>",
+  "javascript:alert(1)"
+ ],
+ "suffix": [
+  {
+   "markdown": "## Install guide {#setup}",
+   "text": "Install guide",
+   "id": "setup"
+  },
+  {
+   "markdown": "## Año {#año}",
+   "text": "Año",
+   "id": "año"
+  },
+  {
+   "markdown": "## Install {#nowo-h-setup}",
+   "text": "Install",
+   "id": "setup"
+  },
+  {
+   "markdown": "## Install   {#setup}",
+   "text": "Install",
+   "id": "setup"
+  },
+  {
+   "markdown": "## Install {#setup} ##",
+   "text": "Install",
+   "id": "setup"
+  },
+  {
+   "markdown": "Install guide {#setup}\n===",
+   "text": "Install guide",
+   "id": "setup"
+  },
+  {
+   "markdown": "## Install \\{#setup}",
+   "text": "Install {#setup}",
+   "id": ""
+  },
+  {
+   "markdown": "## Install {#Setup}",
+   "text": "Install {#Setup}",
+   "id": ""
+  },
+  {
+   "markdown": "## Install {#setup} more",
+   "text": "Install {#setup} more",
+   "id": ""
+  },
+  {
+   "markdown": "## Install{#setup}",
+   "text": "Install{#setup}",
+   "id": ""
+  },
+  {
+   "markdown": "## {#setup}",
+   "text": "{#setup}",
+   "id": ""
+  },
+  {
+   "markdown": "## Install {.class #setup}",
+   "text": "Install {.class #setup}",
+   "id": ""
+  },
+  {
+   "markdown": "## *Install* {#setup}",
+   "text": "Install",
+   "id": "setup"
+  },
+  {
+   "markdown": "## `code {#x}`",
+   "text": "code {#x}",
+   "id": ""
+  }
+ ]
+}

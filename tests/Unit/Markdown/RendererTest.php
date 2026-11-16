@@ -31,6 +31,7 @@ use Stringable;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 use function is_string;
+use function str_repeat;
 use function strlen;
 
 final class RendererTest extends TestCase
@@ -98,7 +99,12 @@ final class RendererTest extends TestCase
     public static function cases(): iterable
     {
         $id = self::ID;
-        yield 'page link' => ["See [[wiki:{$id}#setup]].", '<p>See <a class="nowo-md-ref" href="/wiki/install#setup">Install &lt;guide&gt; › setup</a>.</p>'];
+        // 1.18: the fragment is the heading's DOM id; without a section resolver the label is the title alone.
+        yield 'page link' => ["See [[wiki:{$id}#setup]].", '<p>See <a class="nowo-md-ref" href="/wiki/install#nowo-h-setup">Install &lt;guide&gt;</a>.</p>'];
+        yield 'page link, prefixed anchor' => ["[[wiki:{$id}#nowo-h-año]]", '<p><a class="nowo-md-ref" href="/wiki/install#nowo-h-año">Install &lt;guide&gt;</a></p>'];
+        yield 'page link, invalid anchor stays text' => ["[[wiki:{$id}#Setup]]", "<p>[[wiki:{$id}#Setup]]</p>"];
+        yield 'page link, anchor over 90 characters stays text' => ['[[wiki:' . $id . '#' . str_repeat('a', 91) . ']]', '<p>[[wiki:' . $id . '#' . str_repeat('a', 91) . ']]</p>'];
+        yield 'a paragraph keeps a trailing {#id}' => ['Text {#setup}', '<p>Text {#setup}</p>'];
         yield 'hidden page' => ['[[wiki:' . self::HIDDEN . ']]', '<p><span class="nowo-md-ref nowo-md-ref--hidden">Content not visible</span></p>'];
         yield 'mentions' => ['Hi @ada, (@grace) @nobody @evil mail ada@example.com', '<p>Hi <a class="nowo-md-mention" href="/users/ada" title="Ada Lovelace">@ada</a>, (<span class="nowo-md-mention" title="Grace">@grace</span>) @nobody <span class="nowo-md-mention" title="Evil">@evil</span> mail <a href="mailto:ada@example.com">ada@example.com</a></p>'];
         yield 'icons' => [':tabler-bug: :tabler-unknown:', '<p><svg class="nowo-md-icon" role="img" aria-label="bug"><use href="/sprite.svg#tabler-bug"></use></svg> :tabler-unknown:</p>'];

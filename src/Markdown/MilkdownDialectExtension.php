@@ -19,6 +19,7 @@ use Nowo\MilkdownEditorBundle\Markdown\Node\TextDirective;
 use Nowo\MilkdownEditorBundle\Markdown\Node\WikiLink;
 use Nowo\MilkdownEditorBundle\Markdown\Parser\DialectInlineParser;
 use Nowo\MilkdownEditorBundle\Markdown\Parser\DirectiveBlockStartParser;
+use Nowo\MilkdownEditorBundle\Markdown\Parser\HeadingIdSuffixParser;
 use Nowo\MilkdownEditorBundle\Markdown\Parser\MathInlineParser;
 use Nowo\MilkdownEditorBundle\Markdown\Parser\TextDirectiveParser;
 
@@ -51,6 +52,8 @@ final readonly class MilkdownDialectExtension implements ExtensionInterface
     {
         $environment
             ->addBlockStartParser(new DirectiveBlockStartParser($this->math), 90)
+            // 1.18: the `{#id}` suffix of a heading (only at the end of a heading's text).
+            ->addInlineParser(new HeadingIdSuffixParser(), 210)
             ->addInlineParser(new DialectInlineParser(), 200)
             ->addInlineParser(new TextDirectiveParser(), 190)
             ->addEventListener(DocumentParsedEvent::class, $this->processor);

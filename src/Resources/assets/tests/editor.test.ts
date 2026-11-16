@@ -82,8 +82,9 @@ describe('createEditor', () => {
     handle = await editor(`[[wiki:${ID}#a]] [[wiki:${other}]]`, { linkTitleUrl: '/titles' });
     await tick(10);
     const refs = view(handle).dom.querySelectorAll('.nowo-milkdown-ref');
-    expect(refs[0]?.textContent).toBe('Install › a');
-    expect(refs[0]?.getAttribute('href')).toBe('/wiki/install#a');
+    // 1.18: the fragment is the heading's DOM id; the chip shows the id until the picker told the section text.
+    expect(refs[0]?.textContent).toBe('Install › #a');
+    expect(refs[0]?.getAttribute('href')).toBe('/wiki/install#nowo-h-a');
     expect(refs[1]?.textContent).toBe('Content not visible');
     expect(refs[1]?.hasAttribute('href')).toBe(false);
     expect(fetchMock).toHaveBeenCalledTimes(1);
