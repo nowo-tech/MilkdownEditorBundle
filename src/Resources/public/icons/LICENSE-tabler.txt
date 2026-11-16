@@ -1,4 +1,4 @@
-Tabler Icons 3.50.0 (outline), https://tabler.io/icons
+Tabler Icons 3.51.0 (outline), https://tabler.io/icons
 
 MIT License
 

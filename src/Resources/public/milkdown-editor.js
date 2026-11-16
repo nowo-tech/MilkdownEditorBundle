@@ -3558,7 +3558,7 @@ function ec(e = document) {
 // src/Resources/assets/src/icons/open.ts
 var tc = {
 	picker: () => import("./chunks/icon-picker-DQRK8Tld.js"),
-	catalog: () => import("./chunks/catalog-BfEKgkVo.js")
+	catalog: () => import("./chunks/catalog-C3FMbJXi.js")
 };
 async function nc(e) {
 	return e.catalogUrl ? (await tc.catalog()).catalog() : [];
