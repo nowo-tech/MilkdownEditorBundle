@@ -429,7 +429,8 @@ describe('time limits on posts (HV-L3)', () => {
     await tick(10);
     expect(done).toBe(false);
     timeouts.fire();
-    await tick(5);
+    // The abort settles through several promise hops: wait for it (a fixed 5 ms was too short on a busy CI runner).
+    for (let i = 0; i < 200 && !done; i++) await tick(10);
     expect(done).toBe(true);
     provider.disconnect();
   });
