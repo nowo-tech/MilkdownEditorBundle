@@ -3,7 +3,7 @@
 **Feature branch**: `feat/icons`  
 **Created**: 2026-11-04  
 **Status**: Implemented (1.7.0, unreleased)  
-**Origin**: owner request (Notion-style icons), contract reviewed by Beacon (2026-11-04). Numbered 006: 005 is left
+**Origin**: owner request (icons next to UI actions), contract reviewed by Beacon (2026-11-04). Numbered 006: 005 is left
 to the concurrent 1.6 work.
 
 ## Summary

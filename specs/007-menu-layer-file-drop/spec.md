@@ -19,7 +19,7 @@ visible, on top of everything, at the pointer; keyboard, type-ahead and focus re
 **Given** `action_bar_insert: []`, **then** the action bar shows neither *Insert file* nor *Insert icon*; `/file`,
 `/icon`, the context menu *Insert* group and drop / paste still work.
 
-### US-03 — Drop several files like Notion (P1, ME-3)
+### US-03 — Drop several files at once (P1, ME-3)
 
 **When** the author drops a PNG, a PDF and a CSV at once, **then** each shows a placeholder with its progress at the
 drop point and they land in order as one image and two file cards; after saving and reloading the same cards are shown
