@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { seriousViolations, violations, watch } from './helpers';
+import { dblclickWord, seriousViolations, violations, watch } from './helpers';
 
 async function openComments(page: Page, theme: 'light' | 'dark'): Promise<void> {
   await page.goto(`/comments?devtools=0${theme === 'dark' ? '&theme=dark' : ''}`);
@@ -24,7 +24,7 @@ test.describe('comments, version view and diff (1.6)', () => {
       });
       await openComments(page, theme);
       const editorRoot = page.locator('.nowo-milkdown').first();
-      await editorRoot.locator('.ProseMirror p', { hasText: 'production' }).getByText('production').dblclick();
+      await dblclickWord(editorRoot.locator('.ProseMirror p', { hasText: 'production' }), 'production');
       // The selection reaches the editor state (the selection toolbar shows it) before the shortcut.
       await expect(page.locator('.milkdown-toolbar[data-show="true"]')).toHaveCount(1);
       await expect(page.getByRole('textbox', { name: 'New comment' })).toBeHidden();

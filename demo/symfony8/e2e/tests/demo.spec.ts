@@ -288,7 +288,8 @@ test.describe('Milkdown editor demo', () => {
     const first = await page.locator('.demo-source').textContent();
     await expect(page.locator('[data-preview] .nowo-md-callout--warning')).toBeVisible();
     await expect(page.locator('[data-preview] .nowo-md-ref--hidden')).toHaveText('Content not visible');
-    await expect(page.locator('[data-preview] a.nowo-md-ref')).toHaveText('Architecture › setup');
+    // 1.18: `Title › Section text` from the host's SectionResolverInterface (DemoSections), never the raw id.
+    await expect(page.locator('[data-preview] a.nowo-md-ref')).toHaveText('Architecture › Set up');
     // 1.7: the inline icon and the callout icon.
     await expect(page.locator('[data-preview] svg.nowo-md-icon')).toHaveCount(2);
     await expect(page.locator('[data-preview] svg.nowo-md-callout__icon[aria-hidden="true"]')).toHaveCount(1);

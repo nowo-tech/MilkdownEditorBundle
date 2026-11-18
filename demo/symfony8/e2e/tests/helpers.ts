@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 export type Violation = { directive: string; blockedURI: string; sample: string };
@@ -93,4 +93,27 @@ export async function openToolbar(page: Page): Promise<void> {
   await page.keyboard.type('Plain words here');
   await page.keyboard.press('Shift+Home');
   await expect(page.locator('.milkdown-toolbar[data-show="true"]')).toHaveCount(1);
+}
+
+/**
+ * Double-clicks a word of a block at the word itself. `dblclick()` on a locator aims at the centre of its box: for a
+ * paragraph wider than its text (UiKit's full-width content column), that point lies past the last word, and Chromium
+ * selects the line end instead of a word, so the selection toolbar never opens.
+ */
+export async function dblclickWord(block: Locator, word: string): Promise<void> {
+  const point = await block.evaluate((el, w) => {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const at = node.textContent?.indexOf(w) ?? -1;
+      if (at < 0) continue;
+      const range = document.createRange();
+      range.setStart(node, at);
+      range.setEnd(node, at + w.length);
+      const box = range.getBoundingClientRect();
+      return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    }
+    return null;
+  }, word);
+  expect(point, `"${word}" not found`).not.toBeNull();
+  await block.page().mouse.dblclick(point!.x, point!.y);
 }

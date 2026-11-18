@@ -23,7 +23,7 @@
                 {# 1.5.1: the icon-only variant (accessible name from the visually hidden label). #}
                 {{ nowo_milkdown_copy_markdown(saved.body, {icon: 'only'}) }}
                 <h3>{{ 'demo.markdown'|trans }}</h3>
-                <pre class="nowo-ui-code-block nowo-ui-code-block--wrap demo-source">{{ saved.body }}</pre>
+                <pre class="nowo-ui-code-block nowo-ui-code-block--wrap demo-source" tabindex="0" role="region" aria-label="{{ 'demo.markdown'|trans }}">{{ saved.body }}</pre>
             </div>
         </section>
     {% endif %}

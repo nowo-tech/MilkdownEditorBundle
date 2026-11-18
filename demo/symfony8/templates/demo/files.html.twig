@@ -18,7 +18,7 @@
                 <h2 id="preview-heading" class="nowo-ui-card__title">{{ 'demo.preview'|trans }}</h2>
                 <article class="nowo-md" data-preview>{{ saved.body|milkdown_markdown }}</article>
                 <h3>{{ 'demo.markdown'|trans }}</h3>
-                <pre class="nowo-ui-code-block nowo-ui-code-block--wrap demo-source">{{ saved.body }}</pre>
+                <pre class="nowo-ui-code-block nowo-ui-code-block--wrap demo-source" tabindex="0" role="region" aria-label="{{ 'demo.markdown'|trans }}">{{ saved.body }}</pre>
             </div>
         </section>
     {% endif %}
