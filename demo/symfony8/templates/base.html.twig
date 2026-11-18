@@ -6,6 +6,11 @@
 {% block nowo_ui_document_title %}{% block title %}Milkdown Editor Bundle demo{% endblock %}{% endblock %}
 
 {% block nowo_ui_head %}
+    {#- `?theme=dark`: the page follows the editor's dark theme. UiKit's theme boot (before this block) resolved the
+        theme from storage or the OS; the demo's Dark view forces it, as a host would with data-nowo-ui-pref-theme. -#}
+    {% if dark|default(false) %}
+        <script nonce="{{ app.request.attributes.get('csp_nonce') }}">document.documentElement.setAttribute('data-nowo-ui-pref-theme', 'dark');document.documentElement.setAttribute('data-theme', 'dark');</script>
+    {% endif %}
     {{ nowo_milkdown_editor_assets() }}
 {% endblock %}
 

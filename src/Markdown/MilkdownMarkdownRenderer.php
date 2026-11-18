@@ -167,6 +167,8 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
             // After orphans become text (30), before numbering (20): per-document salt of the footnote ids (CZ-I7).
             $this->footnoteSalt = new FootnoteSalt($this->secret);
             $environment->addEventListener(DocumentParsedEvent::class, [$this->footnoteSalt, 'onDocumentParsed'], 25);
+            // After the back links are created (10): a footnote that ends with a list or a table keeps them in a paragraph.
+            $environment->addEventListener(DocumentParsedEvent::class, [new FootnoteBackrefPlacement(), 'onDocumentParsed'], FootnoteBackrefPlacement::PRIORITY);
         }
         if ($this->options['heading_ids'] ?? false) {
             // 1.6: prefixed heading ids, the same slugs as the editor (`heading_ids`).
