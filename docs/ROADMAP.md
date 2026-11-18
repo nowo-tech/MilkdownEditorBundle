@@ -139,7 +139,7 @@ Ordered by value. One line each: what it is and why it helps.
 |------|------|--------------|-------|
 | Slash menu | **Slash menu v2** | Opens after `/` at a line start or after a space, groups, keywords and aliases, recent items first, the full list scrollable; today only 10 rows show and several blocks cannot be found by a synonym. See [Slash menu v2](#slash-menu-v2). | E |
 | Templates | **Template picker, chips and insert block** | `editor.insertMarkdown()`, a searchable picker from a host URL, a *Template* slash group, variables shown as non-editable chips while editing a template, a repeatable insert block; the editor half of Wiki templates. See [Templates](#templates). | E + W |
-| Embeds | **External embeds and bookmarks** | `::embed{url}` for allow-listed providers (sandboxed iframe, link otherwise) and `::bookmark{url}` cards from a host unfurl endpoint; pasting a lone URL offers *Link / Bookmark / Embed*. See [Embeds and bookmarks](#embeds-and-bookmarks). | E + H |
+| Embeds | **External embeds and bookmarks** | Waits for the open decisions D2 and D3. `::embed{url}` for allow-listed providers (sandboxed iframe, link otherwise) and `::bookmark{url}` cards from a host unfurl endpoint; pasting a lone URL offers *Link / Bookmark / Embed*. See [Embeds and bookmarks](#embeds-and-bookmarks). | E + H |
 | Writing tools | **Find and replace** | A find bar inside the editor (`prosemirror-search`), case and regex options, replace one / all as one transaction, match count announced; also opens on a search hit from the Wiki. See [Find and replace](#find-and-replace). | E |
 | Blocks | **Table of contents block** | `::toc{levels=2-3}` with a live preview in the editor and the same list in the PHP renderer and exports; long pages become navigable. The Wiki adds a side panel from the same ids. | E + W |
 | Collaboration | **Presence avatars and follow** | An avatar stack of connected people (from awareness), *follow* to scroll with a collaborator, a clearer reconnecting state; people see who else is in the page. | E + W |
@@ -191,7 +191,8 @@ Ordered by value. One line each: what it is and why it helps.
 
 ### Slash menu v2
 
-- Triggers after `/` at the start of a line **or after a space**; Escape or a space closes it.
+- Triggers after `/` at the start of a line **or after a space, mid-line** (D16, decided 2026-11-18: on by default,
+  turned off per profile); Escape or a space closes it.
 - Groups (*Basic*, *Lists*, *Media*, *Advanced*, *Host*), keywords and aliases (`todo` → task list, `hr` → divider),
   the shortcut shown per row, recent items first, the full list scrollable instead of `MAX_ITEMS = 10`.
 - Every block the profile allows, including the ones each release adds (embed, bookmark, TOC, database, template,
@@ -266,7 +267,9 @@ Moved out of the plan because they shipped (version in brackets):
 ## Open decisions
 
 Recommended answers are the defaults until the owner decides. D1, D5, D8, D9, D11, D12 and D15 were applied as
-recommended in the shipped releases.
+recommended in the shipped releases. **D16 is decided** (owner, 2026-11-18): the slash menu also opens after a space,
+mid-line, on by default and can be turned off per profile. **Still open** on 2026-11-18: D2 (the embed provider
+allow-list) and D3 (the host unfurl endpoint), which the external embeds and bookmarks of Next wait for.
 
 | # | Decision | Recommendation |
 |---|----------|----------------|
@@ -278,7 +281,6 @@ recommended in the shipped releases.
 | D10 | **AI assistance** at all, and through what? | Opt-in host endpoint only; never browser providers |
 | D13 | **Suggested edits** in scope? | Yes, later, as per-block proposals; no character-level tracking |
 | D14 | Definition lists | A gap unless a host asks |
-| D16 | **Slash menu trigger after a space** (may surprise people typing paths such as `a /b`)? | Yes, closed by a second space or Escape, opt-out per profile |
 
 ## Links
 
