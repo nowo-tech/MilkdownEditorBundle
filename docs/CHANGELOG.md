@@ -420,7 +420,7 @@ see [UPGRADING](UPGRADING.md#to-190) and `specs/008-host-files-image-block/spec.
 Menus open in the top layer, the action bar's insert buttons are configurable (`action_bar_insert`), and several files can be dropped or pasted at once: images become image nodes, other files become file cards (`file_cards`).
 
 Beacon request 2026-11-06 (*milkdown-menu-layer-and-file-drop*): menus in the top layer, optional action-bar insert
-buttons, Notion / Outline style drop and paste of any allowed file. No BC break; fields with the defaults keep the
+buttons, drop and paste of any allowed file. No BC break; fields with the defaults keep the
 same widget JSON (only `messages` gains the new strings).
 
 ### Fixed
@@ -651,7 +651,7 @@ Block menu with text and background colour (opt-in), visible Crepe icons.
   opens the block menu (*Turn into*, *Color*, *Duplicate*, *Move up* / *Down*, *Delete*); **Ctrl / ⌘ + /** opens it at
   the caret and **Alt+Shift+↑ / ↓** move the block, announced in the live region. The button stays out of the tab
   order. `block_drag` (needs `block_actions`) adds pointer drag of the button.
-- **Colours** (`colors`, opt-in): Notion's nine text and background colours on a selection (`:mark[…]{text=… bg=…}`)
+- **Colours** (`colors`, opt-in): nine named text and background colours on a selection (`:mark[…]{text=… bg=…}`)
   or a block (`::: {text=… bg=…}`, the container that also carries `align=`), from the block menu, the context menu
   and a toolbar button. `:mark{color=…}` keeps meaning the background. The PHP renderer emits classes only, for names
   in `markdown.mark_colors` (default extended with brown, orange and pink); tokens `--nowo-milkdown-color-*` and

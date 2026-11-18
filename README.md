@@ -42,7 +42,7 @@ This bundle is **FrankenPHP worker mode friendly**. See [docs/FRANKENPHP-WORKER-
   paste / paste as plain text, *Turn into*, table rows and columns, link open / copy / remove, duplicate / move /
   delete block and host items; WAI-ARIA menu pattern, browser menu kept with Shift + right click and on touch.
 - **Block actions and colours** (opt-in `block_actions`, `block_drag`, `colors`, 1.4) — "⋮⋮" block menu (turn into,
-  colour, duplicate, move, delete), Ctrl+/ and Alt+Shift+↑/↓, optional drag; Notion's text and background colours as
+  colour, duplicate, move, delete), Ctrl+/ and Alt+Shift+↑/↓, optional drag; nine named text and background colours as
   `:mark{text=… bg=…}` and `::: {text=… bg=…}`, rendered as token classes (AA in light and dark).
 - **Suggestions** — `[[` pages, `@` people, `:` icons and emoji, `/` blocks: remote candidate URLs, debounced, at most
   10 results, combobox keys (Up / Down, Enter / Tab, Escape) on the multi-line editable.

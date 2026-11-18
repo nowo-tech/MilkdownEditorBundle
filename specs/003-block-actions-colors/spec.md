@@ -4,11 +4,11 @@
 **Created**: 2026-11-03  
 **Status**: Implemented (1.3.0, unreleased)  
 **Origin**: [ROADMAP](../../docs/ROADMAP.md) milestone 1.3; user decisions 2026-11-03 (block menu with text colour in
-scope, colours as in Notion).
+scope, a named colour palette).
 
 ## Summary
 
-Opt-in Notion-style block actions (`block_actions`, `block_drag`) and named text / background colours (`colors`) that
+Opt-in block actions (`block_actions`, `block_drag`) and named text / background colours (`colors`) that
 round trip through Markdown and render in PHP as token classes.
 
 ## User scenarios

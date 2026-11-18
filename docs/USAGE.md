@@ -677,7 +677,7 @@ button is not in the tab order, so Tab still leaves the editor. `block_drag` als
 move the block (ProseMirror's drop cursor shows where it lands).
 
 `colors` (1.4) adds *Color* to the block menu, to the context menu (the selected text, or the block without a
-selection) and a colour button to the selection toolbar. The palette is Notion's: gray, brown, orange, yellow, green,
+selection) and a colour button to the selection toolbar. The palette has nine named colours: gray, brown, orange, yellow, green,
 blue, purple, pink, red, each as a text colour and a background, plus *Default*. The Markdown stays portable:
 
 ```markdown
