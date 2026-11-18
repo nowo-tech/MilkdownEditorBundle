@@ -254,6 +254,32 @@ final class RendererTest extends TestCase
     }
 
     #[Test]
+    public function footnoteBackLinksStayInAParagraph(): void
+    {
+        $renderer = $this->renderer();
+        $backref  = '#<p>&nbsp;<a class="nowo-md-footnote-backref" rev="footnote" href="\#nowo-md-fnref-[0-9a-f]{12}-n" role="doc-backlink">↩</a></p>\s*</li>#';
+
+        // A footnote that ends with a list: the back link is not a child of <ul> (axe `list`), it follows in a paragraph.
+        $list = $renderer->render("A[^n]\n\n[^n]: Note.\n\n    # Heading\n\n    * one\n");
+        self::assertMatchesRegularExpression('#<ul>\s*<li>one</li>\s*</ul>#', $list);
+        self::assertMatchesRegularExpression($backref, $list);
+        self::assertDoesNotMatchRegularExpression('#</li>\s*&nbsp;<a#', $list);
+
+        // A table and a code block (whose children never render): the back link is kept, after them.
+        $table = $renderer->render("A[^n]\n\n[^n]: Note.\n\n    | a |\n    | - |\n    | b |\n");
+        self::assertMatchesRegularExpression('#</table>\s*<p>&nbsp;<a class="nowo-md-footnote-backref"#', $table);
+        $code = $renderer->render("A[^n]\n\n[^n]: Note.\n\n    ```\n    x\n    ```\n");
+        self::assertMatchesRegularExpression($backref, $code);
+
+        // Two references, one paragraph with both back links, in order.
+        $twice = $renderer->render("A[^n] B[^n]\n\n[^n]: Note.\n\n    * one\n");
+        self::assertMatchesRegularExpression('#<p>&nbsp;<a [^>]+href="\#nowo-md-fnref-[0-9a-f]{12}-n"[^>]*>↩</a>&nbsp;<a [^>]+href="\#nowo-md-fnref-[0-9a-f]{12}-n__2"[^>]*>↩</a></p>#', $twice);
+
+        // A footnote that ends with a paragraph renders as before (the back link inside it).
+        self::assertMatchesRegularExpression('#<p>Note.&nbsp;<a class="nowo-md-footnote-backref"[^>]+>↩</a></p>#', $renderer->render("A[^n]\n\n[^n]: Note.\n"));
+    }
+
+    #[Test]
     public function footnoteLabelsAreCaseInsensitive(): void
     {
         $html = $this->renderer()->render("A[^Body] B[^body]\n\n[^Body]: First.\n\n[^body]: Second.");

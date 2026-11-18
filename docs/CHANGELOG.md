@@ -35,6 +35,21 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Fixed
+
+- **Footnote back links in the PHP render**: a footnote whose last block is not a paragraph (a list, a table, a quote,
+  a code block) rendered its `↩` back link as a direct child of `<ul>` / `<table>` (invalid HTML, axe `list`) or lost it
+  (a code block renders no children). The back links now go in a paragraph at the end of the footnote; a footnote that
+  ends with a paragraph renders as before. The editor writes such footnotes since 1.18.0, when blocks pasted at the end
+  of a footnote stay inside it.
+
+### Changed
+
+- **Demo and e2e**: the Dark view (`?theme=dark`) sets UiKit's theme to dark and paints the canvas (it was light text on
+  a white canvas since the UiKit base style); the stored-Markdown blocks are focusable labelled regions (axe
+  `scrollable-region-focusable`); the e2e double-clicks the word itself (the full-width column put the centre of the
+  paragraph past its text) and expects the 1.18 `Title › Section` label.
+
 ## [1.18.0] - 2026-11-17
 
 Target: 1.18.0 (minor). Stable heading ids and a link picker (contract "section anchors and link picker", WikiBundle
