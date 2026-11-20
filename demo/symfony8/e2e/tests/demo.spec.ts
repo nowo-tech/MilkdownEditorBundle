@@ -161,7 +161,7 @@ test.describe('Milkdown editor demo', () => {
     expect(await iconOnly.evaluate((b) => b.querySelectorAll('[style]').length + (b.hasAttribute('style') ? 1 : 0))).toBe(0);
     await iconOnly.click();
     await expect(page.locator('.nowo-milkdown-copy__status').nth(1)).toHaveText('Copied as Markdown');
-    expect(await seriousViolations(page, '.demo-preview')).toEqual([]);
+    expect(await seriousViolations(page, '[data-testid="demo-preview"]')).toEqual([]);
     expect(log.errors).toEqual([]);
   });
 
@@ -285,7 +285,7 @@ test.describe('Milkdown editor demo', () => {
   test('save: the Markdown round trip is stable and the PHP render matches the dialect', async ({ page }) => {
     await openDemo(page);
     await page.getByRole('button', { name: 'Save' }).click();
-    const first = await page.locator('.demo-source').textContent();
+    const first = await page.locator('[data-testid="demo-source"]').textContent();
     await expect(page.locator('[data-preview] .nowo-md-callout--warning')).toBeVisible();
     await expect(page.locator('[data-preview] .nowo-md-ref--hidden')).toHaveText('Content not visible');
     // 1.18: `Title › Section text` from the host's SectionResolverInterface (DemoSections), never the raw id.
@@ -300,6 +300,6 @@ test.describe('Milkdown editor demo', () => {
     // 1.3.1: the PHP render passes axe too (named task checkboxes, distinguishable footnote links).
     expect(await seriousViolations(page, '[data-preview]')).toEqual([]);
     await page.getByRole('button', { name: 'Save' }).click();
-    expect(await page.locator('.demo-source').textContent()).toBe(first);
+    expect(await page.locator('[data-testid="demo-source"]').textContent()).toBe(first);
   });
 });

@@ -3,7 +3,7 @@
     fixture page (sticky header / transformed ancestor), with UiKit tokens. -#}
 {% extends '@NowoUiKit/layout/admin.html.twig' %}
 
-{% block nowo_ui_document_title %}{% block title %}Milkdown Editor Bundle demo{% endblock %}{% endblock %}
+{% block nowo_ui_document_title %}{% block title %}Milkdown Editor Bundle demo{% endblock %} — Symfony 8{% endblock %}
 
 {% block nowo_ui_head %}
     {#- `?theme=dark`: the page follows the editor's dark theme. UiKit's theme boot (before this block) resolved the
@@ -22,14 +22,14 @@
 {% block nowo_ui_navigation %}
     {% set _route = app.request.attributes.get('_route') %}
     <header class="nowo-ui-header" data-testid="demo-masthead">
-        <a class="nowo-ui-brand" href="{{ path('demo_home') }}">Milkdown Editor Bundle</a>
+        <a class="nowo-ui-brand" href="{{ path('demo_home') }}">Milkdown Editor Bundle · Symfony 8</a>
         <nav class="nowo-ui-menu" aria-label="{{ 'demo.nav'|trans }}">
-            <a class="nowo-ui-link" href="{{ path('demo_home') }}"{% if _route == 'demo_home' and not dark|default(false) %} aria-current="page"{% endif %}>{{ 'demo.light'|trans }}</a>
-            <a class="nowo-ui-link" href="{{ path('demo_home', {theme: 'dark'}) }}"{% if _route == 'demo_home' and dark|default(false) %} aria-current="page"{% endif %}>{{ 'demo.dark'|trans }}</a>
-            <a class="nowo-ui-link" href="{{ path('demo_comments') }}"{% if _route == 'demo_comments' %} aria-current="page"{% endif %}>{{ 'demo.comments.nav'|trans }}</a>
-            <a class="nowo-ui-link" href="{{ path('demo_layers') }}"{% if _route == 'demo_layers' %} aria-current="page"{% endif %}>{{ 'demo.layers.nav'|trans }}</a>
-            <a class="nowo-ui-link" href="{{ path('demo_links') }}"{% if _route == 'demo_links' %} aria-current="page"{% endif %}>{{ 'demo.links.nav'|trans }}</a>
-            <a class="nowo-ui-link" href="{{ path('demo_collab') }}"{% if _route == 'demo_collab' %} aria-current="page"{% endif %}>{{ 'demo.collab.nav'|trans }}</a>
+            <a class="nowo-ui-link" href="{{ path('demo_home') }}"{% if _route == 'demo_home' and not dark|default(false) %} aria-current="page"{% endif %} data-testid="demo-nav-demo_home_light">{{ 'demo.light'|trans }}</a>
+            <a class="nowo-ui-link" href="{{ path('demo_home', {theme: 'dark'}) }}"{% if _route == 'demo_home' and dark|default(false) %} aria-current="page"{% endif %} data-testid="demo-nav-demo_home_dark">{{ 'demo.dark'|trans }}</a>
+            <a class="nowo-ui-link" href="{{ path('demo_comments') }}"{% if _route == 'demo_comments' %} aria-current="page"{% endif %} data-testid="demo-nav-demo_comments">{{ 'demo.comments.nav'|trans }}</a>
+            <a class="nowo-ui-link" href="{{ path('demo_layers') }}"{% if _route == 'demo_layers' %} aria-current="page"{% endif %} data-testid="demo-nav-demo_layers">{{ 'demo.layers.nav'|trans }}</a>
+            <a class="nowo-ui-link" href="{{ path('demo_links') }}"{% if _route == 'demo_links' %} aria-current="page"{% endif %} data-testid="demo-nav-demo_links">{{ 'demo.links.nav'|trans }}</a>
+            <a class="nowo-ui-link" href="{{ path('demo_collab') }}"{% if _route == 'demo_collab' %} aria-current="page"{% endif %} data-testid="demo-nav-demo_collab">{{ 'demo.collab.nav'|trans }}</a>
         </nav>
         <div class="nowo-ui-header__end">
             {{ include('@NowoUiKitBundle/partials/_theme_toggle.html.twig', { compact: true }, false) }}

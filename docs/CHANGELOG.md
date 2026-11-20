@@ -36,6 +36,10 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Changed
+
+- Demo: aligned with UiKit. `demo-preview` / `demo-source` are `data-testid`s instead of classes (e2e selectors updated), `demo-nav-*` test ids and the `· Symfony 8` brand and title suffix on the masthead.
+
 ## [1.18.1] - 2026-11-18
 
 ### Fixed

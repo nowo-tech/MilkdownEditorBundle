@@ -169,7 +169,7 @@ test.describe('icons (1.7)', () => {
     await page.keyboard.press('Enter');
     await expect(page.getByRole('button', { name: 'Callout icon: 💡' })).toBeFocused();
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(page.locator('.demo-source')).toContainText(':::callout{icon="💡" type="warning"}');
+    await expect(page.locator('[data-testid="demo-source"]')).toContainText(':::callout{icon="💡" type="warning"}');
     const callout = page.locator('[data-preview] .nowo-md-callout--warning.nowo-md-callout--icon');
     await expect(callout.locator('> .nowo-md-callout__emoji[data-emoji="💡"][aria-hidden="true"]')).toHaveCount(1);
     // The emoji is drawn by CSS: the callout's text is only its body.
