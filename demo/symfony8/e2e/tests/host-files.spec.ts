@@ -64,7 +64,7 @@ test.describe('host files (1.9, ME-5, ME-6)', () => {
     await expect(page.frameLocator('.nowo-milkdown-file__frame').locator('pre')).toContainText('<b>ada</b>');
 
     await page.getByRole('button', { name: 'Save' }).click();
-    const source = (await page.locator('.demo-source').textContent()) ?? '';
+    const source = (await page.locator('[data-testid="demo-source"]').textContent()) ?? '';
     expect(source).toMatch(/!\[pixel\]\(demo-file:[0-9a-f]{16}\.png\)/);
     expect(source).toMatch(/::file\[owners\.csv\]\{href="demo-file:[0-9a-f]{16}\.(?:csv|txt)" size="\d+" type="text\/(?:csv|plain)" view="preview"\}/);
 
@@ -103,7 +103,7 @@ test.describe('host files (1.9, ME-5, ME-6)', () => {
     expect(await seriousViolations(page, '.nowo-milkdown-image__toolbar')).toEqual([]);
 
     await page.getByRole('button', { name: 'Save' }).click();
-    const source = (await page.locator('.demo-source').textContent()) ?? '';
+    const source = (await page.locator('[data-testid="demo-source"]').textContent()) ?? '';
     expect(source).toMatch(/!\[A pixel\]\(demo-file:[0-9a-f]{16}\.png "The caption"\)\{width=50% align=center\}/);
     const figure = page.locator('[data-preview] figure.nowo-md-figure--center.nowo-md-figure--w50');
     await expect(figure.locator('figcaption')).toHaveText('The caption');

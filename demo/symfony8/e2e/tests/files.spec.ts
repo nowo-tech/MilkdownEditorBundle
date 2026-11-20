@@ -51,7 +51,7 @@ test.describe('file drop (1.8, ME-3)', () => {
     expect(await seriousViolations(page)).toEqual([]);
 
     await page.getByRole('button', { name: 'Save' }).click();
-    const source = (await page.locator('.demo-source').textContent()) ?? '';
+    const source = (await page.locator('[data-testid="demo-source"]').textContent()) ?? '';
     expect(source).toMatch(/!\[pixel\]\(\/uploads\/[0-9a-f]{16}\.png\)/);
     expect(source).toMatch(/::file\[Q3 report\.pdf\]\{href="\/uploads\/[0-9a-f]{16}\.pdf" size="\d+" type="application\/pdf"\}/);
     // libmagic reads a small CSV as text/plain: the server's type is kept, the card is still a sheet (extension).
