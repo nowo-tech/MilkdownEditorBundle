@@ -2,3 +2,5 @@
 nowo_ui_kit:
     css_framework: custom
     icon_set: none
+    # UiKit's opt-in default theme (2.51): the page canvas and the Dark view (`?theme=dark`) come from UiKit, not demo CSS.
+    base_stylesheet: true

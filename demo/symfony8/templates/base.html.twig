@@ -1,6 +1,6 @@
 {#- REQ-DEMO-014: the demo shell is UiKit's admin layout with UiKit's default theme (nowo-ui.css from the bundle's own
-    asset package, no CSS framework, no CDN). The editor assets are the bundle's own; demo.css only styles the layers
-    fixture page (sticky header / transformed ancestor), with UiKit tokens. -#}
+    asset package, no CSS framework, no CDN). The editor assets are the bundle's own; UiKit's base_stylesheet paints the canvas and the
+    Dark view; the layers fixture page loads demo-layers.css (sticky header / transformed ancestor). -#}
 {% extends '@NowoUiKit/layout/admin.html.twig' %}
 
 {% block nowo_ui_document_title %}{% block title %}Milkdown Editor Bundle demo{% endblock %} — Symfony 8{% endblock %}
@@ -12,11 +12,6 @@
         <script nonce="{{ app.request.attributes.get('csp_nonce') }}">document.documentElement.setAttribute('data-nowo-ui-pref-theme', 'dark');document.documentElement.setAttribute('data-theme', 'dark');</script>
     {% endif %}
     {{ nowo_milkdown_editor_assets() }}
-{% endblock %}
-
-{% block nowo_ui_styles %}
-    {{ parent() }}
-    <link rel="stylesheet" href="{{ asset('demo.css') }}">
 {% endblock %}
 
 {% block nowo_ui_navigation %}

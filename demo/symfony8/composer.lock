@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "aa2a8ff964c45eac7bd76852d668bec7",
+    "content-hash": "f8d076e81bd0af66aced39584ca97dc7",
     "packages": [
         {
             "name": "dflydev/dot-access-data",
@@ -693,7 +693,7 @@
             "dist": {
                 "type": "path",
                 "url": "/var/milkdown-editor-bundle",
-                "reference": "bcff0411ca05885fbbb2727e99937ae1b2182bf0"
+                "reference": "4d51c9b3f26291dc3913288c81395522d5021de3"
             },
             "require": {
                 "league/commonmark": "^2.7",
@@ -847,16 +847,16 @@
         },
         {
             "name": "nowo-tech/ui-kit-bundle",
-            "version": "v2.49.0",
+            "version": "v2.59.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nowo-tech/UiKitBundle.git",
-                "reference": "38f5a1e26f360bda0fe7e1f88a5182c47081b8ce"
+                "reference": "580b05d1d70a010e249aa9ff3ec6265436d9f4d5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nowo-tech/UiKitBundle/zipball/38f5a1e26f360bda0fe7e1f88a5182c47081b8ce",
-                "reference": "38f5a1e26f360bda0fe7e1f88a5182c47081b8ce",
+                "url": "https://api.github.com/repos/nowo-tech/UiKitBundle/zipball/580b05d1d70a010e249aa9ff3ec6265436d9f4d5",
+                "reference": "580b05d1d70a010e249aa9ff3ec6265436d9f4d5",
                 "shasum": ""
             },
             "require": {
@@ -945,8 +945,8 @@
                 "issues": "https://github.com/nowo-tech/UiKitBundle/issues",
                 "source": "https://github.com/nowo-tech/UiKitBundle"
             },
-            "time": "2026-11-11T22:37:57+00:00",
-            "published-time": "2026-11-11T22:41:16+00:00"
+            "time": "2026-11-19T21:24:18+00:00",
+            "published-time": "2026-11-19T21:29:10+00:00"
         },
         {
             "name": "psr/cache",
