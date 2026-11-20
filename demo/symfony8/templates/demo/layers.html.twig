@@ -7,6 +7,12 @@
 #}
 {% block title %}{{ 'demo.layers.heading'|trans }}{% endblock %}
 
+{# The fixture needs real layout CSS (position sticky + z-index, a transformed ancestor); UiKit has no component for it. #}
+{% block nowo_ui_styles %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('demo-layers.css') }}">
+{% endblock %}
+
 {% block nowo_ui_page_header %}
     <div class="demo-sticky" data-testid="sticky-header">{{ 'demo.layers.sticky_bar'|trans }}</div>
     {{ include(nowo_ui_partial('page_header'), {

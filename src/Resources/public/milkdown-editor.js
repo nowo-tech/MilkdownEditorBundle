@@ -5900,7 +5900,7 @@ function Td(e = document) {
 	}));
 }
 function Ed(e = document) {
-	return e.querySelector("[data-nowo-milkdown-diff]") ? import("./chunks/diff-nav-i1j12ysT.js").then((t) => t.bindDiffs(e)) : Promise.resolve(0);
+	return e.querySelector("[data-nowo-milkdown-diff]") ? import("./chunks/diff-nav-H3DoJKtV.js").then((t) => t.bindDiffs(e)) : Promise.resolve(0);
 }
 function Dd(e = document) {
 	let t = () => {

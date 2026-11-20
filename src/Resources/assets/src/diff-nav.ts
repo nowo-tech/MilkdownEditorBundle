@@ -34,7 +34,7 @@ export function bindDiff(wrapper: HTMLElement): boolean {
   for (const [name, step, fallback] of [['previous', -1, 'Previous change'], ['next', 1, 'Next change']] as const) {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = `nowo-md-diff-${name}`;
+    button.className = `nowo-md-diff-${name} nowo-ui-btn nowo-ui-btn--sm`;
     button.textContent = label(name, fallback);
     button.addEventListener('click', () => go(step));
     nav.append(button);

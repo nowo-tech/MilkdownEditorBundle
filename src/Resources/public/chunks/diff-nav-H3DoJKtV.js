@@ -24,7 +24,7 @@ function t(t) {
 		"Next change"
 	]]) {
 		let a = document.createElement("button");
-		a.type = "button", a.className = `nowo-md-diff-${e}`, a.textContent = r(e, n), a.addEventListener("click", () => s(t)), i.append(a);
+		a.type = "button", a.className = `nowo-md-diff-${e} nowo-ui-btn nowo-ui-btn--sm`, a.textContent = r(e, n), a.addEventListener("click", () => s(t)), i.append(a);
 	}
 	return i.append(a), t.querySelector(".nowo-md-diff-summary")?.after(i), t.addEventListener("keydown", (e) => {
 		e.ctrlKey || e.metaKey || e.altKey || e.target.closest("input, textarea, select, [contenteditable=\"true\"]") || (e.key === "n" || e.key === "p") && (e.preventDefault(), s(e.key === "n" ? 1 : -1));

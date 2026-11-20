@@ -38,6 +38,8 @@ All notable changes to this project are documented in this file. The format foll
 
 ### Changed
 
+- The diff view's *Previous change* / *Next change* buttons carry UiKit's `nowo-ui-btn nowo-ui-btn--sm` classes next to their own `nowo-md-diff-previous` / `nowo-md-diff-next`, so they have a button style and enough contrast under UiKit's base theme (without UiKit the classes do nothing). Built assets refreshed.
+- Demo: UiKit's `base_stylesheet` (ui-kit-bundle ^2.59) paints the page canvas and the Dark view, so `demo.css` is gone; the layers fixture CSS (sticky header z-index 100, transformed ancestor, which UiKit has no component for) moved to `demo-layers.css` and loads on the layers page only.
 - Demo: aligned with UiKit. `demo-preview` / `demo-source` are `data-testid`s instead of classes (e2e selectors updated), `demo-nav-*` test ids and the `· Symfony 8` brand and title suffix on the masthead.
 
 ## [1.18.1] - 2026-11-18
