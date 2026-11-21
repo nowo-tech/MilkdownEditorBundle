@@ -298,7 +298,11 @@ test.describe('Shift+Tab while waiting', () => {
     await fakeHub(page, null);
     await open(page, '&connect_timeout=30000');
     await page.evaluate((markup) => {
-      document.querySelector('header.nowo-ui-header')?.remove();
+      // The demo platform shell's own header, aside and links must not sit in the tab order before the fixture.
+      document.querySelectorAll('header, [data-nowo-ui-aside], .nowo-ui-skip-link').forEach((el) => {
+        el.querySelectorAll('a[href], button, input, select, textarea, summary').forEach((c) => c.setAttribute('tabindex', '-1'));
+        el.setAttribute('inert', '');
+      });
       const before = document.createElement('div');
       before.innerHTML = markup;
       document.body.prepend(before);
