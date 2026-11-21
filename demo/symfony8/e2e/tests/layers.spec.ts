@@ -67,8 +67,11 @@ async function rightClickAndCheck(page: Page, paragraph: Locator, editable: Loca
   await expect(editable).toBeFocused();
 }
 
+// The sticky z-index 100 header and the transformed ancestor were demo CSS (public/demo-layers.css), removed by the
+// demo platform rollout (owner rule: every demo style lives in UiKit). Those two fixtures return when UiKit ships them
+// (gap reported in the PR); the modal dialog case needs no demo CSS and stays.
 test.describe('menus in the top layer (1.8, ME-1)', () => {
-  test('inside a transformed ancestor', async ({ page }) => {
+  test.fixme('inside a transformed ancestor', async ({ page }) => {
     const log = await watch(page);
     await openLayers(page);
     const section = page.getByTestId('transformed');
@@ -77,7 +80,7 @@ test.describe('menus in the top layer (1.8, ME-1)', () => {
     expect(log.errors).toEqual([]);
   });
 
-  test('under a sticky header with z-index 100', async ({ page }) => {
+  test.fixme('under a sticky header with z-index 100', async ({ page }) => {
     const log = await watch(page);
     await openLayers(page);
     const section = page.getByTestId('under-sticky');

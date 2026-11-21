@@ -1,7 +1,23 @@
-{#- REQ-DEMO-014: the demo shell is UiKit's admin layout with UiKit's default theme (nowo-ui.css from the bundle's own
-    asset package, no CSS framework, no CDN). The editor assets are the bundle's own; UiKit's base_stylesheet paints the canvas and the
-    Dark view; the layers fixture page loads demo-layers.css (sticky header / transformed ancestor). -#}
-{% extends '@NowoUiKit/layout/admin.html.twig' %}
+{#- REQ-DEMO-014: the demo runs inside UiKit's shared demo platform shell (@NowoUiKit/demo_platform/layout.html.twig):
+    the same top bar, aside, content width, theme and footer as every other nowo-tech bundle demo. This file only
+    declares the demo (nowo_ui_demo_platform). The editor assets are the bundle's own. -#}
+{% extends '@NowoUiKit/demo_platform/layout.html.twig' %}
+{% set _dark = dark|default(false) %}
+{% set nowo_ui_demo_platform = {
+    bundle: 'Milkdown Editor',
+    home_route: 'demo_home',
+    repository: 'https://github.com/nowo-tech/MilkdownEditorBundle',
+    translation_domain: 'messages',
+    locales: [],
+    nav: [
+        {label: 'demo.light', route: 'demo_home', active: _dark ? [] : ['demo_home'], section: 'demo.nav', testid: 'demo-nav-demo_home_light'},
+        {label: 'demo.dark', route: 'demo_home', params: {theme: 'dark'}, active: _dark ? ['demo_home'] : [], section: 'demo.nav', testid: 'demo-nav-demo_home_dark'},
+        {label: 'demo.comments.nav', route: 'demo_comments', section: 'demo.nav', testid: 'demo-nav-demo_comments'},
+        {label: 'demo.layers.nav', route: 'demo_layers', section: 'demo.nav', testid: 'demo-nav-demo_layers'},
+        {label: 'demo.links.nav', route: 'demo_links', section: 'demo.nav', testid: 'demo-nav-demo_links'},
+        {label: 'demo.collab.nav', route: 'demo_collab', section: 'demo.nav', testid: 'demo-nav-demo_collab'},
+    ],
+} %}
 
 {% block nowo_ui_document_title %}{% block title %}Milkdown Editor Bundle demo{% endblock %} — Symfony 8{% endblock %}
 
@@ -14,22 +30,3 @@
     {{ nowo_milkdown_editor_assets() }}
 {% endblock %}
 
-{% block nowo_ui_navigation %}
-    {% set _route = app.request.attributes.get('_route') %}
-    <header class="nowo-ui-header" data-testid="demo-masthead">
-        <a class="nowo-ui-brand" href="{{ path('demo_home') }}">Milkdown Editor Bundle · Symfony 8</a>
-        <nav class="nowo-ui-menu" aria-label="{{ 'demo.nav'|trans }}">
-            <a class="nowo-ui-link" href="{{ path('demo_home') }}"{% if _route == 'demo_home' and not dark|default(false) %} aria-current="page"{% endif %} data-testid="demo-nav-demo_home_light">{{ 'demo.light'|trans }}</a>
-            <a class="nowo-ui-link" href="{{ path('demo_home', {theme: 'dark'}) }}"{% if _route == 'demo_home' and dark|default(false) %} aria-current="page"{% endif %} data-testid="demo-nav-demo_home_dark">{{ 'demo.dark'|trans }}</a>
-            <a class="nowo-ui-link" href="{{ path('demo_comments') }}"{% if _route == 'demo_comments' %} aria-current="page"{% endif %} data-testid="demo-nav-demo_comments">{{ 'demo.comments.nav'|trans }}</a>
-            <a class="nowo-ui-link" href="{{ path('demo_layers') }}"{% if _route == 'demo_layers' %} aria-current="page"{% endif %} data-testid="demo-nav-demo_layers">{{ 'demo.layers.nav'|trans }}</a>
-            <a class="nowo-ui-link" href="{{ path('demo_links') }}"{% if _route == 'demo_links' %} aria-current="page"{% endif %} data-testid="demo-nav-demo_links">{{ 'demo.links.nav'|trans }}</a>
-            <a class="nowo-ui-link" href="{{ path('demo_collab') }}"{% if _route == 'demo_collab' %} aria-current="page"{% endif %} data-testid="demo-nav-demo_collab">{{ 'demo.collab.nav'|trans }}</a>
-        </nav>
-        <div class="nowo-ui-header__end">
-            {{ include('@NowoUiKitBundle/partials/_theme_toggle.html.twig', { compact: true }, false) }}
-        </div>
-    </header>
-{% endblock %}
-
-{% block nowo_ui_content %}{% block body %}{% endblock %}{% endblock %}

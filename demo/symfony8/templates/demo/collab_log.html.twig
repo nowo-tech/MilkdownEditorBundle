@@ -8,12 +8,25 @@
 
 {% block body %}
     {% if status == 302 %}
-        <p data-testid="save-result">saved</p>
+        {% embed '@NowoUiKit/demo_platform/_section.html.twig' with {title: 'demo.collab.heading'|trans, kind: 'detail'} %}
+            {% block section_body %}<p data-testid="save-result">saved</p>{% endblock %}
+        {% endembed %}
     {% else %}
-        {{ form_start(form) }}
-            {{ form_errors(form) }}
-            {{ form_rest(form) }}
-        {{ form_end(form, {render_rest: false}) }}
-        {% if status == 409 %}<p data-testid="save-result">conflict</p>{% endif %}
+        {% embed '@NowoUiKit/demo_platform/_section.html.twig' with {title: 'demo.collab.heading'|trans, kind: 'form', form: form} %}
+            {% block section_body %}
+                {{ form_start(form, {attr: {id: 'milkdown-collab-log-form'}}) }}
+                    {{ form_errors(form) }}
+                    {% for child in form %}{% if not child.rendered and child.vars.name != 'save' %}{{ form_row(child) }}{% endif %}{% endfor %}
+                {{ form_end(form, {render_rest: false}) }}
+            {% endblock %}
+            {% block section_footer %}
+                {% if form.save is defined %}<button type="submit" form="milkdown-collab-log-form" class="nowo-ui-btn nowo-ui-btn--primary">{{ form.save.vars.label|trans }}</button>{% endif %}
+            {% endblock %}
+        {% endembed %}
+        {% if status == 409 %}
+            {% embed '@NowoUiKit/demo_platform/_section.html.twig' with {title: 'demo.collab.heading'|trans, kind: 'detail'} %}
+                {% block section_body %}<p data-testid="save-result">conflict</p>{% endblock %}
+            {% endembed %}
+        {% endif %}
     {% endif %}
 {% endblock %}
