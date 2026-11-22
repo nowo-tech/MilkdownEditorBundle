@@ -25,6 +25,9 @@ final class FootnoteBackrefPlacement
     /** After league/commonmark's GatherFootnotesListener (10), which creates the back links. */
     public const PRIORITY = 5;
 
+    /**
+     * Moves the back links of every footnote of the parsed document into a paragraph at the end of that footnote.
+     */
     public function onDocumentParsed(DocumentParsedEvent $event): void
     {
         $footnotes = [];
