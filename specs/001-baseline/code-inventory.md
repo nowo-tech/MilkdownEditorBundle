@@ -1,8 +1,8 @@
 # Milkdown Editor Bundle — baseline code inventory
 
 **Package**: `nowo-tech/milkdown-editor-bundle`  
-**Last audited**: 2026-11-16  
-**Production units**: **145/145**  
+**Last audited**: 2026-11-22 (1.18: stable heading ids, link picker)  
+**Production units**: **158/158**  
 **Audit command**: `find src -type f \( -name '*.php' -o -name '*.twig' -o -name '*.yaml' -o -name '*.ts' -o -name '*.css' \) -not -path 'src/Resources/assets/tests/*' -not -path 'src/Resources/public/*' | wc -l`
 
 ## Scope notes
@@ -15,19 +15,19 @@
 
 | Category | Mapped |
 | --- | ---: |
-| Bundle, configuration & DI | 9 |
+| Bundle, configuration & DI | 10 |
 | Form type & CSP | 4 |
-| PHP Markdown renderer | 51 |
+| PHP Markdown renderer | 56 |
 | Twig & form theme | 2 |
 | Translations | 7 |
 | Comments, versions & diff | 15 |
-| Browser: dialect | 3 |
-| Browser: nodes & plugins | 18 |
+| Browser: dialect | 4 |
+| Browser: nodes & plugins | 24 |
 | Browser: icons | 8 |
 | Browser: files, host references & images | 6 |
 | Browser: previews, collaboration & features | 7 |
 | Browser: editor core | 15 |
-| **Total** | **145** |
+| **Total** | **158** |
 
 ## Bundle, configuration & DI
 
@@ -42,6 +42,7 @@
 | `src/ProfileRegistry.php` | Bundle, configuration & DI — Named profiles | FR-CFG-001 |
 | `src/Resources/config/services.php` | Bundle, configuration & DI — Service wiring and interface aliases | FR-CFG-001, FR-FORM-003, FR-MD-003 |
 | `src/Theme.php` | Bundle, configuration & DI — Theme enum | FR-CFG-001 |
+| `src/CollabSchema.php` | Bundle, configuration & DI — CollabSchema.php (version of what the editor writes into a shared document; hosts fold it into their log epoch, 1.18) | FR-HEADING-002 |
 
 ## Form type & CSP
 
@@ -107,6 +108,11 @@
 | `src/Markdown/Resolver/UserResolverInterface.php` | PHP Markdown renderer — UserResolverInterface.php | FR-MD-002 |
 | `src/Markdown/TaskItemRenderer.php` | PHP Markdown renderer — Read-only task items with the editor markup (1.17) | FR-TASK-001 |
 | `src/Markdown/TaskMarkerRenderer.php` | PHP Markdown renderer — named task-list checkboxes (1.3.1) | FR-MD-001 |
+| `src/Markdown/FootnoteBackrefPlacement.php` | PHP Markdown renderer — FootnoteBackrefPlacement.php (footnote back links always in a paragraph, 1.18.1) | FR-MD-004 |
+| `src/Markdown/HeadingAnchorLinks.php` | PHP Markdown renderer — HeadingAnchorLinks.php ("copy link to this section" on sanitised read-view headings, 1.18) | FR-HEADING-002 |
+| `src/Markdown/Parser/HeadingIdSuffixParser.php` | PHP Markdown renderer — HeadingIdSuffixParser.php (`{#id}` heading suffix, 1.18) | FR-HEADING-002 |
+| `src/Markdown/LinkUrl.php` | PHP Markdown renderer — LinkUrl.php (link-picker URL check, same rules as `ui/link-url.ts`, 1.18) | FR-LINK-001 |
+| `src/Markdown/Resolver/SectionResolverInterface.php` | PHP Markdown renderer — SectionResolverInterface.php (optional section text for `[[wiki:<uuid>#<id>]]`, 1.18) | FR-LINK-002 |
 
 ## Twig & form theme
 
@@ -154,6 +160,7 @@
 | `src/Resources/assets/src/dialect/directives.ts` | Browser: dialect — directives.ts | FR-DIALECT-001 |
 | `src/Resources/assets/src/dialect/patterns.ts` | Browser: dialect — patterns.ts | FR-DIALECT-001 |
 | `src/Resources/assets/src/dialect/remark-dialect.ts` | Browser: dialect — remark-dialect.ts | FR-DIALECT-001 |
+| `src/Resources/assets/src/dialect/heading-id.ts` | Browser: dialect — heading-id.ts (`{#id}` suffix, explicit and resolved heading ids, 1.18) | FR-HEADING-002 |
 
 ## Browser: nodes & plugins
 
@@ -177,6 +184,12 @@
 | `src/Resources/assets/src/plugins/suggest.ts` | Browser: nodes & plugins — suggest.ts | FR-EDIT-002 |
 | `src/Resources/assets/src/ui/layer.ts` | Browser: nodes & plugins — Top layer (Popover API) for menus, lists and the icon picker (1.8) | FR-LAYER-001, FR-LAYER-002 (spec 007) |
 | `src/Resources/assets/src/ui/menu.ts` | Browser: nodes & plugins — menu.ts (APG menu) | FR-MENU-002 (spec 002) |
+| `src/Resources/assets/src/nodes/heading.ts` | Browser: nodes & plugins — heading.ts (heading node with stable ids, 1.18) | FR-HEADING-002 |
+| `src/Resources/assets/src/plugins/heading-stable-ids.ts` | Browser: nodes & plugins — heading-stable-ids.ts (`stable_heading_ids`: id frozen when the caret leaves the heading, 1.18) | FR-HEADING-002 |
+| `src/Resources/assets/src/plugins/link-trigger.ts` | Browser: nodes & plugins — link-trigger.ts (`[[` opens the link picker, 1.18) | FR-LINK-001 |
+| `src/Resources/assets/src/commands/link.ts` | Browser: nodes & plugins — link.ts (what the link button, `Mod-k`, `[[` and Edit link do with the picker, 1.18) | FR-LINK-001 |
+| `src/Resources/assets/src/ui/link-picker.ts` | Browser: nodes & plugins — link-picker.ts (`link_picker`: Wiki page / External URL tabs, 1.18) | FR-LINK-001 |
+| `src/Resources/assets/src/ui/link-url.ts` | Browser: nodes & plugins — link-url.ts (link-picker URL check, 1.18) | FR-LINK-001 |
 
 ## Browser: icons
 
