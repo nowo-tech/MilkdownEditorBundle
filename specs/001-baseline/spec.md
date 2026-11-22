@@ -130,6 +130,22 @@ language without overriding templates.
   the safe renderer, dialect-aware, with a work budget and an escaped line-diff fallback; keyboard navigation of changes.
 - **FR-HEADING-001** Heading ids (1.6, `heading_ids` / `markdown.heading_ids`): `nowo-h-<slug>` with the same slugs in the editor
   and the PHP renderer.
+- **FR-HEADING-002** Stable heading ids (1.18, `stable_heading_ids`): an explicit `## Title {#id}` suffix (`HeadingIdSuffixParser`,
+  `dialect/heading-id.ts`; only that exact form, a literal one is written `\{#x}`), heading nodes that keep their own id
+  (`nodes/heading.ts`, written back to Markdown only when it differs from the slug) frozen by the peer that caused it when
+  the caret leaves the heading (`plugins/heading-stable-ids.ts`), `CollabSchema` (version 2) folded by hosts into their log
+  epoch so older tabs reload, and `HeadingAnchorLinks` (a "copy link to this section" control on sanitised read-view
+  headings, no JavaScript needed).
+- **FR-LINK-001** Link picker (1.18, `link_picker`): one picker for the link button, `Mod-k` and `[[` with a *Wiki page* tab
+  (combobox over a grouped listbox, then the page's sections) and an *External URL* tab (`commands/link.ts`,
+  `plugins/link-trigger.ts`, `ui/link-picker.ts`). The URL is checked by `ui/link-url.ts` and the PHP `Markdown\LinkUrl`
+  with the same rules (relative, `http`, `https`, `mailto` by default, narrowing only; no other scheme, no user info,
+  no protocol-relative form); the renderer's `safeUrl()` and the host's sanitizer stay the final gates.
+- **FR-LINK-002** `SectionResolverInterface` (1.18, optional): the text of the sections that `[[wiki:<uuid>#<id>]]` links point
+  at, called once per document after `PageResolverInterface` and only for pages that resolved for the viewer; without a
+  host service a link to a section shows the page title only.
+- **FR-MD-004** `FootnoteBackrefPlacement` (1.18.1): the back links of a footnote that ends with a list, table, quote or code
+  block are moved into a new paragraph at the end of the footnote; a footnote ending with a paragraph renders as before.
 - **FR-TASK-001** Task items (1.17): the read-only PHP render uses the editor's markup (`TaskItemRenderer`, fixed attribute
   set, no raw HTML).
 - **FR-INSERT-002** `insert_button` feature (1.9): a "+" beside the empty line that holds the caret opens the `/` menu.
