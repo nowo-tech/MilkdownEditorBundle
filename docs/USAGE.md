@@ -32,6 +32,7 @@
 - [Forms in Twig](#forms-in-twig)
 - [Overriding templates](#overriding-templates)
 - [Overriding translations](#overriding-translations)
+- [Browser console](#browser-console)
 
 ## The form field
 
@@ -988,3 +989,7 @@ Add `translations/NowoMilkdownEditorBundle.<locale>.yaml` to your application:
 ref.hidden: 'Private page'
 editor.placeholder: 'Write the page…'
 ```
+
+## Browser console
+
+The bundle's script logs one line when it loads (`📦 [milkdown-editor] script loaded, build: 2026-11-23 14:05 UTC`) so a developer can tell which build a page runs. To silence it, set `<html data-nowo-console="quiet">` or `globalThis.NOWO_CONSOLE = 'quiet'` before the script loads; nothing is printed then. The default is unchanged.

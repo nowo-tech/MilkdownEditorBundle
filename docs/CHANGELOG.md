@@ -46,6 +46,10 @@ All notable changes to this project are documented in this file. The format foll
 - Demo: runs in UiKit's demo platform shell (`nowo-tech/ui-kit-bundle` ^2.60); the demo's own masthead and `public/demo-layers.css` are gone, the pages use page headers and section cards. The layers fixture's sticky header and transformed ancestor are pending a UiKit component. Demo only, no bundle change.
 - CI: a new `release-gates` job runs `make rector-dry`, `validate-phpdoc`, `validate-translations` and `check-twig-extra` (full mode only, one matrix cell each), so a gate cannot fail only at release time. CI only, no change to the shipped bundle.
 
+### Added
+
+- **Console**: `milkdown-editor.js` logs one line on load, `📦 [milkdown-editor] script loaded, build: 2026-11-23 14:05 UTC`, with the house `createBundleLogger`. The build time is read from the committed `build-info.json` (`{sourceHash, builtAt}`): it is reused while the sources are unchanged and renewed only when they change, so rebuilding unchanged sources never rewrites the committed assets (no wall-clock stamp, no user data). Quiet switch: `<html data-nowo-console="quiet">` or `globalThis.NOWO_CONSOLE = 'quiet'` prints nothing; the default is unchanged.
+
 ## [1.18.2] - 2026-11-20
 
 ### Changed

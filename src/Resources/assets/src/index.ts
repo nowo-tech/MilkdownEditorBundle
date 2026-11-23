@@ -10,6 +10,13 @@ import { createEditor, type MilkdownEditorHandle } from './editor';
 import { renderRichContent } from './preview/render';
 import { setAssetBase } from './assets';
 import { registerContextMenuItem } from './context-menu-registry';
+import { createBundleLogger } from './logger';
+
+declare const __MILKDOWN_EDITOR_BUILD_TIME__: string;
+
+createBundleLogger('milkdown-editor', {
+  buildTime: typeof __MILKDOWN_EDITOR_BUILD_TIME__ !== 'undefined' ? __MILKDOWN_EDITOR_BUILD_TIME__ : undefined,
+}).scriptLoaded();
 
 // Directory of this module (string form: Vite would turn `new URL('./', import.meta.url)` into an inlined asset).
 setAssetBase(import.meta.url.replace(/[^/]*$/, ''));
