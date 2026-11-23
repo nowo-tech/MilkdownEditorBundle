@@ -5901,7 +5901,7 @@ function _d(e, t = {}) {
 		}
 	};
 }
-_d("milkdown-editor", { buildTime: "2026-11-23 21:12 UTC" }).scriptLoaded(), bs(import.meta.url.replace(/[^/]*$/, ""));
+_d("milkdown-editor", { buildTime: "2026-11-23 21:42 UTC" }).scriptLoaded(), bs(import.meta.url.replace(/[^/]*$/, ""));
 var vd = "[data-nowo-milkdown-options]", yd = /* @__PURE__ */ new WeakMap();
 function bd(e) {
 	let t = yd.get(e);
