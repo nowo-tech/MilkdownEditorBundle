@@ -3558,7 +3558,7 @@ function ec(e = document) {
 // src/Resources/assets/src/icons/open.ts
 var tc = {
 	picker: () => import("./chunks/icon-picker-DQRK8Tld.js"),
-	catalog: () => import("./chunks/catalog-C3FMbJXi.js")
+	catalog: () => import("./chunks/catalog-DpB_Czb9.js")
 };
 async function nc(e) {
 	return e.catalogUrl ? (await tc.catalog()).catalog() : [];
@@ -5901,7 +5901,7 @@ function _d(e, t = {}) {
 		}
 	};
 }
-_d("milkdown-editor", { buildTime: "2026-11-23 14:01 UTC" }).scriptLoaded(), bs(import.meta.url.replace(/[^/]*$/, ""));
+_d("milkdown-editor", { buildTime: "2026-11-23 21:12 UTC" }).scriptLoaded(), bs(import.meta.url.replace(/[^/]*$/, ""));
 var vd = "[data-nowo-milkdown-options]", yd = /* @__PURE__ */ new WeakMap();
 function bd(e) {
 	let t = yd.get(e);
