@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\MilkdownEditorBundle\Markdown;
 
+use IgorPhp\IgorBundle\Attribute\WorkerSafe;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
@@ -58,6 +59,8 @@ final class MilkdownMarkdownRenderer implements MarkdownRendererInterface, Reset
 
     private ?MarkdownConverter $converter = null;
 
+    // @igor-ignore - Built from configuration and kept on purpose; reset() clears its per-request state via FootnoteSalt::reset().
+    #[WorkerSafe]
     private ?FootnoteSalt $footnoteSalt = null;
 
     /**
