@@ -116,6 +116,7 @@ language without overriding templates.
   keys) and its styles CSS-unescaped and
   filtered, `renderRichContent()` for read pages, Yjs + Mercure provider.
 - **FR-TS-002** Upload hook (checks, progress, CSRF header, safe answers) and *Insert file* / *Insert icon* buttons.
+- **FR-TS-003** `logger.ts` (`createBundleLogger('milkdown-editor', { buildTime })`, called from `index.ts`) prints one `📦 [milkdown-editor] script loaded, build: <date> UTC` console line when the module is evaluated (label from the committed `build-info.json`, REQ-ASSETS-005); `<html data-nowo-console="quiet">` or `globalThis.NOWO_CONSOLE = 'quiet'` silences it, and the level methods are no-ops unless debug is on.
 - **FR-THEME-001** One stylesheet styles the widget and the read-only render through `--nowo-milkdown-*` custom
   properties, with light, dark and `auto` (follows `prefers-color-scheme`) themes.
 - **FR-I18N-001** UI strings in en, es, de, fr, it, nl, pt (`NowoMilkdownEditorBundle` domain), same keys as the
