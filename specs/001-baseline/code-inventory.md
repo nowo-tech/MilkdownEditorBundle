@@ -1,14 +1,14 @@
 # Milkdown Editor Bundle — baseline code inventory
 
 **Package**: `nowo-tech/milkdown-editor-bundle`  
-**Last audited**: 2026-11-22 (1.18: stable heading ids, link picker)  
-**Production units**: **158/158**  
+**Last audited**: 2026-11-27 (1.18: stable heading ids, link picker)  
+**Production units**: **159/159**  
 **Audit command**: `find src -type f \( -name '*.php' -o -name '*.twig' -o -name '*.yaml' -o -name '*.ts' -o -name '*.css' \) -not -path 'src/Resources/assets/tests/*' -not -path 'src/Resources/public/*' | wc -l`
 
 ## Scope notes
 
 - Vitest files under `src/Resources/assets/tests/` are **excluded** (test code, not shipped behaviour).
-- `src/Resources/public/` (`milkdown-editor.js`, `milkdown-editor.css`, `chunks/`, `katex/`) is the Vite **build output** of `src/Resources/assets/src/index.ts` (`FR-BUILD-001`), not separate units.
+- `src/Resources/public/` (`milkdown-editor.js`, `milkdown-editor.css`, `chunks/`, `katex/`; `icons/` is mapped separately below) is the Vite **build output** of `src/Resources/assets/src/index.ts` (`FR-BUILD-001`), not separate units.
 - `demo/` and `.symfony/` (Flex recipe) are out of inventory scope.
 
 ## Coverage summary
@@ -26,8 +26,8 @@
 | Browser: icons | 8 |
 | Browser: files, host references & images | 6 |
 | Browser: previews, collaboration & features | 7 |
-| Browser: editor core | 15 |
-| **Total** | **158** |
+| Browser: editor core | 16 |
+| **Total** | **159** |
 
 ## Bundle, configuration & DI
 
@@ -237,12 +237,13 @@
 | `src/Resources/assets/src/emoji.ts` | Browser: editor core — emoji.ts | FR-EDIT-002 |
 | `src/Resources/assets/src/features.ts` | Browser: editor core — features.ts | FR-TS-001 |
 | `src/Resources/assets/src/i18n.ts` | Browser: editor core — i18n.ts | FR-I18N-001 |
-| `src/Resources/assets/src/index.ts` | Browser: editor core — index.ts | FR-TS-001 |
+| `src/Resources/assets/src/index.ts` | Browser: editor core — library entry; logs the `milkdown-editor` script-loaded banner (REQ-ASSETS-005) | FR-TS-001, FR-TS-003 |
 | `src/Resources/assets/src/link-titles.ts` | Browser: editor core — link-titles.ts | FR-EDIT-001 |
 | `src/Resources/assets/src/options.ts` | Browser: editor core — options.ts | FR-TS-001 |
 | `src/Resources/assets/src/runtime.ts` | Browser: editor core — runtime.ts | FR-TS-001 |
 | `src/Resources/assets/src/styles/milkdown-editor.css` | Browser: editor core — milkdown-editor.css | FR-EDIT-003, FR-THEME-001 |
 | `src/Resources/assets/src/triggers.ts` | Browser: editor core — triggers.ts | FR-EDIT-002 |
+| `src/Resources/assets/src/logger.ts` | Browser: editor core — bundle logger: `scriptLoaded()` banner with the build label (`__MILKDOWN_EDITOR_BUILD_TIME__`), quiet switch (`data-nowo-console`, `NOWO_CONSOLE`), debug-gated level methods | FR-TS-003 |
 | `src/Resources/assets/src/types.ts` | Browser: editor core — types.ts | FR-TS-001 |
 | `src/Resources/assets/src/upload.ts` | Browser: editor core — upload.ts | FR-TS-002 |
 | `src/Resources/assets/src/user-names.ts` | Browser: editor core — user-names.ts (mention names, 1.2.1) | FR-EDIT-001 |
@@ -252,4 +253,5 @@
 | Output | Source | Req IDs |
 | --- | --- | --- |
 | `src/Resources/public/milkdown-editor.js` + `chunks/` + `katex/` | `src/Resources/assets/src/index.ts` (Vite library, ES module) | FR-BUILD-001 |
+| `src/Resources/public/icons/` (`tabler-a.svg` … `tabler-z.svg` sprite shards by first character, `tabler-outline.json` names + keywords, `LICENSE-tabler.txt`) | Tabler Icons outline (MIT) catalogue produced by the build step of `vite.config.ts` for the lazy icon chunk and the picker ([spec 006](../006-icons/spec.md)) | FR-ICON-002 |
 | `src/Resources/public/milkdown-editor.css` | `src/Resources/assets/src/styles/milkdown-editor.css` | FR-BUILD-002 |
