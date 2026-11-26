@@ -5882,7 +5882,7 @@ function _d(e, t = {}) {
 	let n = `[${e}]`, { buildTime: r } = t, i = !1;
 	return {
 		scriptLoaded() {
-			pd() || (r !== void 0 && r !== "" ? console.log(`%c${hd.script} ${n} script loaded, build: %c${r}`, md.script, "color:#059669") : console.log(`%c${hd.script} ${n} script loaded`, md.script));
+			pd() || vd(e) || (r !== void 0 && r !== "" ? console.log(`%c${hd.script} ${n} script loaded, build: %c${r}`, md.script, "color:#059669") : console.log(`%c${hd.script} ${n} script loaded`, md.script));
 		},
 		setDebug(e) {
 			i = e;
@@ -5901,75 +5901,81 @@ function _d(e, t = {}) {
 		}
 	};
 }
-_d("milkdown-editor", { buildTime: "2026-11-23 21:42 UTC" }).scriptLoaded(), bs(import.meta.url.replace(/[^/]*$/, ""));
-var vd = "[data-nowo-milkdown-options]", yd = /* @__PURE__ */ new WeakMap();
-function bd(e) {
-	let t = yd.get(e);
-	return t || (t = fd(e), yd.set(e, t), t.then(() => e.dispatchEvent(new CustomEvent("nowo-milkdown:ready", { bubbles: !0 })), (t) => {
-		yd.delete(e), console.error("nowo-milkdown", t instanceof Error ? t.stack ?? t.message : t);
+function vd(e) {
+	let t = globalThis;
+	t.__nowoScriptBannerNames instanceof Set || (t.__nowoScriptBannerNames = /* @__PURE__ */ new Set());
+	let n = t.__nowoScriptBannerNames;
+	return n.has(e) ? !0 : (n.add(e), !1);
+}
+_d("milkdown-editor", { buildTime: "2026-11-26 12:23 UTC" }).scriptLoaded(), bs(import.meta.url.replace(/[^/]*$/, ""));
+var yd = "[data-nowo-milkdown-options]", bd = /* @__PURE__ */ new WeakMap();
+function xd(e) {
+	let t = bd.get(e);
+	return t || (t = fd(e), bd.set(e, t), t.then(() => e.dispatchEvent(new CustomEvent("nowo-milkdown:ready", { bubbles: !0 })), (t) => {
+		bd.delete(e), console.error("nowo-milkdown", t instanceof Error ? t.stack ?? t.message : t);
 	})), t;
 }
-async function xd(e) {
-	let t = yd.get(e);
-	t && (yd.delete(e), await (await t).destroy());
+async function Sd(e) {
+	let t = bd.get(e);
+	t && (bd.delete(e), await (await t).destroy());
 }
-var Sd = (e) => yd.get(e);
-function Cd(e = document) {
-	return [...e.querySelectorAll(vd)].map(bd);
+var Cd = (e) => bd.get(e);
+function wd(e = document) {
+	return [...e.querySelectorAll(yd)].map(xd);
 }
-function wd(e) {
+function Td(e) {
 	return class extends e {
 		connect() {
-			bd(this.element);
+			xd(this.element);
 		}
 		disconnect() {
-			xd(this.element);
+			Sd(this.element);
 		}
 	};
 }
-var Td = null, Ed = /* @__PURE__ */ new WeakSet(), Dd = 4e3, Od = /* @__PURE__ */ new WeakMap();
-async function kd(e) {
+var Ed = null, Dd = /* @__PURE__ */ new WeakSet(), Od = 4e3, kd = /* @__PURE__ */ new WeakMap();
+async function Ad(e) {
 	let t = e.closest("[data-nowo-milkdown-copy]"), n = t?.querySelector("[role=\"status\"]") ?? null;
-	n && (clearTimeout(Od.get(n)), n.textContent = "");
+	n && (clearTimeout(kd.get(n)), n.textContent = "");
 	let r = t?.querySelector("template")?.content.textContent ?? "", i;
 	try {
 		await navigator.clipboard.writeText(r), i = !0;
 	} catch {
 		i = !1;
 	}
-	return n && (n.textContent = (i ? e.dataset.copied : e.dataset.failed) ?? "", Od.set(n, setTimeout(() => n.textContent = "", Dd))), i;
-}
-function Ad(e = document) {
-	Ed.has(e) || (Ed.add(e), e.addEventListener("click", (e) => {
-		let t = e.target?.closest?.("[data-nowo-milkdown-copy-markdown]");
-		t && kd(t);
-	}));
+	return n && (n.textContent = (i ? e.dataset.copied : e.dataset.failed) ?? "", kd.set(n, setTimeout(() => n.textContent = "", Od))), i;
 }
 function jd(e = document) {
-	return e.querySelector("[data-nowo-milkdown-diff]") ? import("./chunks/diff-nav-H3DoJKtV.js").then((t) => t.bindDiffs(e)) : Promise.resolve(0);
+	Dd.has(e) || (Dd.add(e), e.addEventListener("click", (e) => {
+		let t = e.target?.closest?.("[data-nowo-milkdown-copy-markdown]");
+		t && Ad(t);
+	}));
 }
 function Md(e = document) {
+	return e.querySelector("[data-nowo-milkdown-diff]") ? import("./chunks/diff-nav-H3DoJKtV.js").then((t) => t.bindDiffs(e)) : Promise.resolve(0);
+}
+function Nd(e = document) {
 	let t = () => {
-		Cd(e), jd(e);
+		wd(e), Md(e);
 	};
-	Ad(e), e.readyState === "loading" ? e.addEventListener("DOMContentLoaded", t, { once: !0 }) : t(), e.addEventListener("turbo:load", t), Td?.disconnect(), Td = new MutationObserver((e) => {
+	jd(e), e.readyState === "loading" ? e.addEventListener("DOMContentLoaded", t, { once: !0 }) : t(), e.addEventListener("turbo:load", t), Ed?.disconnect(), Ed = new MutationObserver((e) => {
 		for (let t of e) t.addedNodes.forEach((e) => {
-			e instanceof HTMLElement && (e.matches(vd) && bd(e), Cd(e), jd(e.parentNode ?? e));
+			e instanceof HTMLElement && (e.matches(yd) && xd(e), wd(e), Md(e.parentNode ?? e));
 		});
-	}), Td.observe(e.documentElement, {
+	}), Ed.observe(e.documentElement, {
 		childList: !0,
 		subtree: !0
 	});
 }
-var Nd = {
-	mount: bd,
-	unmount: xd,
-	mountAll: Cd,
-	instance: Sd,
+var Pd = {
+	mount: xd,
+	unmount: Sd,
+	mountAll: wd,
+	instance: Cd,
 	renderRichContent: Ms,
-	createStimulusController: wd,
-	start: Md,
+	createStimulusController: Td,
+	start: Nd,
 	contextMenu: { register: on }
 };
-typeof window < "u" && !window.NowoMilkdownEditor && (window.NowoMilkdownEditor = Nd, document.documentElement.hasAttribute("data-nowo-milkdown-manual") || Md());
-export { Dd as COPY_STATUS_MS, Ad as bindCopyButtons, jd as bindDiffNavigation, kd as copySource, fd as createEditor, wd as createStimulusController, Sd as instance, bd as mount, Cd as mountAll, on as registerContextMenuItem, Ms as renderRichContent, Md as start, xd as unmount };
+typeof window < "u" && !window.NowoMilkdownEditor && (window.NowoMilkdownEditor = Pd, document.documentElement.hasAttribute("data-nowo-milkdown-manual") || Nd());
+export { Od as COPY_STATUS_MS, jd as bindCopyButtons, Md as bindDiffNavigation, Ad as copySource, fd as createEditor, Td as createStimulusController, Cd as instance, xd as mount, wd as mountAll, on as registerContextMenuItem, Ms as renderRichContent, Nd as start, Sd as unmount };
