@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format foll
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.19.1] - 2026-11-26](#1191---2026-11-26)
 - [[1.19.0] - 2026-11-23](#1190---2026-11-23)
 - [[1.18.2] - 2026-11-20](#1182---2026-11-20)
 - [[1.18.1] - 2026-11-18](#1181---2026-11-18)
@@ -37,6 +38,8 @@ All notable changes to this project are documented in this file. The format foll
 - [[1.0.0] - 2026-10-31](#100---2026-10-31)
 
 ## [Unreleased]
+
+## [1.19.1] - 2026-11-26
 
 ### Fixed
 
