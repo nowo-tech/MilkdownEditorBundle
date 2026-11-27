@@ -48,7 +48,7 @@ Legend: ✅ met · — not applicable (reason given) · ⏳ outside the reposito
 | REQ-PKG-001 / 002 / 003 / 004 | ✅ | `LICENSE`, `archive.exclude`, attributes only, Packagist metadata; `composer validate --strict` |
 | REQ-PHP-001 | ✅ | Typed APIs, `final` / `readonly`, enums `Feature` / `Theme`; PHP 8.2 (no typed class constants) |
 | REQ-CFG-001 / 002 | ✅ | `default_profile` + `profiles`, `ProfileRegistry`, [CONFIGURATION.md § Profiles](CONFIGURATION.md#profiles), tests |
-| REQ-SF-001 / 002 | ✅ | `php >=8.2 <8.6`, `^7.4 \|\| ^8.0`; CI matrix 7.4 / 8.0 / 8.1 |
+| REQ-SF-001 / 002 | ✅ | `php >=8.2 <8.7`, `^7.4 \|\| ^8.0`; CI matrix 7.4 / 8.0 / 8.1 |
 | REQ-SF-003 | ✅ | `#[AsTwigFilter]` / `#[AsTwigFunction]`, no ContainerAware |
 | REQ-SF-004 | — | No controllers or routes in the bundle (hosts own the endpoints) |
 | REQ-SF-005 | ✅ | `SYMFONY_DEPRECATIONS_HELPER=max[direct]=0`, [UPGRADING.md](UPGRADING.md) |
