@@ -37,7 +37,7 @@
         "changelog": "https://github.com/nowo-tech/MilkdownEditorBundle/blob/main/docs/CHANGELOG.md"
     },
     "require": {
-        "php": ">=8.2 <8.6",
+        "php": ">=8.2 <8.7",
         "league/commonmark": "^2.7",
         "psr/log": "^3.0",
         "symfony/asset": "^7.4 || ^8.0",
